@@ -65,11 +65,11 @@ protected:
 	virtual bool delete_event(uint32_t fd, EventType type)=0;
 private:
 	EventInfoMap m_eventinfo_map;
-	list<EventInfo*> m_event_timeout_list;
+	list<void*> m_event_timeout_list;
 
 	Heap m_timer_heap;
 	ObjectPool m_timerinfo_pool;
-	list<TimerInfo*> m_timer_timeout_list;
+	list<void*> m_timer_timeout_list;
 
 	bool m_exit;
 
