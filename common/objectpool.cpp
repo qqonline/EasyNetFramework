@@ -1,0 +1,44 @@
+/*
+ * objectpool.cpp
+ *
+ *  Created on: 2013-3-8
+ *      Author: Administrator
+ */
+
+#include "objectpool.h"
+#include <stdio.h>
+#include <assert.h>
+
+ObjectPool::ObjectPool(int object_size, int max_free=OBPOOL_MAX_FREE)
+	:m_object_size(object_size)
+	,m_max_free(max_free)
+	,m_free_size(0)
+{
+	m_free_objects = (void**)malloc(max_free*sizeof(void*));
+	assert(m_free_objects != NULL);
+}
+
+ObjectPool::~ObjectPool()
+{
+	int i;
+	for(i=0; i<m_free_size; ++i)
+		free(m_free_objects[i]);
+	free(m_free_objects);
+}
+
+void* ObjectPool::get()
+{
+	if(m_free_size > 0)
+		return m_free_objects[--m_free_size];
+	else
+		return malloc(m_object_size);
+}
+
+void ObjectPool::recycle (void *object)
+{
+	if(m_free_size < m_max_free)
+		m_free_objects[m_free_size++] = object;
+	else
+		free(object);
+}
+
