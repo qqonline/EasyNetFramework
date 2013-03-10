@@ -164,50 +164,50 @@ bool IODemuxer::run_loop()
 
 		//等待/处理io事件发生
 		occur_event_list.clear();
-		bool wait_result = wait_event(occur_event_list, wait_time);
-		LOCK(m_event_lock);
+		bool wait_result = wait_event(&occur_event_list, wait_time);
 		while(!occur_event_list.empty())
 		{
 			EventList::iterator it = occur_event_list.begin();
-			OccurEvent &oe = &it;
+			OccurEvent &oe = *it;
+
+			LOCK(m_event_lock);
 			EventInfoMap::iterator ei_it = m_eventinfo_map.find(oe.fd);
 			assert(ei_it != m_eventinfo_map.end());
+			UNLOCK(m_event_lock);
+
 			EventInfo *event_info = (EventInfo*)ei_it->second;
-			if(oe.event_flags & EVENT_FLAG_ERROR)
+			bool error = (oe.event_flags&EVENT_FLAG_ERROR)!=0;
+			if(!error && (oe.event_flags&EVENT_FLAG_READ))
+				error = (event_info->handler->on_fd_readable(oe.fd)!=HANDLE_SUCCESS);
+			if(!error && (oe.event_flags & EVENT_FLAG_WRITE))
+				error = (event_info->handler->on_fd_writeable(oe.fd) != HANDLE_SUCCESS);
+
+			if(error)
 			{
+				LOCK(m_event_lock);
 				remove_event(oe.fd, RDWT);
 				event_info->handler->on_fd_error(oe.fd, oe.errno);
 				m_eventinfo_map.erase(ei_it);
-				continue;
-			}
-			if(oe.event_flags & EVENT_FLAG_READ)
-			{
-				if(event_info->handler->on_fd_readable(oe.fd) == HANDLE_ERROR)
-				{
-					remove_event(oe.fd, RDWT);
-					event_info->handler->on_fd_error(oe.fd, -1);
-					m_eventinfo_map.erase(ei_it);
-					continue;
-				}
-			}
-			if(oe.event_flags & EVENT_FLAG_WRITE)
-			{
-				if(event_info->handler->on_fd_writeable(oe.fd) == HANDLE_ERROR)
-				{
-					remove_event(oe.fd, RDWT);
-					event_info->handler->on_fd_error(oe.fd, -2);
-					m_eventinfo_map.erase(ei_it);
-					continue;
-				}
+				m_eventinfo_pool.recycle((void*)event_info);
+				UNLOCK(m_event_lock);
 			}
 		}
-		UNLOCK(m_event_lock);
 
+		//处理io超时事件
+		while(!m_event_timeout_list.empty())
+		{
+			list<void*>::iterator it = m_event_timeout_list.begin();
+			EventInfo *event_info = (EventInfo *)*it;
+			event_info->handler->on_fd_timeout(event_info->fd);
+			LOCK(m_timer_lock);
+			m_eventinfo_pool.recycle((void*)timer_info);
+			UNLOCK(m_timer_lock);
+		}
 		//处理发生的时钟超时事件
 		while(!m_timer_timeout_list.empty())
 		{
-			list<TimerInfo*>::iterator it = m_timer_timeout_list.begin();
-			TimerInfo *timer_info = *it;
+			list<void*>::iterator it = m_timer_timeout_list.begin();
+			TimerInfo *timer_info = (TimerInfo *)*it;
 			m_timer_timeout_list.pop_front();
 
 			if(timer_info->handler->on_timer_timeout()==HANDLE_SUCCESS && timer_info->persist)

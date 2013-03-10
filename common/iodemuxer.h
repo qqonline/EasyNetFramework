@@ -21,9 +21,10 @@ using std::list;
 using std::map;
 
 //event flags
-#define EVENT_FLAG_ERROR     1
-#define EVENT_FLAG_WRITE     2
-#define EVENT_FLAG_READ      4
+#define EVENT_FLAG_WRITE     1
+#define EVENT_FLAG_READ      2
+#define EVENT_FLAG_TIMEOUT   4
+#define EVENT_FLAG_ERROR     8
 typedef struct _event_info_
 {
 	uint32_t fd;
@@ -61,11 +62,12 @@ protected:
 	//event_list:发生事件的列表
 	//wait_ms:等待时间(单位ms)
 	//返回:true成功;false出错
-	virtual bool wait_event(EventList &event_list, uint32_t wait_ms)=0;
+	virtual bool wait_event(EventList *event_list, uint32_t wait_ms)=0;
 	virtual bool add_event(uint32_t fd, EventType type)=0;
 	virtual bool remove_event(uint32_t fd, EventType type)=0;
 private:
 	EventInfoMap m_eventinfo_map;
+	ObjectPool m_eventinfo_pool;
 	list<void*> m_event_timeout_list;
 
 	Heap m_timer_heap;
