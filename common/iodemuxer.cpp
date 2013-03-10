@@ -27,6 +27,7 @@ typedef struct _event_info
 	uint32_t timeout;
 	uint64_t expire_time;
 	EventType event_type;
+	EventHandler *handler;
 	OccurEvent *occur_event;  //发生的事件
 }EventInfo;
 
@@ -89,7 +90,7 @@ bool IODemuxer::add_timer(TimerHandler *handler, uint32_t timeout, bool persist/
 	assert(handler != NULL);
 	LOCK(m_timer_lock);
 	TimerInfo *timer_info = (TimerInfo *)m_timerinfo_pool.get();
-	if(timer_info == NULL)
+	if(timer_info == NULL)  //out of memory
 	{
 		UNLOCK(m_timer_lock);
 		return false;
@@ -115,7 +116,7 @@ bool IODemuxer::run_loop()
 	uint64_t now_time;	   //当前时间(单位ms)
 	int wait_time;
 
-	EventList event_list;
+	EventList occur_event_list;
 
 	while(!m_exit)
 	{
@@ -125,7 +126,7 @@ bool IODemuxer::run_loop()
 		gettimeofday(&tv, NULL);
 		now_time = tv.tv_sec*1000+tv.tv_usec/1000;
 
-		//收集时钟超时事件并设置iodemuxer的wait time
+		//收集时钟超时事件并设置wait time
 		LOCK(m_timer_lock);
 		TimerInfo *timer_info;
 		while((timer_info=(TimerInfo *)m_timer_heap.top()) != NULL)
@@ -136,10 +137,8 @@ bool IODemuxer::run_loop()
 				m_timer_heap.pop();
 				continue;
 			}
-
 			if((wait_time=timer_info->expire_time-now_time) > WAIT_TIME)
 				wait_time = WAIT_TIME;
-
 			break;
 		}
 		UNLOCK(m_timer_lock);
@@ -155,7 +154,7 @@ bool IODemuxer::run_loop()
 			{
 				m_event_timeout_list.push_back(event_info);
 				m_eventinfo_map.erase(event_it++);
-				delete_event(event_info->fd, RDWT);
+				remove_event(event_info->fd, RDWT);
 				continue;
 			}
 			else
@@ -164,13 +163,45 @@ bool IODemuxer::run_loop()
 		UNLOCK(m_event_lock);
 
 		//等待/处理io事件发生
-		event_list.clear();
-		bool wait_result = wait_event(event_list, wait_time);
-		while(!event_list.empty())
+		occur_event_list.clear();
+		bool wait_result = wait_event(occur_event_list, wait_time);
+		LOCK(m_event_lock);
+		while(!occur_event_list.empty())
 		{
-			EventList::iterator it = event_list.begin();
-
+			EventList::iterator it = occur_event_list.begin();
+			OccurEvent &oe = &it;
+			EventInfoMap::iterator ei_it = m_eventinfo_map.find(oe.fd);
+			assert(ei_it != m_eventinfo_map.end());
+			EventInfo *event_info = (EventInfo*)ei_it->second;
+			if(oe.event_flags & EVENT_FLAG_ERROR)
+			{
+				remove_event(oe.fd, RDWT);
+				event_info->handler->on_fd_error(oe.fd, oe.errno);
+				m_eventinfo_map.erase(ei_it);
+				continue;
+			}
+			if(oe.event_flags & EVENT_FLAG_READ)
+			{
+				if(event_info->handler->on_fd_readable(oe.fd) == HANDLE_ERROR)
+				{
+					remove_event(oe.fd, RDWT);
+					event_info->handler->on_fd_error(oe.fd, -1);
+					m_eventinfo_map.erase(ei_it);
+					continue;
+				}
+			}
+			if(oe.event_flags & EVENT_FLAG_WRITE)
+			{
+				if(event_info->handler->on_fd_writeable(oe.fd) == HANDLE_ERROR)
+				{
+					remove_event(oe.fd, RDWT);
+					event_info->handler->on_fd_error(oe.fd, -2);
+					m_eventinfo_map.erase(ei_it);
+					continue;
+				}
+			}
 		}
+		UNLOCK(m_event_lock);
 
 		//处理发生的时钟超时事件
 		while(!m_timer_timeout_list.empty())

@@ -28,6 +28,7 @@ typedef struct _event_info_
 {
 	uint32_t fd;
 	int event_flags;       //发生的事件
+	int errno;             //发送错误时的错误码
 }OccurEvent;
 
 typedef list<OccurEvent> EventList;
@@ -62,7 +63,7 @@ protected:
 	//返回:true成功;false出错
 	virtual bool wait_event(EventList &event_list, uint32_t wait_ms)=0;
 	virtual bool add_event(uint32_t fd, EventType type)=0;
-	virtual bool delete_event(uint32_t fd, EventType type)=0;
+	virtual bool remove_event(uint32_t fd, EventType type)=0;
 private:
 	EventInfoMap m_eventinfo_map;
 	list<void*> m_event_timeout_list;
