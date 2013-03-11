@@ -33,19 +33,20 @@ typedef struct _event_info
 
 typedef struct _timer_info
 {
+	HeapItem _heap_item;
 	uint64_t expire_time;    //超时时间点(ms)
 	uint32_t timeout;
 	bool persist;
 	TimerHandler *handler;
 }TimerInfo;
 
-static int _timer_info_cmp(void *element_a, void *element_b)
+static int _timer_info_cmp(HeapItem *item0, HeapItem *item1)
 {
-	TimerInfo *timer_info_a = (TimerInfo*)element_a;
-	TimerInfo *timer_info_b = (TimerInfo*)element_b;
-	if(timer_info_a->expire_time < timer_info_b->expire_time)
+	TimerInfo *timerinfo0 = (TimerInfo*)item0;
+	TimerInfo *timerinfo1 = (TimerInfo*)item1;
+	if(timerinfo0->expire_time < timerinfo1->expire_time)
 		return -1;
-	else if (timer_info_a->expire_time == timer_info_b->expire_time)
+	else if (timerinfo0->expire_time == timerinfo1->expire_time)
 		return 0;
 	else
 		return 1;
@@ -102,7 +103,7 @@ bool IODemuxer::add_timer(TimerHandler *handler, uint32_t timeout, bool persist/
 	timer_info->handler = handler;
 	timer_info->timeout = timeout;
 	timer_info->persist = persist;
-	bool result = m_timer_heap.insert((void*)timer_info);
+	bool result = m_timer_heap.insert((HeapItem*)timer_info);
 	if(!result)
 		m_timerinfo_pool.recycle((void*)timer_info);
 	UNLOCK(m_timer_lock);
@@ -214,7 +215,7 @@ bool IODemuxer::run_loop()
 			{
 				timer_info->expire_time = now_time+timer_info->timeout;
 				LOCK(m_timer_lock);
-				bool temp = m_timer_heap.insert((void*)timer_info);
+				bool temp = m_timer_heap.insert((HeapItem*)timer_info);
 				UNLOCK(m_timer_lock);
 				assert(temp == true);
 			}
