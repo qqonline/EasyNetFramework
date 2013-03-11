@@ -31,7 +31,7 @@ Heap::~Heap()
 	m_items = NULL;
 }
 
-//插入元素,成功返回0,失败返回-1
+//插入元素.成功返回ture,失败返回false
 bool Heap::insert(HeapItem *item)
 {
 	assert(item != NULL);
@@ -42,6 +42,22 @@ bool Heap::insert(HeapItem *item)
 	item->index = m_size;
 	m_items[m_size++] = item;
 	_shift_up(item->index);
+	return true;
+}
+
+//删除堆元素.成功返回ture,失败返回false
+bool Heap::remove(HeapItem *item)
+{
+	assert(item != NULL);
+	if(item->index >= m_size)
+		return false;
+	HeapItem *temp = m_items[item->index] = m_items[--m_size];
+	temp->index = item->index;
+	int result = m_cmp_func(temp, item);
+	if(result == -1)
+		_shift_up(temp->index);
+	else if(result == 1)
+		_shift_down(temp->index);
 	return true;
 }
 

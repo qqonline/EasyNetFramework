@@ -30,7 +30,8 @@ public:
 	~Heap();
 
 	int size();                          //堆元素个数
-	bool insert(HeapItem *item);         //插入元素,成功返回0,失败返回-1
+	bool insert(HeapItem *item);         //插入元素.成功返回ture,失败返回false
+	bool remove(HeapItem *item);         //删除元素.成功返回ture,失败返回false
 	HeapItem* top();                     //获取堆顶元素
 	void pop();                          //删除堆顶元素
 	void clear(ItemDestroy des_func);    //清除堆(如果指定destroy函数,则用该函数处理每个heap item)
