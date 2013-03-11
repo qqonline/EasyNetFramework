@@ -14,29 +14,36 @@
 
 //比较函数指针.返回值:-1(a小于b); 0(a等于b); 1(a大于b)
 //如果a不大于b,则a排列在b的前面
-typedef int (*ElemCompare)(void *element_a, void *element_b);
+typedef int (*ItemCompare)(HeapItem *item0, HeapItem *item1);
 //元素销毁函数指针
-typedef void (*ElemDestroy)(void *element);
+typedef void (*ItemDestroy)(HeapItem *item);
+
+typedef struct _heap_item_
+{
+	uint32_t index;
+}HeapItem;
 
 class Heap
 {
 public:
-	Heap(ElemCompare cmp_func, ElemDestroy des_func);
+	Heap(ItemCompare cmp_func);
 	~Heap();
 
 	int size();                          //堆元素个数
-	bool insert(void *element);          //插入元素,成功返回0,失败返回-1
-	void* top();                         //获取堆顶元素
+	bool insert(HeapItem *item);         //插入元素,成功返回0,失败返回-1
+	HeapItem* top();                     //获取堆顶元素
 	void pop();                          //删除堆顶元素
-	void clear();                        //清除堆
+	void clear(ItemDestroy des_func);    //清除堆(如果指定destroy函数,则用该函数处理每个heap item)
+	HeapItem* get_item(uint32_t index);  //获取指定的heap item
 private:
-	int m_size;        //堆元素个数
-	int m_capacity;    //堆当前容量
-	void **m_elements; //堆元素数组
-	ElemCompare m_cmp_func;
-	ElemDestroy m_des_func;
+	int m_size;              //堆元素个数
+	int m_capacity;          //堆当前容量
+	HeapItem **m_items;      //堆元素数组
+	ItemCompare m_cmp_func;  //堆元素比较函数
 private:
-	bool _expand_capacity();
+	void _shift_up(uint32_t index);      //自底向上调整
+	void _shift_down(uint32_t index);    //自顶向下调整
+	bool _expand_capacity();             //扩展堆的大小
 };
 
 inline
@@ -46,9 +53,15 @@ int Heap::size()
 }
 
 inline
-void* Heap::top()
+HeapItem* Heap::top()
 {
-	return m_size>0?m_elements[0]:NULL;
+	return m_size>0?m_items[0]:NULL;
+}
+
+inline
+HeapItem* Heap::get_item(uint32_t index)
+{
+	return index>=m_size?NULL:m_items[index];
 }
 
 #endif //_HEAP_SORT_H_
