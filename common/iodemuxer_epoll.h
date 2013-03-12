@@ -37,6 +37,7 @@ private:
 	uint32_t m_epfd;
 	ObjectPool m_eventinfo_pool;
 	EventInfoMap m_eventinfo_map;
+	Heap m_timeout_heap;    //fd超时heap
 	void *m_event_lock;
 
 	bool m_et_mode;

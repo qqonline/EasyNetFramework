@@ -81,7 +81,7 @@ bool IODemuxer::add_timer(TimerHandler *handler, uint32_t timeout, bool persist/
 	timer_info->handler = handler;
 	timer_info->timeout = timeout;
 	timer_info->persist = persist;
-	timer_info->expire_time = now_time + timeout;
+	timer_info->expire_time = now_time+timeout;
 	bool result = m_timer_heap.insert((HeapItem*)timer_info);
 	if(!result)
 		m_timerinfo_pool.recycle((void*)timer_info);

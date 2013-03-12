@@ -27,10 +27,22 @@ typedef struct _event_info_
 	uint64_t expire_time;
 }EventInfo;
 
+static int _event_cmp(HeapItem *item0, HeapItem *item1)
+{
+	EventInfo *eventinfo0 = (EventInfo*)item0;
+	EventInfo *eventinfo1 = (EventInfo*)item1;
+	if(eventinfo0->expire_time < eventinfo1->expire_time)
+		return -1;
+	else if (eventinfo0->expire_time == eventinfo1->expire_time)
+		return 0;
+	else
+		return 1;
+}
 
 IODemuxerEpoll::IODemuxerEpoll(bool thread_safe/*=true*/, bool et_mode/*=false*/)
 	:IODemuxer(thread_safe)
 	,m_eventinfo_pool(sizeof(EventInfo), 1024)
+	,m_timeout_heap(_event_cmp)
 	,m_et_mode(et_mode)
 {
 	m_epfd = epoll_create1(EPOLL_CLOEXEC);
@@ -82,7 +94,7 @@ bool IODemuxerEpoll::add_event(EventHandler *handler, uint32_t fd, EventType typ
 		event_info->type = type;
 		event_info->timeout = timeout;
 		event_info->handler = handler;
-		event_info->expire_time = now_time + timeout;
+		event_info->expire_time = now_time+timeout;
 
 		//添加到eventinfo_map
 		std::pair<EventInfoMap::iterator, bool> result;
@@ -93,9 +105,16 @@ bool IODemuxerEpoll::add_event(EventHandler *handler, uint32_t fd, EventType typ
 			UNLOCK(m_event_lock);
 			return false;
 		}
-		//TODO: 添加到超时监控队列中
-		//
-		//
+
+		//添加到timeout_heap中
+		bool insert_succ = m_timeout_heap.insert((HeapItem*)event_info);
+		if(!insert_succ)
+		{
+			m_eventinfo_map.erase(fd);
+			m_eventinfo_pool.recycle((void*)event_info);
+			UNLOCK(m_event_lock);
+			return false;
+		}
 
 		//添加到epoll中
 		struct epoll_event event;
@@ -109,10 +128,7 @@ bool IODemuxerEpoll::add_event(EventHandler *handler, uint32_t fd, EventType typ
 			event.events |= EPOLLET;
 		if(epoll_ctl(m_epfd, EPOLL_CTL_ADD, fd, &event) == -1)
 		{
-			//TODO:从超时队列删除
-			//
-			//
-
+			m_timeout_heap.remove((HeapItem*)event_info);
 			m_eventinfo_map.erase(fd);
 			m_eventinfo_pool.recycle((void*)event_info);
 			UNLOCK(m_event_lock);
@@ -172,10 +188,7 @@ bool IODemuxerEpoll::delete_event(uint32_t fd, EventType type)
 		event.events |= EPOLLOUT;
 	if(event.events == 0)   //remove event from epoll
 	{
-		//TODO:从超时队列删除掉
-		//
-		//
-
+		m_timeout_heap.remove((HeapItem*)event_info);
 		m_eventinfo_map.erase(fd);
 		m_eventinfo_pool.recycle((void*)event_info);
 		if(epoll_ctl(m_epfd, EPOLL_CTL_DEL, -1, NULL) == -1)
