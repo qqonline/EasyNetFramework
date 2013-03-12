@@ -5,18 +5,17 @@
  *      Author: LiuYongJin
  */
 
-#ifndef _COMMON_EVENT_HANDLER_H_
 #define _COMMON_EVENT_HANDLER_H_
-
-#include <stdint.h>
+#define _COMMON_EVENT_HANDLER_H_
 
 typedef int EventType;
 #define WRITE     1   //写事件
 #define READ      2   //读事件
 #define PERSIST   4   //事件的持续标记
-#define RDWT      READ|WRITE     //读写事件
-#define RDPE      READ|PERSIST   //持续读事件
-#define RDWTPE    RDWT|PERSIST   //持续读事件和写事件
+#define RDWT      3   //读写事件
+#define WTRD      3   //读写事件
+#define RDPE      6   //持续读事件
+#define WTRDPE    7   //持续读事件和写事件
 ////注:没有持续写事件.等待可写需要根据实际情况设置;
 
 typedef enum
