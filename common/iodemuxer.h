@@ -14,9 +14,6 @@
 #include "heap.h"
 #include "objectpool.h"
 
-#include <list>
-using std::list;
-
 class IODemuxer
 {
 public:
@@ -32,7 +29,6 @@ public:
 	bool add_timer(TimerHandler *handler, uint32_t timeout, bool persist=true);
 private:
 	Heap m_timer_heap;
-	list<void*> m_timer_timeout_list;
 	ObjectPool m_timerinfo_pool;
 	void *m_timer_lock;
 	bool m_exit;
@@ -48,10 +44,10 @@ public:
 
 	//删除fd上监听的type事件
 	virtual bool delete_event(uint32_t fd, EventType type)=0;
-protected:
+
 	//分配发生的io事件
 	//  wait_ms:等待事件发生的时间
-	virtual void dispatch_events(uint32_t wait_ms)=0;
+	virtual void dispatch_events(uint64_t now_ms, uint32_t wait_ms)=0;
 };
 
 #endif //_COMMON_IODEMUXER_H_

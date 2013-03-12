@@ -11,6 +11,10 @@
 #include <assert.h>
 #include <pthread.h>
 
+#include <list>
+using std::list;
+
+
 #define _lock(plock) pthread_mutex_lock((pthread_mutex_t*)plock)
 #define _unlock(plock) pthread_mutex_unlock((pthread_mutex_t*)plock)
 
@@ -95,6 +99,7 @@ bool IODemuxer::run_loop()
 	const int WAIT_TIME = 1000;    //1000ms
 	uint64_t now_time;    //当前时间(单位ms)
 	int wait_time;
+	list<TimerInfo*> m_timer_timeout_list;
 
 	while(!m_exit)
 	{
@@ -105,13 +110,14 @@ bool IODemuxer::run_loop()
 		now_time = tv.tv_sec*1000+tv.tv_usec/1000;
 
 		//收集时钟超时事件并设置wait_time
+		m_timer_timeout_list.clear();
 		LOCK(m_timer_lock);
 		TimerInfo *timer_info;
 		while((timer_info=(TimerInfo*)m_timer_heap.top()) != NULL)
 		{
 			if(timer_info->expire_time <= now_time)    //时钟超时
 			{
-				m_timer_timeout_list.push_back((void*)timer_info);
+				m_timer_timeout_list.push_back(timer_info);
 				m_timer_heap.pop();
 				continue;
 			}
@@ -121,7 +127,7 @@ bool IODemuxer::run_loop()
 		}
 		UNLOCK(m_timer_lock);
 
-		dispatch_events(wait_time);    //处理io事件
+		dispatch_events(now_time, wait_time);    //处理io事件
 
 		//处理发生的时钟超时事件
 		while(!m_timer_timeout_list.empty())

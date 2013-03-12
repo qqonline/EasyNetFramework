@@ -9,13 +9,22 @@
 #include <sys/time.h>
 #include <assert.h>
 #include <unistd.h>
-#include "pthread.h"
+#include <pthread.h>
+
+#include <list>
+using std::list;
 
 #define _lock(plock) pthread_mutex_lock((pthread_mutex_t*)plock)
 #define _unlock(plock) pthread_mutex_unlock((pthread_mutex_t*)plock)
 
 #define LOCK(plock) plock!=NULL&&_lock(plock)
 #define UNLOCK(plock) plock!=NULL&&_unlock(plock)
+
+typedef uint32_t OccureEvent;
+#define OE_TIMEOUT       1
+#define OE_ERROR         2
+#define OE_READ          4
+#define OE_WRITE         8
 
 typedef struct _event_info_
 {
@@ -24,6 +33,7 @@ typedef struct _event_info_
 	EventType type;
 	uint32_t timeout;  //ms
 	EventHandler *handler;
+	OccureEvent occur_event;
 	uint64_t expire_time;
 }EventInfo;
 
@@ -47,6 +57,10 @@ IODemuxerEpoll::IODemuxerEpoll(bool thread_safe/*=true*/, bool et_mode/*=false*/
 {
 	m_epfd = epoll_create1(EPOLL_CLOEXEC);
 	assert(m_epfd != -1);
+
+	m_size = 1024;
+	m_epoll_events = (struct epoll_event*)malloc(sizeof(struct epoll_event)*m_size);
+	assert(m_epoll_events != NULL);
 
 	if(thread_safe)
 	{
@@ -191,7 +205,7 @@ bool IODemuxerEpoll::delete_event(uint32_t fd, EventType type)
 		m_timeout_heap.remove((HeapItem*)event_info);
 		m_eventinfo_map.erase(fd);
 		m_eventinfo_pool.recycle((void*)event_info);
-		if(epoll_ctl(m_epfd, EPOLL_CTL_DEL, -1, NULL) == -1)
+		if(epoll_ctl(m_epfd, EPOLL_CTL_DEL, fd, NULL) == -1)
 		{
 			UNLOCK(m_event_lock);
 			return false;
@@ -212,8 +226,46 @@ bool IODemuxerEpoll::delete_event(uint32_t fd, EventType type)
 	return true;
 }
 
-void IODemuxerEpoll::dispatch_events(uint32_t wait_ms)
+void IODemuxerEpoll::dispatch_events(uint64_t now_ms, uint32_t wait_ms)
 {
+	if(now_ms == 0)
+	{
+		struct timeval tv;
+		gettimeofday(&tv, NULL);
+		now_ms = tv.tv_sec*1000+tv.tv_usec/1000;
+	}
 
+	EventInfo *event_info;
+	list<EventInfo*> m_event_list;
+
+	//检查超时的fd
+	LOCK(m_event_lock);
+	if(m_size < m_eventinfo_map.size())
+	{
+		m_size = m_eventinfo_map.size()*2;
+		m_epoll_events = (struct epoll_event*)realloc((void*)m_epoll_events, sizeof(struct epoll_event)*m_size);
+		assert(m_epoll_events != NULL);
+	}
+
+	while((event_info=(EventInfo*)m_timeout_heap.top()) != NULL)
+	{
+		if(event_info->expire_time > now_ms)    //时钟超时
+			break;
+		m_timeout_heap.pop();
+		m_eventinfo_map.erase(event_info->fd);
+		epoll_ctl(m_epfd, EPOLL_CTL_DEL, event_info->fd, NULL);
+		m_event_list.push_front(event_info);
+		event_info->occur_event = OE_TIMEOUT;
+	}
+	int count = epoll_wait(m_epfd, m_epoll_events, m_size, wait_ms);
+	while(--count >= 0)
+	{
+
+	}
+
+	UNLOCK(m_event_lock);
+
+
+	//处理发生的io事件
 	return;
 }
