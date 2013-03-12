@@ -10,18 +10,18 @@
 
 #include "iodemuxer.h"
 #include "sys/epoll.h"
-#include "pthread.h"
 #include "objectpool.h"
 
 #include <stdint.h>
 #include <map>
 using std::map;
+
 typedef map<uint32_t, void*> EventInfoMap;    //key:fd; value:event_info
 
 class IODemuxerEpoll:public IODemuxer
 {
 public:
-	IODemuxerEpoll(bool thread_safe=true, bool ET_MODE=false);
+	IODemuxerEpoll(bool thread_safe=true, bool et_mode=false);
 	~IODemuxerEpoll();
 
 public:  //实现基类纯虚函数
@@ -37,7 +37,7 @@ private:
 	uint32_t m_epfd;
 	ObjectPool m_eventinfo_pool;
 	EventInfoMap m_eventinfo_map;
-	pthread_mutex_t *m_event_lock;
+	void *m_event_lock;
 
 	bool m_et_mode;
 };

@@ -7,37 +7,39 @@
 
 #include "iodemuxer.h"
 #include <sys/time.h>
-#include <stdint.h>
+#include <stdlib.h>
 #include <assert.h>
+#include <pthread.h>
 
-#define _lock(plock) pthread_mutex_lock(plock)
-#define _unlock(plock) pthread_mutex_unlock(plock)
+#define _lock(plock) pthread_mutex_lock((pthread_mutex_t*)plock)
+#define _unlock(plock) pthread_mutex_unlock((pthread_mutex_t*)plock)
 
 #define LOCK(plock) plock!=NULL&&_lock(plock)
 #define UNLOCK(plock) plock!=NULL&&_unlock(plock)
 
 typedef struct _timer_info
 {
-	uint64_t expire_time;    //超时时间点(ms)
+	HeapItem heap_item;
 	uint32_t timeout;
 	bool persist;
 	TimerHandler *handler;
+	uint64_t expire_time;    //超时时间点(ms)
 }TimerInfo;
 
-static int _timer_info_cmp(void *element_a, void *element_b)
+static int _timer_info_cmp(HeapItem *item0, HeapItem *item1)
 {
-	TimerInfo *timer_info_a = (TimerInfo*)element_a;
-	TimerInfo *timer_info_b = (TimerInfo*)element_b;
-	if(timer_info_a->expire_time < timer_info_b->expire_time)
+	TimerInfo *timerinfo0 = (TimerInfo*)item0;
+	TimerInfo *timerinfo1 = (TimerInfo*)item1;
+	if(timerinfo0->expire_time < timerinfo1->expire_time)
 		return -1;
-	else if (timer_info_a->expire_time == timer_info_b->expire_time)
+	else if (timerinfo0->expire_time == timerinfo1->expire_time)
 		return 0;
 	else
 		return 1;
 }
 
 IODemuxer::IODemuxer(bool thread_safe)
-	:m_timer_heap(_timer_info_cmp, NULL)
+	:m_timer_heap(_timer_info_cmp)
 	,m_timerinfo_pool(sizeof(TimerInfo))
 	,m_timer_lock(NULL)
 	,m_exit(false)
@@ -46,7 +48,7 @@ IODemuxer::IODemuxer(bool thread_safe)
 	{
 		m_timer_lock = malloc(sizeof(pthread_mutex_t));
 		assert(m_timer_lock != NULL);
-		pthread_mutex_init(m_timer_lock, NULL);
+		pthread_mutex_init((pthread_mutex_t*)m_timer_lock, NULL);
 	}
 }
 
@@ -54,7 +56,7 @@ IODemuxer::~IODemuxer()
 {
 	if(m_timer_lock != NULL)
 	{
-		pthread_mutex_destroy(m_timer_lock);
+		pthread_mutex_destroy((pthread_mutex_t*)m_timer_lock);
 		free(m_timer_lock);
 		m_timer_lock = NULL;
 	}
@@ -90,8 +92,8 @@ bool IODemuxer::add_timer(TimerHandler *handler, uint32_t timeout, bool persist/
 bool IODemuxer::run_loop()
 {
 	m_exit = false;
-	const int WAIT_TIME = 1000;  //1000ms
-	uint64_t now_time;           //当前时间(单位ms)
+	const int WAIT_TIME = 1000;    //1000ms
+	uint64_t now_time;    //当前时间(单位ms)
 	int wait_time;
 
 	while(!m_exit)
@@ -107,7 +109,7 @@ bool IODemuxer::run_loop()
 		TimerInfo *timer_info;
 		while((timer_info=(TimerInfo*)m_timer_heap.top()) != NULL)
 		{
-			if(timer_info->expire_time <= now_time)  //时钟超时
+			if(timer_info->expire_time <= now_time)    //时钟超时
 			{
 				m_timer_timeout_list.push_back((void*)timer_info);
 				m_timer_heap.pop();
@@ -125,7 +127,7 @@ bool IODemuxer::run_loop()
 		while(!m_timer_timeout_list.empty())
 		{
 			list<void*>::iterator it = m_timer_timeout_list.begin();
-			TimerInfo *timer_info = *it;
+			TimerInfo *timer_info = (TimerInfo*)*it;
 			m_timer_timeout_list.pop_front();
 
 			if(timer_info->handler->on_timer_timeout()==HANDLE_SUCCESS && timer_info->persist)

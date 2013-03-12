@@ -6,16 +6,20 @@
  */
 
 #include "iodemuxer_epoll.h"
+#include <sys/time.h>
 #include <assert.h>
+#include <unistd.h>
+#include "pthread.h"
 
-#define _lock(plock) pthread_mutex_lock(plock)
-#define _unlock(plock) pthread_mutex_unlock(plock)
+#define _lock(plock) pthread_mutex_lock((pthread_mutex_t*)plock)
+#define _unlock(plock) pthread_mutex_unlock((pthread_mutex_t*)plock)
 
 #define LOCK(plock) plock!=NULL&&_lock(plock)
 #define UNLOCK(plock) plock!=NULL&&_unlock(plock)
 
 typedef struct _event_info_
 {
+	HeapItem heap_item;
 	uint32_t fd;
 	EventType type;
 	uint32_t timeout;  //ms
@@ -24,24 +28,28 @@ typedef struct _event_info_
 }EventInfo;
 
 
-IODemuxerEpoll::IODemuxerEpoll(bool thread_safe/*=true*/, bool ET_MODE/*=false*/)
+IODemuxerEpoll::IODemuxerEpoll(bool thread_safe/*=true*/, bool et_mode/*=false*/)
 	:IODemuxer(thread_safe)
 	,m_eventinfo_pool(sizeof(EventInfo), 1024)
-	,m_et_mode(ET_MODE)
+	,m_et_mode(et_mode)
 {
+	m_epfd = epoll_create1(EPOLL_CLOEXEC);
+	assert(m_epfd != -1);
+
 	if(thread_safe)
 	{
 		m_event_lock = malloc(sizeof(pthread_mutex_t));
 		assert(m_event_lock != NULL);
-		pthread_mutex_init(m_event_lock, NULL);
+		pthread_mutex_init((pthread_mutex_t*)m_event_lock, NULL);
 	}
 }
 
 IODemuxerEpoll::~IODemuxerEpoll()
 {
+	close(m_epfd);
 	if(m_event_lock != NULL)
 	{
-		pthread_mutex_destroy(m_event_lock);
+		pthread_mutex_destroy((pthread_mutex_t*)m_event_lock);
 		free(m_event_lock);
 		m_event_lock = NULL;
 	}

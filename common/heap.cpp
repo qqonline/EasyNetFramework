@@ -6,9 +6,7 @@
  */
 #include "heap.h"
 
-#include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
 #include <assert.h>
 
 #define INIT_CAPACITY 128
@@ -17,7 +15,7 @@ Heap::Heap(ItemCompare cmp_func)
 {
 	assert(cmp_func != NULL);
 
-	m_items = (void **)malloc(sizeof(HeapItem*)*INIT_CAPACITY);
+	m_items = (HeapItem**)malloc(sizeof(HeapItem*)*INIT_CAPACITY);
 	assert(m_items != NULL);
 
 	m_size = 0;

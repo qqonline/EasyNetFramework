@@ -5,8 +5,10 @@
  *      Author: LiuYongJin
  */
 
+#ifndef _COMMON_EVENT_HANDLER_H_
 #define _COMMON_EVENT_HANDLER_H_
-#define _COMMON_EVENT_HANDLER_H_
+
+#include <stdint.h>
 
 typedef int EventType;
 #define WRITE     1   //写事件

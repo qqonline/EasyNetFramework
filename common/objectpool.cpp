@@ -6,10 +6,10 @@
  */
 
 #include "objectpool.h"
-#include <stdio.h>
 #include <assert.h>
+#include <stdlib.h>
 
-ObjectPool::ObjectPool(int object_size, int max_free=OBPOOL_MAX_FREE)
+ObjectPool::ObjectPool(uint32_t object_size, uint32_t max_free/*=OBPOOL_MAX_FREE*/)
 	:m_object_size(object_size)
 	,m_max_free(max_free)
 	,m_free_size(0)
@@ -20,7 +20,7 @@ ObjectPool::ObjectPool(int object_size, int max_free=OBPOOL_MAX_FREE)
 
 ObjectPool::~ObjectPool()
 {
-	int i;
+	uint32_t i;
 	for(i=0; i<m_free_size; ++i)
 		free(m_free_objects[i]);
 	free(m_free_objects);
