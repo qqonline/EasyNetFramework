@@ -13,17 +13,18 @@
 typedef int EventType;
 #define WRITE     1   //写事件
 #define READ      2   //读事件
-#define PERSIST   4   //事件的持续标记
 #define RDWT      3   //读写事件
 #define WTRD      3   //读写事件
-#define RDPE      6   //持续读事件
-#define WTRDPE    7   //持续读事件和写事件
-////注:没有持续写事件.等待可写需要根据实际情况设置;
+/*注:
+ *  1. 读事件一旦添加到iodemuxer中后,iodemuxer不会主动删除读事件,除非发生错误或者handler返回HANDLE_SUCCESS/HANDLE_ERROR;
+ *  2. 写事件添加到iodemuxer后,一旦产生了写事件,写事件将被删除,除非handler返回HANDLE_CONTINUE;
+ */
 
 typedef enum
 {
-	HANDLE_SUCCESS,
-	HANDLE_ERROR
+	HANDLE_SUCCESS,     //成功(相应事件将从iodemuxer删除)
+	HANDLE_CONTINUE,    //继续(相应事件继续保留在iodemuxer进行监听)
+	HANDLE_ERROR        //失败(相应事件将从iodemuxer删除并且on_fd_error将被调用)
 }HANDLE_RESULT;
 
 class TimerHandler

@@ -25,7 +25,6 @@ typedef struct _timer_info
 {
 	HeapItem heap_item;
 	uint32_t timeout;
-	bool persist;
 	TimerHandler *handler;
 	uint64_t expire_time;    //超时时间点(ms)
 }TimerInfo;
@@ -66,7 +65,7 @@ IODemuxer::~IODemuxer()
 	}
 }
 
-bool IODemuxer::add_timer(TimerHandler *handler, uint32_t timeout, bool persist/*=true*/)
+bool IODemuxer::add_timer(TimerHandler *handler, uint32_t timeout)
 {
 	assert(handler != NULL);
 
@@ -84,7 +83,6 @@ bool IODemuxer::add_timer(TimerHandler *handler, uint32_t timeout, bool persist/
 
 	timer_info->handler = handler;
 	timer_info->timeout = timeout;
-	timer_info->persist = persist;
 	timer_info->expire_time = now_time+timeout;
 	bool result = m_timer_heap.insert((HeapItem*)timer_info);
 	if(!result)
@@ -96,10 +94,10 @@ bool IODemuxer::add_timer(TimerHandler *handler, uint32_t timeout, bool persist/
 bool IODemuxer::run_loop()
 {
 	m_exit = false;
-	const int WAIT_TIME = 1000;    //1000ms
+	const int WAIT_TIME = 100;    //100ms
 	uint64_t now_time;    //当前时间(单位ms)
 	int wait_time;
-	list<TimerInfo*> m_timer_timeout_list;
+	list<TimerInfo*> timeout_list;
 
 	while(!m_exit)
 	{
@@ -110,14 +108,14 @@ bool IODemuxer::run_loop()
 		now_time = tv.tv_sec*1000+tv.tv_usec/1000;
 
 		//收集时钟超时事件并设置wait_time
-		m_timer_timeout_list.clear();
+		timeout_list.clear();
 		LOCK(m_timer_lock);
 		TimerInfo *timer_info;
 		while((timer_info=(TimerInfo*)m_timer_heap.top()) != NULL)
 		{
 			if(timer_info->expire_time <= now_time)    //时钟超时
 			{
-				m_timer_timeout_list.push_back(timer_info);
+				timeout_list.push_back(timer_info);
 				m_timer_heap.pop();
 				continue;
 			}
@@ -130,13 +128,13 @@ bool IODemuxer::run_loop()
 		dispatch_events(now_time, wait_time);    //处理io事件
 
 		//处理发生的时钟超时事件
-		while(!m_timer_timeout_list.empty())
+		while(!timeout_list.empty())
 		{
-			list<void*>::iterator it = m_timer_timeout_list.begin();
-			TimerInfo *timer_info = (TimerInfo*)*it;
-			m_timer_timeout_list.pop_front();
-
-			if(timer_info->handler->on_timer_timeout()==HANDLE_SUCCESS && timer_info->persist)
+			list<TimerInfo*>::iterator it = timeout_list.begin();
+			TimerInfo *timer_info = *it;
+			timeout_list.pop_front();
+			HANDLE_RESULT result = timer_info->handler->on_timer_timeout();
+			if(timer_info->handler->on_timer_timeout() == HANDLE_RESULT::HANDLE_CONTINUE)
 			{
 				timer_info->expire_time = now_time+timer_info->timeout;
 				LOCK(m_timer_lock);

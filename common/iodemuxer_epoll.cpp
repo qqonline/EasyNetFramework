@@ -81,7 +81,7 @@ IODemuxerEpoll::~IODemuxerEpoll()
 	}
 }
 
-bool IODemuxerEpoll::add_event(EventHandler *handler, uint32_t fd, EventType type, uint32_t timeout)
+bool IODemuxerEpoll::add_event(uint32_t fd, EventType type, EventHandler *handler, uint32_t timeout)
 {
 	assert(handler != NULL);
 	assert(type & RDWT);
@@ -109,6 +109,7 @@ bool IODemuxerEpoll::add_event(EventHandler *handler, uint32_t fd, EventType typ
 		event_info->timeout = timeout;
 		event_info->handler = handler;
 		event_info->expire_time = now_time+timeout;
+		event_info->occur_event = 0;
 
 		//添加到eventinfo_map
 		std::pair<EventInfoMap::iterator, bool> result;
@@ -148,80 +149,48 @@ bool IODemuxerEpoll::add_event(EventHandler *handler, uint32_t fd, EventType typ
 			UNLOCK(m_event_lock);
 			return false;
 		}
-
-		UNLOCK(m_event_lock);
-		return true;
 	}
-
-	//find in eventinfo_map
-	event_info = (EventInfo*)ev_it->second;
-	if((event_info->type&RDWT) != (type&RDWT))
+	else
 	{
-		struct epoll_event event;
-		event.events = 0;
-		event.data.ptr = (void*)event_info;
-		if(type & WRITE)
-			event.events |= EPOLLOUT;
-		if(type & READ)
-			event.events |= EPOLLIN;
-		if(m_et_mode)
-			event.events |= EPOLLET;
-		if(epoll_ctl(m_epfd, EPOLL_CTL_MOD, fd, &event) == -1)
+		//find in eventinfo_map
+		event_info = (EventInfo*)ev_it->second;
+		if((event_info->type&RDWT) != (type&RDWT))
 		{
-			UNLOCK(m_event_lock);
-			return false;
+			struct epoll_event event;
+			event.events = 0;
+			event.data.ptr = (void*)event_info;
+			if(type & WRITE)
+				event.events |= EPOLLOUT;
+			if(type & READ)
+				event.events |= EPOLLIN;
+			if(m_et_mode)
+				event.events |= EPOLLET;
+			if(epoll_ctl(m_epfd, EPOLL_CTL_MOD, fd, &event) == -1)
+			{
+				UNLOCK(m_event_lock);
+				return false;
+			}
 		}
+		event_info->type |= type;
+		event_info->occur_event = 0;
 	}
-	event_info->type |= type;    //maybe different(PERSIST flag)
+
 	UNLOCK(m_event_lock);
 	return true;
 }
 
-bool IODemuxerEpoll::delete_event(uint32_t fd, EventType type)
+bool IODemuxerEpoll::delete_event(uint32_t fd)
 {
-	if((type&RDWT) == 0)
-		return true;
 	LOCK(m_event_lock);
 	EventInfoMap::iterator ev_it = m_eventinfo_map.find(fd);
-	if(ev_it == m_eventinfo_map.end())
+	if(ev_it != m_eventinfo_map.end())
 	{
-		UNLOCK(m_event_lock);
-		return true;
-	}
-
-	//find in eventinfo_map
-	EventInfo *event_info = (EventInfo*)ev_it->second;
-	int new_type = ~type&event_info->type;
-
-	struct epoll_event event;
-	event.events = 0;
-	event.data.ptr = (void*)event_info;
-	if((new_type&RDWT) == READ)
-		event.events |= EPOLLIN;
-	if((new_type&WRITE) == WRITE)
-		event.events |= EPOLLOUT;
-	if(event.events == 0)   //remove event from epoll
-	{
+		EventInfo *event_info = (EventInfo*)ev_it->second;
 		m_timeout_heap.remove((HeapItem*)event_info);
 		m_eventinfo_map.erase(fd);
 		m_eventinfo_pool.recycle((void*)event_info);
-		if(epoll_ctl(m_epfd, EPOLL_CTL_DEL, fd, NULL) == -1)
-		{
-			UNLOCK(m_event_lock);
-			return false;
-		}
+		epoll_ctl(m_epfd, EPOLL_CTL_DEL, fd, NULL);
 	}
-	else
-	{
-		if(m_et_mode)
-			event.events |= EPOLLET;
-		if(epoll_ctl(m_epfd, EPOLL_CTL_MOD, fd, &event) == -1)
-		{
-			UNLOCK(m_event_lock);
-			return false;
-		}
-	}
-
 	UNLOCK(m_event_lock);
 	return true;
 }
@@ -249,22 +218,32 @@ void IODemuxerEpoll::dispatch_events(uint64_t now_ms, uint32_t wait_ms)
 
 	while((event_info=(EventInfo*)m_timeout_heap.top()) != NULL)
 	{
-		if(event_info->expire_time > now_ms)    //时钟超时
+		if(event_info->expire_time > now_ms)
 			break;
 		m_timeout_heap.pop();
 		m_eventinfo_map.erase(event_info->fd);
-		epoll_ctl(m_epfd, EPOLL_CTL_DEL, event_info->fd, NULL);
+		epoll_ctl(m_epfd, EPOLL_CTL_DEL, event_info->fd, NULL);    //失败?
 		m_event_list.push_front(event_info);
 		event_info->occur_event = OE_TIMEOUT;
 	}
+
 	int count = epoll_wait(m_epfd, m_epoll_events, m_size, wait_ms);
 	while(--count >= 0)
 	{
+		event_info = (EventInfo*)m_epoll_events[count].data.ptr;
+		event_info->occur_event = 0;
 
+		if(m_epoll_events[count].events & EPOLLERR)
+			event_info->occur_event |= OE_ERROR;
+		if(m_epoll_events[count].events & EPOLLIN)
+			event_info->occur_event |= OE_READ;
+		if(m_epoll_events[count].events & EPOLLOUT)
+			event_info->occur_event |= OE_WRITE;
+
+		m_event_list.push_front(event_info);
 	}
 
 	UNLOCK(m_event_lock);
-
 
 	//处理发生的io事件
 	return;
