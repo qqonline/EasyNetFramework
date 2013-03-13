@@ -1,4 +1,6 @@
+INCLUDE=-I/tmp/EasyNetFramework/common
+
 all:
-	g++ *.cpp *.h -c
+	g++ ${INCLUDE} *.cpp -c
 clean:
-	rm *.o *.gch
+	rm *.o 
