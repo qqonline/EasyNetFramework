@@ -9,17 +9,11 @@
 #include <sys/time.h>
 #include <stdlib.h>
 #include <assert.h>
-#include <pthread.h>
 
 #include <list>
 using std::list;
 
-
-#define _lock(plock) pthread_mutex_lock((pthread_mutex_t*)plock)
-#define _unlock(plock) pthread_mutex_unlock((pthread_mutex_t*)plock)
-
-#define LOCK(plock) plock!=NULL&&_lock(plock)
-#define UNLOCK(plock) plock!=NULL&&_unlock(plock)
+#define WAIT_TIME    200    //io事件的等待时间取该值和最小超时时间的较小值
 
 typedef struct _timer_info
 {
@@ -41,28 +35,11 @@ static int _timer_info_cmp(HeapItem *item0, HeapItem *item1)
 		return 1;
 }
 
-IODemuxer::IODemuxer(bool thread_safe)
+IODemuxer::IODemuxer()
 	:m_timer_heap(_timer_info_cmp)
 	,m_timerinfo_pool(sizeof(TimerInfo))
-	,m_timer_lock(NULL)
 	,m_exit(false)
 {
-	if(thread_safe)
-	{
-		m_timer_lock = malloc(sizeof(pthread_mutex_t));
-		assert(m_timer_lock != NULL);
-		pthread_mutex_init((pthread_mutex_t*)m_timer_lock, NULL);
-	}
-}
-
-IODemuxer::~IODemuxer()
-{
-	if(m_timer_lock != NULL)
-	{
-		pthread_mutex_destroy((pthread_mutex_t*)m_timer_lock);
-		free(m_timer_lock);
-		m_timer_lock = NULL;
-	}
 }
 
 bool IODemuxer::add_timer(TimerHandler *handler, uint32_t timeout)
@@ -73,43 +50,41 @@ bool IODemuxer::add_timer(TimerHandler *handler, uint32_t timeout)
 	gettimeofday(&tv, NULL);
 	uint64_t now_time = tv.tv_sec*1000+tv.tv_usec/1000;
 
-	LOCK(m_timer_lock);
-	TimerInfo *timer_info = (TimerInfo*)m_timerinfo_pool.get();
-	if(timer_info == NULL)
+	TimerInfo *timer_info;
+	if((timer_info=(TimerInfo*)m_timerinfo_pool.get()) == NULL)
 	{
-		UNLOCK(m_timer_lock);
 		return false;
 	}
 
 	timer_info->handler = handler;
 	timer_info->timeout = timeout;
 	timer_info->expire_time = now_time+timeout;
-	bool result = m_timer_heap.insert((HeapItem*)timer_info);
-	if(!result)
+	if(!m_timer_heap.insert((HeapItem*)timer_info))
+	{
 		m_timerinfo_pool.recycle((void*)timer_info);
-	UNLOCK(m_timer_lock);
-	return result;
+		return false;
+	}
+
+	return true;
 }
 
 bool IODemuxer::run_loop()
 {
-	m_exit = false;
-	const int WAIT_TIME = 100;    //100ms
-	uint64_t now_time;    //当前时间(单位ms)
-	int wait_time;
-	list<TimerInfo*> timeout_list;
 
+	uint64_t now_time;                //当前时间(单位ms)
+	uint32_t wait_time;               //io事件等待时间(单位ms)
+	list<TimerInfo*> timeout_list;    //超时时钟列表
+
+	m_exit = false;
 	while(!m_exit)
 	{
-		wait_time = WAIT_TIME;
-
 		struct timeval tv;
 		gettimeofday(&tv, NULL);
 		now_time = tv.tv_sec*1000+tv.tv_usec/1000;
 
-		//收集时钟超时事件并设置wait_time
+		wait_time = WAIT_TIME;
+		//收集时钟超时事件,同时设置wait_time
 		timeout_list.clear();
-		LOCK(m_timer_lock);
 		TimerInfo *timer_info;
 		while((timer_info=(TimerInfo*)m_timer_heap.top()) != NULL)
 		{
@@ -119,34 +94,30 @@ bool IODemuxer::run_loop()
 				m_timer_heap.pop();
 				continue;
 			}
-			if((wait_time=timer_info->expire_time-now_time) > WAIT_TIME)
+
+			if((wait_time=timer_info->expire_time-now_time) > WAIT_TIME)    //取最小值
 				wait_time = WAIT_TIME;
 			break;
 		}
-		UNLOCK(m_timer_lock);
 
-		dispatch_events(now_time, wait_time);    //处理io事件
+		//处理io事件
+		dispatch_events(now_time, wait_time);
 
 		//处理发生的时钟超时事件
 		while(!timeout_list.empty())
 		{
-			list<TimerInfo*>::iterator it = timeout_list.begin();
-			TimerInfo *timer_info = *it;
+			TimerInfo *timer_info = *timeout_list.begin();
 			timeout_list.pop_front();
-			HANDLE_RESULT result = timer_info->handler->on_timer_timeout();
-			if(timer_info->handler->on_timer_timeout() == HANDLE_RESULT::HANDLE_CONTINUE)
+
+			if(timer_info->handler->on_timer_timeout() == HANDLE_CONTINUE)    //间隔时钟
 			{
 				timer_info->expire_time = now_time+timer_info->timeout;
-				LOCK(m_timer_lock);
 				bool temp = m_timer_heap.insert((HeapItem*)timer_info);
-				UNLOCK(m_timer_lock);
 				assert(temp == true);
 			}
 			else
 			{
-				LOCK(m_timer_lock);
 				m_timerinfo_pool.recycle((void*)timer_info);
-				UNLOCK(m_timer_lock);
 			}
 		}
 	}

@@ -14,11 +14,17 @@
 #include "heap.h"
 #include "objectpool.h"
 
+/*io多路复用接口类：
+ *  1. 提供时钟定时功能
+ *  2. 提供io事件触发功能
+ *  3. 非多线程安全!!!
+*/
 class IODemuxer
 {
 public:
-	IODemuxer(bool thread_safe);
-	virtual ~IODemuxer();
+	IODemuxer();
+	virtual ~IODemuxer(){}
+
 	bool run_loop();
 	void set_exit(){m_exit = true;}
 
@@ -27,10 +33,9 @@ public:
 	//  timeout:超时时间(单位:毫秒).当超时时,handler将被调用;
 	bool add_timer(TimerHandler *handler, uint32_t timeout);
 private:
+	bool m_exit;
 	Heap m_timer_heap;
 	ObjectPool m_timerinfo_pool;
-	void *m_timer_lock;
-	bool m_exit;
 
 /////////////////////////////////////  io事件接口函数  /////////////////////////////////////
 public:

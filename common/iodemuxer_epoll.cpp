@@ -9,16 +9,10 @@
 #include <sys/time.h>
 #include <assert.h>
 #include <unistd.h>
-#include <pthread.h>
+#include <errno.h>
 
 #include <list>
 using std::list;
-
-#define _lock(plock) pthread_mutex_lock((pthread_mutex_t*)plock)
-#define _unlock(plock) pthread_mutex_unlock((pthread_mutex_t*)plock)
-
-#define LOCK(plock) plock!=NULL&&_lock(plock)
-#define UNLOCK(plock) plock!=NULL&&_unlock(plock)
 
 typedef uint32_t OccureEvent;
 #define OE_TIMEOUT       1
@@ -49,9 +43,8 @@ static int _event_cmp(HeapItem *item0, HeapItem *item1)
 		return 1;
 }
 
-IODemuxerEpoll::IODemuxerEpoll(bool thread_safe/*=true*/, bool et_mode/*=false*/)
-	:IODemuxer(thread_safe)
-	,m_eventinfo_pool(sizeof(EventInfo), 1024)
+IODemuxerEpoll::IODemuxerEpoll(bool et_mode/*=false*/)
+	:m_eventinfo_pool(sizeof(EventInfo), 1024)
 	,m_timeout_heap(_event_cmp)
 	,m_et_mode(et_mode)
 {
@@ -61,34 +54,19 @@ IODemuxerEpoll::IODemuxerEpoll(bool thread_safe/*=true*/, bool et_mode/*=false*/
 	m_size = 1024;
 	m_epoll_events = (struct epoll_event*)malloc(sizeof(struct epoll_event)*m_size);
 	assert(m_epoll_events != NULL);
-
-	if(thread_safe)
-	{
-		m_event_lock = malloc(sizeof(pthread_mutex_t));
-		assert(m_event_lock != NULL);
-		pthread_mutex_init((pthread_mutex_t*)m_event_lock, NULL);
-	}
 }
 
 IODemuxerEpoll::~IODemuxerEpoll()
 {
 	close(m_epfd);
-	if(m_event_lock != NULL)
-	{
-		pthread_mutex_destroy((pthread_mutex_t*)m_event_lock);
-		free(m_event_lock);
-		m_event_lock = NULL;
-	}
+	free(m_epoll_events);
 }
 
 bool IODemuxerEpoll::add_event(uint32_t fd, EventType type, EventHandler *handler, uint32_t timeout)
 {
-	assert(handler != NULL);
-	assert(type & RDWT);
-
+	assert(handler!=NULL && (type&ET_RDWT));
 	EventInfo *event_info = NULL;
 
-	LOCK(m_event_lock);
 	EventInfoMap::iterator ev_it = m_eventinfo_map.find(fd);
 	if(ev_it == m_eventinfo_map.end())
 	{
@@ -96,7 +74,6 @@ bool IODemuxerEpoll::add_event(uint32_t fd, EventType type, EventHandler *handle
 		event_info = (EventInfo*)m_eventinfo_pool.get();
 		if(event_info == NULL)  //out of memory
 		{
-			UNLOCK(m_event_lock);
 			return false;
 		}
 
@@ -117,17 +94,14 @@ bool IODemuxerEpoll::add_event(uint32_t fd, EventType type, EventHandler *handle
 		if(result.second != true)
 		{
 			m_eventinfo_pool.recycle((void*)event_info);
-			UNLOCK(m_event_lock);
 			return false;
 		}
 
 		//添加到timeout_heap中
-		bool insert_succ = m_timeout_heap.insert((HeapItem*)event_info);
-		if(!insert_succ)
+		if(m_timeout_heap.insert((HeapItem*)event_info) != true)
 		{
 			m_eventinfo_map.erase(fd);
 			m_eventinfo_pool.recycle((void*)event_info);
-			UNLOCK(m_event_lock);
 			return false;
 		}
 
@@ -135,63 +109,71 @@ bool IODemuxerEpoll::add_event(uint32_t fd, EventType type, EventHandler *handle
 		struct epoll_event event;
 		event.events = 0;
 		event.data.ptr = (void*)event_info;
-		if(type & WRITE)
+		if(type & ET_WRITE)
 			event.events |= EPOLLOUT;
-		if(type & READ)
+		if(type & ET_READ)
 			event.events |= EPOLLIN;
 		if(m_et_mode)
 			event.events |= EPOLLET;
 		if(epoll_ctl(m_epfd, EPOLL_CTL_ADD, fd, &event) == -1)
 		{
-			m_timeout_heap.remove((HeapItem*)event_info);
-			m_eventinfo_map.erase(fd);
-			m_eventinfo_pool.recycle((void*)event_info);
-			UNLOCK(m_event_lock);
-			return false;
+			if(errno != EEXIST)
+			{
+				m_timeout_heap.remove((HeapItem*)event_info);
+				m_eventinfo_map.erase(fd);
+				m_eventinfo_pool.recycle((void*)event_info);
+				return false;
+			}
+			else if(epoll_ctl(m_epfd, EPOLL_CTL_ADD, fd, &event) == -1)
+			{
+				return false;
+			}
 		}
 	}
 	else
 	{
 		//find in eventinfo_map
 		event_info = (EventInfo*)ev_it->second;
-		if((event_info->type&RDWT) != (type&RDWT))
+		if((event_info->type&ET_RDWT) != (type&ET_RDWT))
 		{
 			struct epoll_event event;
 			event.events = 0;
 			event.data.ptr = (void*)event_info;
-			if(type & WRITE)
+			if(type & ET_WRITE)
 				event.events |= EPOLLOUT;
-			if(type & READ)
+			if(type & ET_READ)
 				event.events |= EPOLLIN;
 			if(m_et_mode)
 				event.events |= EPOLLET;
 			if(epoll_ctl(m_epfd, EPOLL_CTL_MOD, fd, &event) == -1)
 			{
-				UNLOCK(m_event_lock);
-				return false;
+				if(errno != ENOENT)
+					return false;
+				else if(epoll_ctl(m_epfd, EPOLL_CTL_ADD, fd, &event) == -1)
+				{
+					return false;
+				}
 			}
+			event_info->type |= type;
 		}
-		event_info->type |= type;
-		event_info->occur_event = 0;
 	}
 
-	UNLOCK(m_event_lock);
 	return true;
 }
 
 bool IODemuxerEpoll::delete_event(uint32_t fd)
 {
-	LOCK(m_event_lock);
 	EventInfoMap::iterator ev_it = m_eventinfo_map.find(fd);
 	if(ev_it != m_eventinfo_map.end())
 	{
+		if(epoll_ctl(m_epfd, EPOLL_CTL_DEL, fd, NULL)==-1 && errno!=ENOENT)
+			return false;
 		EventInfo *event_info = (EventInfo*)ev_it->second;
 		m_timeout_heap.remove((HeapItem*)event_info);
 		m_eventinfo_map.erase(fd);
 		m_eventinfo_pool.recycle((void*)event_info);
-		epoll_ctl(m_epfd, EPOLL_CTL_DEL, fd, NULL);
 	}
-	UNLOCK(m_event_lock);
+
 	return true;
 }
 
@@ -208,7 +190,6 @@ void IODemuxerEpoll::dispatch_events(uint64_t now_ms, uint32_t wait_ms)
 	list<EventInfo*> m_event_list;
 
 	//检查超时的fd
-	LOCK(m_event_lock);
 	if(m_size < m_eventinfo_map.size())
 	{
 		m_size = m_eventinfo_map.size()*2;
@@ -220,10 +201,11 @@ void IODemuxerEpoll::dispatch_events(uint64_t now_ms, uint32_t wait_ms)
 	{
 		if(event_info->expire_time > now_ms)
 			break;
+		if(epoll_ctl(m_epfd, EPOLL_CTL_DEL, event_info->fd, NULL)==-1 && errno!=ENOENT)    //删除失败,不添加到超时队列(防止下面重复添加)
+			continue;
 		m_timeout_heap.pop();
 		m_eventinfo_map.erase(event_info->fd);
-		epoll_ctl(m_epfd, EPOLL_CTL_DEL, event_info->fd, NULL);    //失败?
-		m_event_list.push_front(event_info);
+		m_event_list.push_back(event_info);
 		event_info->occur_event = OE_TIMEOUT;
 	}
 
@@ -232,19 +214,72 @@ void IODemuxerEpoll::dispatch_events(uint64_t now_ms, uint32_t wait_ms)
 	{
 		event_info = (EventInfo*)m_epoll_events[count].data.ptr;
 		event_info->occur_event = 0;
-
 		if(m_epoll_events[count].events & EPOLLERR)
 			event_info->occur_event |= OE_ERROR;
 		if(m_epoll_events[count].events & EPOLLIN)
 			event_info->occur_event |= OE_READ;
 		if(m_epoll_events[count].events & EPOLLOUT)
 			event_info->occur_event |= OE_WRITE;
-
 		m_event_list.push_front(event_info);
 	}
 
-	UNLOCK(m_event_lock);
-
 	//处理发生的io事件
+	while(!m_event_list.empty())
+	{
+		EventInfo *event_info = *m_event_list.begin();
+		m_event_list.pop_front();
+		if(event_info->occur_event & OE_TIMEOUT)    //io超时
+		{
+			event_info->handler->on_fd_timeout(event_info->fd);
+			continue;
+		}
+
+		EventType new_type = event_info->type;
+		bool error = event_info->occur_event&OE_ERROR!=0;
+
+		if(!error && (event_info->occur_event&OE_READ))
+		{
+			HANDLE_RESULT handle_result = event_info->handler->on_fd_readable(event_info->fd);
+			if(handle_result == HANDLE_ERROR)    //失败
+				error = true;
+			if(handle_result == HANDLE_FINISH)     //移除读事件
+				new_type &= ~ET_READ;
+		}
+		if(!error && (event_info->occur_event&OE_WRITE))
+		{
+			HANDLE_RESULT handle_result = event_info->handler->on_fd_writeable(event_info->fd);
+			if(handle_result == HANDLE_ERROR)
+				error = true;
+			else if(handle_result == HANDLE_FINISH)     //移除写事件
+				new_type &= ~ET_WRITE;
+		}
+
+		if(error || new_type==0)
+		{
+			if(error)
+				event_info->handler->on_fd_error(event_info->fd);
+			epoll_ctl(m_epfd, EPOLL_CTL_DEL, event_info->fd, NULL);
+			m_timeout_heap.remove((HeapItem*)event_info);
+			m_eventinfo_map.erase(event_info->fd);
+			m_eventinfo_pool.recycle((void*)event_info);
+		}
+		else if(new_type != event_info->type)
+		{
+			struct epoll_event event;
+			event.events = 0;
+			event.data.ptr = event_info;
+			if(new_type & ET_READ)
+				event.events |= EPOLLIN;
+			if(new_type & ET_WRITE)
+				event.events |= EPOLLOUT;
+			if(m_et_mode)
+				event.events |= EPOLLET;
+			if(epoll_ctl(m_epfd, EPOLL_CTL_MOD, event_info->fd, &event)==-1 &&errno==ENOENT)
+				if(epoll_ctl(m_epfd, EPOLL_CTL_ADD, event_info->fd, &event) == -1)
+					assert(0);
+			event_info->type = new_type;
+		}
+	}
+
 	return;
 }

@@ -21,7 +21,7 @@ typedef map<uint32_t, void*> EventInfoMap;    //key:fd; value:event_info
 class IODemuxerEpoll:public IODemuxer
 {
 public:
-	IODemuxerEpoll(bool thread_safe=true, bool et_mode=false);
+	IODemuxerEpoll(bool et_mode=false);
 	~IODemuxerEpoll();
 
 public:  //实现基类纯虚函数
