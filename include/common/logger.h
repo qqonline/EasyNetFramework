@@ -12,6 +12,8 @@
 #include <log4cplus/consoleappender.h>
 #include <log4cplus/layout.h>
 #include <log4cplus/loggingmacros.h>
+#include <log4cplus/configurator.h>
+
 using namespace log4cplus;
 
 #include <list>

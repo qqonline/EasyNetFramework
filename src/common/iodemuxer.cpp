@@ -125,7 +125,7 @@ bool IODemuxer::run_loop()
 			else
 			{
 				m_timerinfo_pool.recycle((void*)timer_info);
-				LOG4CPLUS_TRACE(logger, "timer finished, remove from timer_heap.");
+				LOG4CPLUS_DEBUG(logger, "timer finished, remove from timer_heap.");
 			}
 		}
 
