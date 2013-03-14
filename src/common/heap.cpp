@@ -102,15 +102,15 @@ void Heap::_shift_up(uint32_t index)
 {
 	HeapItem *item = m_items[index];
 	assert(index == item->index);
-	int parent = (index-1)/2;
+	int32_t parent = ((int32_t)index-1)/2;
 	while(index>0 && parent>=0)
 	{
-		if(m_cmp_func(m_items[parent], item) != 1)    //parent不大于child
+		if(m_cmp_func(m_items[parent], item) <= 0)    //parent不大于child
 			break;
 		m_items[index] = m_items[parent];
 		m_items[index]->index = index;
 		index = parent;
-		parent = (index-1)/2;
+		parent = ((int32_t)index-1)/2;
 	}
 	m_items[index] = item;
 	item->index = index;
@@ -120,12 +120,12 @@ void Heap::_shift_down(uint32_t index)
 {
 	HeapItem *item = m_items[index];
 	assert(index == item->index);
-	int child = index*2+1;
+	uint32_t child = index*2+1;
 	while(child < m_size)
 	{
-		if(child+1<m_size && m_cmp_func(m_items[child+1], m_items[child])==-1)  //右孩子更小
+		if(child+1<m_size && m_cmp_func(m_items[child+1], m_items[child]) < 0)  //右孩子更小
 			++child;
-		if(m_cmp_func(item, m_items[child]) != 1)    //比最小的孩子还小
+		if(m_cmp_func(item, m_items[child]) <= 0)    //比最小的孩子还小
 			break;
 		m_items[index] = m_items[child];
 		m_items[index]->index = index;

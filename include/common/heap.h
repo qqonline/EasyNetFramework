@@ -17,7 +17,7 @@ typedef struct _heap_item_
 	uint32_t index;
 }HeapItem;
 
-//比较函数指针.返回值:-1(a小于b); 0(a等于b); 1(a大于b)
+//比较函数指针.返回值:小于0(a小于b); 0(a等于b); 大于0(a大于b)
 //如果a不大于b,则a排列在b的前面
 typedef int (*ItemCompare)(HeapItem *item0, HeapItem *item1);
 //元素销毁函数指针
