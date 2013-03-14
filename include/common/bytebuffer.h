@@ -8,7 +8,10 @@
 #ifndef _COMMON_BYTEBUFFER_H_
 #define _COMMON_BYTEBUFFER_H_
 
+#include <assert.h>
+#include <stdlib.h>
 #include <stdint.h>
+
 #define BF_INIT_CAPACITY 512
 
 class ByteBuffer

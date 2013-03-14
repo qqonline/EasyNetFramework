@@ -8,7 +8,6 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <common/bytebuffer.h>
 
 ByteBuffer::ByteBuffer(uint32_t init_capacity/*=BF_INIT_CAPACITY*/)
