@@ -81,5 +81,6 @@ bool ByteBuffer::fetch_bytes(char *buf, uint32_t size)
 	if(temp==NULL || len<size)
 		return false;
 	memcpy(buf, temp, size);
+	set_fetch_size(size);
 	return true;
 }
