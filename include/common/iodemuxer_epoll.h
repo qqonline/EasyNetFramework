@@ -8,10 +8,11 @@
 #ifndef _COMMON_IODEMUXER_EPOLL_H_
 #define _COMMON_IODEMUXER_EPOLL_H_
 
-#include "iodemuxer.h"
-#include "sys/epoll.h"
-#include "objectpool.h"
+#include <common/iodemuxer.h>
+#include <common/objectpool.h>
+#include <common/logger.h>
 
+#include <sys/epoll.h>
 #include <stdint.h>
 #include <map>
 using std::map;
@@ -42,6 +43,9 @@ private:
 	uint32_t m_size;
 
 	bool m_et_mode;
+
+private:
+	DECL_LOGGER(logger);
 };
 
 #endif //_COMMON_IODEMUXER_EPOLL_H_

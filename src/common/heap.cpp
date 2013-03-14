@@ -4,7 +4,7 @@
  *  Created on: 2012-12-23
  *      Author: LiuYongJin
  */
-#include "heap.h"
+#include <common/heap.h>
 
 #include <string.h>
 #include <assert.h>

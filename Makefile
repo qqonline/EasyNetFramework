@@ -1,5 +1,5 @@
-#INCLUDE_DIR=/usr/include/EasyNetFramework
-INCLUDE_DIR=/tmp/EasyNetFramework
+INCLUDE_DIR=/usr/include/EasyNetFramework
+#INCLUDE_DIR=/tmp/EasyNetFramework
 
 install:
 	mkdir ${INCLUDE_DIR}/common -p

@@ -10,9 +10,10 @@
 
 #include <stdint.h>
 
-#include "eventhandler.h"
-#include "heap.h"
-#include "objectpool.h"
+#include <common/eventhandler.h>
+#include <common/heap.h>
+#include <common/objectpool.h>
+#include <common/logger.h>
 
 /*io多路复用接口类：
  *  1. 提供时钟定时功能
@@ -52,6 +53,8 @@ public:
 	//分配发生的io事件
 	//  wait_ms:等待事件发生的时间
 	virtual void dispatch_events(uint64_t now_ms, uint32_t wait_ms)=0;
+private:
+	DECL_LOGGER(logger);
 };
 
 #endif //_COMMON_IODEMUXER_H_

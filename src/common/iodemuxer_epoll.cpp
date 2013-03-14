@@ -5,14 +5,18 @@
  *      Author: LiuYongJin
  */
 
-#include "iodemuxer_epoll.h"
+#include <common/iodemuxer_epoll.h>
+
 #include <sys/time.h>
 #include <assert.h>
 #include <unistd.h>
 #include <errno.h>
+#include <string.h>
 
 #include <list>
 using std::list;
+
+IMPL_LOGGER(IODemuxerEpoll, logger);
 
 typedef uint32_t OccureEvent;
 #define OE_TIMEOUT       1
@@ -74,6 +78,7 @@ bool IODemuxerEpoll::add_event(uint32_t fd, EventType type, EventHandler *handle
 		event_info = (EventInfo*)m_eventinfo_pool.get();
 		if(event_info == NULL)  //out of memory
 		{
+			LOG4CPLUS_WARN(logger, "eventinfo_poll out of memory.");
 			return false;
 		}
 
@@ -94,6 +99,7 @@ bool IODemuxerEpoll::add_event(uint32_t fd, EventType type, EventHandler *handle
 		if(result.second != true)
 		{
 			m_eventinfo_pool.recycle((void*)event_info);
+			LOG4CPLUS_WARN(logger, "insert event_info into map failed.fd="<<fd);
 			return false;
 		}
 
@@ -102,6 +108,7 @@ bool IODemuxerEpoll::add_event(uint32_t fd, EventType type, EventHandler *handle
 		{
 			m_eventinfo_map.erase(fd);
 			m_eventinfo_pool.recycle((void*)event_info);
+			LOG4CPLUS_WARN(logger, "insert evetn_info into timeout_heap failed.fd="<<fd);
 			return false;
 		}
 
@@ -122,13 +129,17 @@ bool IODemuxerEpoll::add_event(uint32_t fd, EventType type, EventHandler *handle
 				m_timeout_heap.remove((HeapItem*)event_info);
 				m_eventinfo_map.erase(fd);
 				m_eventinfo_pool.recycle((void*)event_info);
+				LOG4CPLUS_ERROR(logger, "add event to epoll error. errno="<<errno<<"["<<strerror(errno)<<"]. fd="<<fd);
 				return false;
 			}
-			else if(epoll_ctl(m_epfd, EPOLL_CTL_ADD, fd, &event) == -1)
+			else if(epoll_ctl(m_epfd, EPOLL_CTL_MOD, fd, &event) == -1)
 			{
+				LOG4CPLUS_ERROR(logger, "add event to epoll but already exist. try to modify and failed. errno="<<errno<<"["<<strerror(errno)<<"]. fd="<<fd);
 				return false;
 			}
+			LOG4CPLUS_WARN(logger, "add event to epoll but already exist. try to modify and success. fd="<<fd);
 		}
+		LOG4CPLUS_DEBUG(logger, "add event to epoll success. fd="<<fd<<" event_type="<<type<<" insert_time="<<now_time<<" timeout="<<timeout);
 	}
 	else
 	{
@@ -154,7 +165,12 @@ bool IODemuxerEpoll::add_event(uint32_t fd, EventType type, EventHandler *handle
 					return false;
 				}
 			}
+			LOG4CPLUS_DEBUG(logger, "modify event success. fd="<<fd<<" old_event_type="<<event_info->type<<" new_event_type="<<(event_info->type|type));
 			event_info->type |= type;
+		}
+		else
+		{
+			LOG4CPLUS_DEBUG(logger, "event already in epoll. fd="<<fd<<" event_type="<<type);
 		}
 	}
 
@@ -167,11 +183,15 @@ bool IODemuxerEpoll::delete_event(uint32_t fd)
 	if(ev_it != m_eventinfo_map.end())
 	{
 		if(epoll_ctl(m_epfd, EPOLL_CTL_DEL, fd, NULL)==-1 && errno!=ENOENT)
+		{
+			LOG4CPLUS_ERROR(logger, "delete event from epoll error. errno="<<errno<<"["<<strerror(errno)<<"] fd="<<fd);
 			return false;
+		}
 		EventInfo *event_info = (EventInfo*)ev_it->second;
 		m_timeout_heap.remove((HeapItem*)event_info);
 		m_eventinfo_map.erase(fd);
 		m_eventinfo_pool.recycle((void*)event_info);
+		LOG4CPLUS_DEBUG(logger, "delete event from epoll success. fd="<<fd);
 	}
 
 	return true;
@@ -202,11 +222,15 @@ void IODemuxerEpoll::dispatch_events(uint64_t now_ms, uint32_t wait_ms)
 		if(event_info->expire_time > now_ms)
 			break;
 		if(epoll_ctl(m_epfd, EPOLL_CTL_DEL, event_info->fd, NULL)==-1 && errno!=ENOENT)    //删除失败,不添加到超时队列(防止下面重复添加)
+		{
+			LOG4CPLUS_ERROR(logger, "event timeout but delete from epoll error. errno="<<errno<<"["<<strerror(errno)<<"] fd="<<event_info->fd);
 			continue;
+		}
 		m_timeout_heap.pop();
 		m_eventinfo_map.erase(event_info->fd);
 		m_event_list.push_back(event_info);
 		event_info->occur_event = OE_TIMEOUT;
+		LOG4CPLUS_DEBUG(logger, "event timeout and add to occur_event list. fd="<<event_info->fd);
 	}
 
 	int count = epoll_wait(m_epfd, m_epoll_events, m_size, wait_ms);
@@ -230,35 +254,44 @@ void IODemuxerEpoll::dispatch_events(uint64_t now_ms, uint32_t wait_ms)
 		m_event_list.pop_front();
 		if(event_info->occur_event & OE_TIMEOUT)    //io超时
 		{
+			LOG4CPLUS_DEBUG(logger, "handle event timeout. fd="<<event_info->fd);
 			event_info->handler->on_fd_timeout(event_info->fd);
 			continue;
 		}
 
 		EventType new_type = event_info->type;
-		bool error = event_info->occur_event&OE_ERROR!=0;
+		bool error = (event_info->occur_event&OE_ERROR)!=0;
 
 		if(!error && (event_info->occur_event&OE_READ))
 		{
+			LOG4CPLUS_DEBUG(logger, "handle event readable. fd="<<event_info->fd);
 			HANDLE_RESULT handle_result = event_info->handler->on_fd_readable(event_info->fd);
 			if(handle_result == HANDLE_ERROR)    //失败
 				error = true;
 			if(handle_result == HANDLE_FINISH)     //移除读事件
 				new_type &= ~ET_READ;
+			LOG4CPLUS_DEBUG(logger, "handle event readable. handle_result="<<handle_result<<" fd="<<event_info->fd);
 		}
 		if(!error && (event_info->occur_event&OE_WRITE))
 		{
+			LOG4CPLUS_DEBUG(logger, "handle event writeable. fd="<<event_info->fd);
 			HANDLE_RESULT handle_result = event_info->handler->on_fd_writeable(event_info->fd);
 			if(handle_result == HANDLE_ERROR)
 				error = true;
 			else if(handle_result == HANDLE_FINISH)     //移除写事件
 				new_type &= ~ET_WRITE;
+			LOG4CPLUS_DEBUG(logger, "handle event writeable. handle_result="<<handle_result<<" fd="<<event_info->fd);
 		}
 
 		if(error || new_type==0)
 		{
 			if(error)
 				event_info->handler->on_fd_error(event_info->fd);
-			epoll_ctl(m_epfd, EPOLL_CTL_DEL, event_info->fd, NULL);
+			LOG4CPLUS_DEBUG(logger, "delete event from iodemuxer_epoll. fd="<<event_info->fd);
+			if(epoll_ctl(m_epfd, EPOLL_CTL_DEL, event_info->fd, NULL) == -1)
+			{
+				LOG4CPLUS_ERROR(logger, "delete event from epoll error. errno="<<errno<<"["<<strerror(errno)<<"] fd="<<event_info->fd);
+			}
 			m_timeout_heap.remove((HeapItem*)event_info);
 			m_eventinfo_map.erase(event_info->fd);
 			m_eventinfo_pool.recycle((void*)event_info);
@@ -274,10 +307,24 @@ void IODemuxerEpoll::dispatch_events(uint64_t now_ms, uint32_t wait_ms)
 				event.events |= EPOLLOUT;
 			if(m_et_mode)
 				event.events |= EPOLLET;
-			if(epoll_ctl(m_epfd, EPOLL_CTL_MOD, event_info->fd, &event)==-1 &&errno==ENOENT)
-				if(epoll_ctl(m_epfd, EPOLL_CTL_ADD, event_info->fd, &event) == -1)
+			if(epoll_ctl(m_epfd, EPOLL_CTL_MOD, event_info->fd, &event) == -1)
+			{
+				if(errno==ENOENT)
+				{
+					LOG4CPLUS_WARN(logger, "modify event failed, try to add event. fd="<<event_info->fd);
+					if(epoll_ctl(m_epfd, EPOLL_CTL_ADD, event_info->fd, &event) == -1)
+					{
+						LOG4CPLUS_ERROR(logger, "add event error. errno="<<errno<<"["<<strerror(errno)<<"] fd="<<event_info->fd);
+						assert(0);
+					}
+				}
+				else
+				{
 					assert(0);
+				}
+			}
 			event_info->type = new_type;
+			LOG4CPLUS_DEBUG(logger, "modify event success. fd="<<event_info->fd<<" new_event_type="<<event_info->type);
 		}
 	}
 

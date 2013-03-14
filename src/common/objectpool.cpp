@@ -5,7 +5,8 @@
  *      Author: Administrator
  */
 
-#include "objectpool.h"
+#include <common/objectpool.h>
+#include <common/logger.h>
 #include <assert.h>
 #include <stdlib.h>
 

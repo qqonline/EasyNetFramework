@@ -5,13 +5,17 @@
  *      Author: LiuYongJin
  */
 
-#include "iodemuxer.h"
+#include <common/iodemuxer.h>
+#include <common/logger.h>
+
 #include <sys/time.h>
 #include <stdlib.h>
 #include <assert.h>
 
 #include <list>
 using std::list;
+
+IMPL_LOGGER(IODemuxer, logger);
 
 #define WAIT_TIME    200    //io事件的等待时间取该值和最小超时时间的较小值
 
@@ -53,6 +57,7 @@ bool IODemuxer::add_timer(TimerHandler *handler, uint32_t timeout)
 	TimerInfo *timer_info;
 	if((timer_info=(TimerInfo*)m_timerinfo_pool.get()) == NULL)
 	{
+		LOG4CPLUS_WARN(logger, "timerinfo_poll out of memory.");
 		return false;
 	}
 
@@ -62,6 +67,7 @@ bool IODemuxer::add_timer(TimerHandler *handler, uint32_t timeout)
 	if(!m_timer_heap.insert((HeapItem*)timer_info))
 	{
 		m_timerinfo_pool.recycle((void*)timer_info);
+		LOG4CPLUS_WARN(logger, "insert timerinfo into timer_heap failed.");
 		return false;
 	}
 
@@ -75,14 +81,15 @@ bool IODemuxer::run_loop()
 	uint32_t wait_time;               //io事件等待时间(单位ms)
 	list<TimerInfo*> timeout_list;    //超时时钟列表
 
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	now_time = tv.tv_sec*1000+tv.tv_usec/1000;
+
 	m_exit = false;
 	while(!m_exit)
 	{
-		struct timeval tv;
-		gettimeofday(&tv, NULL);
-		now_time = tv.tv_sec*1000+tv.tv_usec/1000;
-
 		wait_time = WAIT_TIME;
+
 		//收集时钟超时事件,同时设置wait_time
 		timeout_list.clear();
 		TimerInfo *timer_info;
@@ -118,8 +125,17 @@ bool IODemuxer::run_loop()
 			else
 			{
 				m_timerinfo_pool.recycle((void*)timer_info);
+				LOG4CPLUS_TRACE(logger, "timer finished, remove from timer_heap.");
 			}
 		}
+
+		gettimeofday(&tv, NULL);
+		uint64_t temp = tv.tv_sec*1000+tv.tv_usec/1000;
+		if(temp-now_time >= 500)
+		{
+			LOG4CPLUS_WARN(logger, "one loop using times(ms):"<<temp-now_time);
+		}
+		now_time = temp;
 	}
 
 	return true;
