@@ -21,9 +21,10 @@ ThreadPool::ThreadPool(uint32_t thread_num)
 
 ThreadPool::~ThreadPool()
 {
-	uint32_t i;
-	for(i=0; i<m_thread_num; ++i)
-		destroy_thread(m_threads[i]);
+	if(m_thread_num > 0)
+	{
+		LOG4CPLUS_WARN(logger, "destroy thread pool, but "<<m_thread_num<<" threads are running. forget to call stop()?");
+	}
 	free((void*)m_threads);
 }
 
@@ -38,7 +39,7 @@ bool ThreadPool::start()
 		else
 			++m_thread_num;
 	}
-
+	LOG4CPLUS_DEBUG(logger, "start total "<< m_thread_num<<"/"<<m_size<<" threads.");
 	return true;
 }
 
