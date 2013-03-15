@@ -71,6 +71,7 @@ bool IODemuxer::add_timer(TimerHandler *handler, uint32_t timeout)
 		return false;
 	}
 
+	LOG4CPLUS_DEBUG(logger, "insert timer success. timeout="<<timeout);
 	return true;
 }
 
