@@ -21,7 +21,10 @@ ThreadPool::ThreadPool(uint32_t thread_num)
 
 ThreadPool::~ThreadPool()
 {
-
+	uint32_t i;
+	for(i=0; i<m_thread_num; ++i)
+		destroy_thread(m_threads[i]);
+	free((void*)m_threads);
 }
 
 bool ThreadPool::start()

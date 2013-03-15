@@ -19,8 +19,10 @@ public:
 
 	bool start();
 protected:
-	//创建一个线程
+	//创建/运行线程
 	virtual Thread* create_thread()=0;
+	//销毁线程
+	void destroy_thread(Thread *thread)=0;
 private:
 	Thread **m_threads;
 	uint32_t m_size;
