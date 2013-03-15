@@ -12,6 +12,9 @@
 #include <pthread.h>
 #include <common/objectpool.h>
 
+namespace easynet
+{
+
 //条件队列
 class CondQueue
 {
@@ -38,6 +41,8 @@ private:
 	void *m_queue_head;
 	ObjectPool m_data_pool;
 };
+
+}//namespace
 
 #endif //_COMMON_COND_QUEUE_H_
 

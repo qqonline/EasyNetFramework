@@ -10,6 +10,9 @@
 
 #include <common/thread.h>
 
+namespace easynet
+{
+
 IMPL_LOGGER(Thread, logger);
 
 bool Thread::start()
@@ -44,4 +47,6 @@ bool Thread::start()
 	return result==0?true:false;
 }
 
+
+}//namespace
 

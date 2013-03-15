@@ -9,6 +9,9 @@
 #include <string.h>
 #include <assert.h>
 
+namespace easynet
+{
+
 #define INIT_CAPACITY 128
 
 Heap::Heap(ItemCompare cmp_func)
@@ -135,3 +138,6 @@ void Heap::_shift_down(uint32_t index)
 	m_items[index] = item;
 	item->index = index;
 }
+
+
+}//namespace

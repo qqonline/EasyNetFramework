@@ -17,6 +17,9 @@
 #include <map>
 using std::map;
 
+namespace easynet
+{
+
 typedef map<uint32_t, void*> EventInfoMap;    //key:fd; value:event_info
 
 class IODemuxerEpoll:public IODemuxer
@@ -47,5 +50,7 @@ private:
 private:
 	DECL_LOGGER(logger);
 };
+
+}//namespace
 
 #endif //_COMMON_IODEMUXER_EPOLL_H_

@@ -7,6 +7,9 @@
 
 #include <common/threadpool.h>
 
+namespace easynet
+{
+
 IMPL_LOGGER(ThreadPool, logger);
 
 ThreadPool::ThreadPool(uint32_t thread_num)
@@ -42,4 +45,7 @@ bool ThreadPool::start()
 	LOG4CPLUS_DEBUG(logger, "start total "<< m_thread_num<<"/"<<m_size<<" threads.");
 	return true;
 }
+
+
+}//namespace
 

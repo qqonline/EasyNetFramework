@@ -12,6 +12,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+namespace easynet
+{
+
 #define BF_INIT_CAPACITY 512
 
 class ByteBuffer
@@ -106,6 +109,9 @@ bool ByteBuffer::fetch_int64(int64_t *i)
 {
 	return i==NULL?false:fetch_bytes((char*)i, sizeof(int64_t));
 }
+
+
+}//namespace
 
 #endif //_COMMON_BYTEBUFFER_H_
 

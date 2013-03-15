@@ -11,6 +11,10 @@
 #include <time.h>
 #include <sys/time.h>
 
+namespace easynet
+{
+
+
 typedef struct _cq_item
 {
 	void *data;
@@ -111,3 +115,5 @@ void CondQueue::set_wait_time(int32_t wait_ms)
 	m_wait_time = wait_ms;
 	pthread_mutex_unlock(&m_lock);
 }
+
+}//namespace

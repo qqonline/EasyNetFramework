@@ -10,6 +10,10 @@
 #include <string.h>
 #include <common/bytebuffer.h>
 
+namespace easynet
+{
+
+
 ByteBuffer::ByteBuffer(uint32_t init_capacity/*=BF_INIT_CAPACITY*/)
 	:m_capacity(init_capacity)
 	,m_size(0)
@@ -84,3 +88,6 @@ bool ByteBuffer::fetch_bytes(char *buf, uint32_t size)
 	set_fetch_size(size);
 	return true;
 }
+
+}//namespace
+

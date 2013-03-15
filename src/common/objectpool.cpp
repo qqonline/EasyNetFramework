@@ -10,6 +10,9 @@
 #include <assert.h>
 #include <stdlib.h>
 
+namespace easynet
+{
+
 ObjectPool::ObjectPool(uint32_t object_size, uint32_t max_free/*=OBPOOL_MAX_FREE*/)
 	:m_object_size(object_size)
 	,m_max_free(max_free)
@@ -43,3 +46,5 @@ void ObjectPool::recycle (void *object)
 		free(object);
 }
 
+
+}//namespace

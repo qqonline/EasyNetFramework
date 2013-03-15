@@ -15,6 +15,9 @@
 #include <common/objectpool.h>
 #include <common/logger.h>
 
+namespace easynet
+{
+
 /*io多路复用接口类：
  *  1. 提供时钟定时功能
  *  2. 提供io事件触发功能
@@ -56,5 +59,7 @@ public:
 private:
 	DECL_LOGGER(logger);
 };
+
+}//namespace
 
 #endif //_COMMON_IODEMUXER_H_

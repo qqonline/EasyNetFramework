@@ -12,6 +12,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 
+namespace easynet
+{
+
 typedef struct _heap_item_
 {
 	uint32_t index;
@@ -64,6 +67,8 @@ HeapItem* Heap::get_item(uint32_t index)
 {
 	return index>=m_size?NULL:m_items[index];
 }
+
+}//namespace
 
 #endif //_HEAP_SORT_H_
 

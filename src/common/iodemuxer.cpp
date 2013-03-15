@@ -15,6 +15,9 @@
 #include <list>
 using std::list;
 
+namespace easynet
+{
+
 IMPL_LOGGER(IODemuxer, logger);
 
 #define WAIT_TIME    200    //io事件的等待时间取该值和最小超时时间的较小值
@@ -141,3 +144,6 @@ bool IODemuxer::run_loop()
 
 	return true;
 }
+
+
+}//namespace

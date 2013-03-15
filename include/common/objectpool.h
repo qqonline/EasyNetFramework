@@ -10,6 +10,9 @@
 
 #include <stdint.h>
 
+namespace easynet
+{
+
 #define OBPOOL_MAX_FREE 128
 
 class ObjectPool
@@ -33,6 +36,8 @@ private:
 	uint32_t m_free_size;
 	void** m_free_objects;
 };
+
+}//namespace
 
 #endif //_COMMON_OBJECT_POOL_H_
 

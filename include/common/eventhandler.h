@@ -10,6 +10,9 @@
 
 #include <stdint.h>
 
+namespace easynet
+{
+
 typedef uint32_t EventType;
 #define ET_WRITE     0X1   //写事件
 #define ET_READ      0X2   //读事件
@@ -66,5 +69,7 @@ public:
 	//返回值:忽略;
 	virtual HANDLE_RESULT on_fd_error(uint32_t fd)=0;
 };
+
+}//namespace
 
 #endif //_COMMON_EVENT_HANDLER_H_

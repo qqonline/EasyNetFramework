@@ -14,6 +14,9 @@
 
 #include <common/logger.h>
 
+namespace easynet
+{
+
 //最小线程栈2M
 #define MIN_STACK_SIZE 2*1024*1204
 
@@ -57,6 +60,8 @@ void Thread::wait_terminate()
 		return;
 	pthread_join(m_thread_id, NULL);
 }
+
+}//namespace
 
 #endif //_COMMON_THREAD_H_
 

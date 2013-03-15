@@ -11,6 +11,9 @@
 #include <common/thread.h>
 #include <common/logger.h>
 
+namespace easynet
+{
+
 class ThreadPool
 {
 public:
@@ -28,6 +31,8 @@ private:
 private:
 	DECL_LOGGER(logger);
 };
+
+}//namespace
 
 #endif //_COMMON_THREAD_POOL_H_
 

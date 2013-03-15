@@ -16,6 +16,9 @@
 #include <list>
 using std::list;
 
+namespace easynet
+{
+
 IMPL_LOGGER(IODemuxerEpoll, logger);
 
 typedef uint32_t OccureEvent;
@@ -330,3 +333,6 @@ void IODemuxerEpoll::dispatch_events(uint64_t now_ms, uint32_t wait_ms)
 
 	return;
 }
+
+
+}//namespace
