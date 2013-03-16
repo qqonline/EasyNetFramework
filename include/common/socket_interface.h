@@ -21,6 +21,9 @@ namespace easynet
 class ISocket
 {
 public:
+	//判断给定的addr是不是ip地址
+	static bool is_ip(const char *addr);
+public:
 	ISocket():m_fd(-1), m_port(-1), m_addr(NULL), m_block(true){}
 	ISocket(int32_t fd, char *addr, int32_t port, bool block);
 	virtual ~ISocket();
@@ -30,16 +33,21 @@ public:
 	char* get_addr(){return m_addr;}
 	int32_t get_port(){return m_fd;}
 	bool is_block(){return m_block;}
-	bool is_valid(){return m_fd==-1?false:true;}
+	bool is_valid(){return m_fd<=0?false:true;}
 	bool set_block(bool block);    //block:true设置为阻塞模式;false设置为非阻塞模式;成功返回true,失败返回false
 
 	void close();
-	virtual bool open()=0;
-private:
+	//打开socket:
+	//wait_ms:socket打开等待时间(单位ms)
+	//成功返回true,失败返回false
+	virtual bool open(int32_t wait_ms)=0;
+protected:
 	int32_t m_fd;
 	int32_t m_port;
 	char *m_addr;
 	bool m_block;
+
+	virtual bool create_socket();
 private:
 	DECL_LOGGER(logger);
 };
@@ -72,7 +80,10 @@ inline
 void ISocket::close()
 {
 	if(m_fd > 0)
+	{
+		LOG4CPLUS_DEBUG(logger, "close fd="<<m_fd);
 		::close(m_fd);
+	}
 	m_fd = -1;
 	m_port = -1;
 }
