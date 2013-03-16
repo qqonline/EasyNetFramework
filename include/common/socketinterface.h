@@ -13,33 +13,43 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <common/logger.h>
+
 namespace easynet
 {
 
 class ISocket
 {
 public:
-	ISocket():m_fd(-1) ,m_port(-1) ,m_addr(NULL){}
-	ISocket(int32_t fd, char *addr, int32_t port);
-	virtual ~ISocket(){}
+	ISocket():m_fd(-1), m_port(-1), m_addr(NULL), m_block(true){}
+	ISocket(int32_t fd, char *addr, int32_t port, bool block);
+	virtual ~ISocket();
 
-	bool init(int32_t fd, char *addr, int32_t port);  //对未设置过的socket赋值,成功返回true,失败返回false
+	bool init(int32_t fd, char *addr, int32_t port, bool block);  //对未设置过的socket赋值,成功返回true,失败返回false
 	int32_t get_fd(){return m_fd;}
 	char* get_addr(){return m_addr;}
 	int32_t get_port(){return m_fd;}
+	bool is_block(){return m_block;}
 	bool is_valid(){return m_fd==-1?false:true;}
+	bool set_block(bool block);    //block:true设置为阻塞模式;false设置为非阻塞模式;成功返回true,失败返回false
+
 	void close();
+	virtual bool open()=0;
 private:
 	int32_t m_fd;
 	int32_t m_port;
 	char *m_addr;
+	bool m_block;
+private:
+	DECL_LOGGER(logger);
 };
 
 inline
-ISocket::ISocket(int32_t fd, char *addr, int32_t port)
+ISocket::ISocket(int32_t fd, char *addr, int32_t port, bool block)
 	:m_fd(fd)
 	,m_port(port)
 	,m_addr(NULL)
+	,m_block(block)
 {
 	if(addr != NULL)
 	{
@@ -52,33 +62,13 @@ ISocket::ISocket(int32_t fd, char *addr, int32_t port)
 inline
 ISocket::~ISocket()
 {
-	close();
+	this->close();
 	if(m_addr != NULL)
 		free(m_addr);
 	m_addr = NULL;
 }
 
 inline
-bool ISocket::init(int32_t fd, char *addr, int32_t port)
-{
-	if(m_fd > 0)
-		return false;
-	m_fd = fd;
-	m_port = port;
-	uint32_t len0;
-	if(addr!=NULL && (len0=strlen(addr))>0)
-	{
-		if(m_addr==NULL || strlen(m_addr)<len0)
-		{
-			if(m_addr != NULL)
-				free(m_addr);
-			m_addr = (char*)malloc(len0+1);
-		}
-		memcpy(m_addr, addr, len0+1);
-	}
-	return true;
-}
-
 void ISocket::close()
 {
 	if(m_fd > 0)
@@ -86,6 +76,7 @@ void ISocket::close()
 	m_fd = -1;
 	m_port = -1;
 }
+
 
 }//namespace
 
