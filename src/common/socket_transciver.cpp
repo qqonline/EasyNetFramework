@@ -112,6 +112,111 @@ bool SocketTrans::open(int32_t wait_ms)
 	return true;
 }
 
+int32_t SocketTrans::send(char *data, uint32_t size)
+{
+	if(data==NULL || size<=0)
+		return 0;
+	int32_t send_bytes = ::send(m_fd, data, size, 0);
+	if(send_bytes >= 0)//非阻塞时可能只发送部分数据
+		return send_bytes;
+	if(errno==EWOULDBLOCK || errno==EINTR || errno==EAGAIN)
+	{
+		LOG4CPLUS_DEBUG(logger, "send data failed. errno="<<errno<<"["<<strerror(errno)<<"] fd="<<m_fd);
+		return 0;
+	}
+	LOG4CPLUS_ERROR(logger, "send data error. errno="<<errno<<"["<<strerror(errno)<<"] fd="<<m_fd);
+	return -1;
+}
+
+bool SocketTrans::send_all(char *data, uint32_t size)
+{
+	if(data==NULL || size<=0)
+		return true;
+
+	int32_t ret = 0;
+	uint32_t send_bytes = 0;
+	uint32_t last_size = 0;
+	while(send_bytes < size)
+	{
+		last_size = size-send_bytes;
+		ret = ::send(m_fd, data+send_bytes, last_size, 0);
+		if(ret>=0)
+		{
+			send_bytes += ret;
+			continue;
+		}
+		else if(!(errno==EWOULDBLOCK || errno==EINTR || errno==EAGAIN))
+		{
+			LOG4CPLUS_ERROR(logger, "send data error. errno="<<errno<<"["<<strerror(errno)<<"] fd="<<m_fd);
+			return false;
+		}
+		LOG4CPLUS_DEBUG(logger, "send data failed. errno="<<errno<<"["<<strerror(errno)<<"] fd="<<m_fd);
+	}
+
+	return true;
+}
+
+int32_t SocketTrans::receive(char *data, uint32_t size)
+{
+	if(data==NULL || size<=0)
+	{
+		LOG4CPLUS_ERROR(logger, "receive parameter error. fd="<<m_fd);
+		return -1;
+	}
+	int32_t recv_bytes = ::recv(m_fd, data, size, 0);
+	if(recv_bytes > 0)
+		return recv_bytes;
+	if(recv_bytes == 0)
+	{
+		LOG4CPLUS_INFO(logger, "peer close socket gracefully. fd="<<m_fd);
+		return -1;
+	}
+	if(errno==EAGAIN || errno==EINTR || errno==EWOULDBLOCK)
+	{
+		LOG4CPLUS_DEBUG(logger, "receive data failed. errno="<<errno<<"["<<strerror(errno)<<"] fd="<<m_fd);
+		return 0;
+	}
+	LOG4CPLUS_ERROR(logger, "receive data error. errno="<<errno<<"["<<strerror(errno)<<"] fd="<<m_fd);
+	return -1;
+}
+
+bool SocketTrans::receive_all(char *data, uint32_t size)
+{
+	if(data==NULL || size<=0)
+	{
+		LOG4CPLUS_ERROR(logger, "receive parameter error. fd="<<m_fd);
+		return false;
+	}
+
+	int ret = 0;
+	int recv_bytes = 0; //已读数据大小
+	int last_bytes = 0; //剩下未读数据大小
+	while(recv_bytes < size)
+	{
+		last_bytes = size-recv_bytes;
+		ret = ::recv(m_fd, data+recv_bytes, last_bytes, 0);
+		if(ret > 0)
+		{
+			recv_bytes += ret;
+			continue;
+		}
+		else if(ret == 0)
+		{
+			LOG4CPLUS_INFO(logger, "peer close socket gracefully. fd="<<m_fd);
+			return false;
+		}
+		else if(!(errno==EAGAIN || errno==EINTR || errno==EWOULDBLOCK))
+		{
+			LOG4CPLUS_ERROR(logger, "receive data error. errno="<<errno<<"["<<strerror(errno)<<"] fd="<<m_fd);
+			return false;
+		}
+		LOG4CPLUS_DEBUG(logger, "receive data failed. errno="<<errno<<"["<<strerror(errno)<<"] fd="<<m_fd);
+	}
+
+	return true;
+}
+
+
 }//namespace
 
 

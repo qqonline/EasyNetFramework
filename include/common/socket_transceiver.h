@@ -29,9 +29,18 @@ public:
 	{}
 
 	virtual ~SocketTrans(){}
+	bool open(int32_t wait_ms);    //基类接口
 
 	bool is_active(){return m_active;}
-	bool open(int32_t wait_ms);
+	//尽可能多的发送数据.返回发送的数据大小,失败返回-1
+	int32_t send(char *data, uint32_t size);
+	//发送全部数据
+	bool send_all(char *data, uint32_t size);
+
+	//尽可能多的接收数据.返回接收的大小,失败返回-1
+	int32_t receive(char *data, uint32_t size);
+	//接收全部数据
+	bool receive_all(char *data, uint32_t size);
 private:
 	bool m_active;
 private:
