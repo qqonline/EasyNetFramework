@@ -1,5 +1,5 @@
 /*
- * socketinterface.h
+ * socket_interface.h
  *
  *  Created on: 2013-3-15
  *      Author: LiuYongJin

@@ -7,7 +7,7 @@
 #include <fcntl.h>
 #include <errno.h>
 
-#include <common/socketinterface.h>
+#include <common/socket_interface.h>
 
 namespace easynet
 {
