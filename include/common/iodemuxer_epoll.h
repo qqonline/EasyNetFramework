@@ -30,7 +30,7 @@ public:
 
 public:  //实现基类纯虚函数
 	//添加io事件:
-	bool add_event(uint32_t fd, EventType type, EventHandler *handler, uint32_t timeout);
+	bool add_event(uint32_t fd, EventType type, EventHandler *handler, int32_t timeout);
 	//删除fd上监听的type事件
 	bool delete_event(uint32_t fd);
 	//分配发生的io事件

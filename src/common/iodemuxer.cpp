@@ -49,9 +49,9 @@ IODemuxer::IODemuxer()
 {
 }
 
-bool IODemuxer::add_timer(TimerHandler *handler, uint32_t timeout)
+bool IODemuxer::add_timer(TimerHandler *handler, int32_t timeout)
 {
-	assert(handler != NULL);
+	assert(handler!=NULL && timeout>=0);
 
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
@@ -63,7 +63,7 @@ bool IODemuxer::add_timer(TimerHandler *handler, uint32_t timeout)
 		LOG4CPLUS_WARN(logger, "timerinfo_poll out of memory.");
 		return false;
 	}
-
+	timer_info->heap_item.index = -1;
 	timer_info->handler = handler;
 	timer_info->timeout = timeout;
 	timer_info->expire_time = now_time+timeout;

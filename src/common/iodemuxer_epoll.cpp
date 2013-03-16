@@ -32,7 +32,7 @@ typedef struct _event_info_
 	HeapItem heap_item;
 	uint32_t fd;
 	EventType type;
-	uint32_t timeout;  //ms
+	int32_t timeout;  //ms
 	EventHandler *handler;
 	OccureEvent occur_event;
 	uint64_t expire_time;
@@ -69,7 +69,7 @@ IODemuxerEpoll::~IODemuxerEpoll()
 	free(m_epoll_events);
 }
 
-bool IODemuxerEpoll::add_event(uint32_t fd, EventType type, EventHandler *handler, uint32_t timeout)
+bool IODemuxerEpoll::add_event(uint32_t fd, EventType type, EventHandler *handler, int32_t timeout)
 {
 	assert(handler!=NULL && (type&ET_RDWT));
 	EventInfo *event_info = NULL;
@@ -89,6 +89,7 @@ bool IODemuxerEpoll::add_event(uint32_t fd, EventType type, EventHandler *handle
 		gettimeofday(&tv, NULL);
 		uint64_t now_time = tv.tv_sec*1000+tv.tv_usec/1000;
 
+		event_info->heap_item.index = -1;
 		event_info->fd = fd;
 		event_info->type = type;
 		event_info->timeout = timeout;
@@ -107,7 +108,7 @@ bool IODemuxerEpoll::add_event(uint32_t fd, EventType type, EventHandler *handle
 		}
 
 		//添加到timeout_heap中
-		if(m_timeout_heap.insert((HeapItem*)event_info) != true)
+		if(timeout>0 && !m_timeout_heap.insert((HeapItem*)event_info))
 		{
 			m_eventinfo_map.erase(fd);
 			m_eventinfo_pool.recycle((void*)event_info);
@@ -247,6 +248,11 @@ void IODemuxerEpoll::dispatch_events(uint64_t now_ms, uint32_t wait_ms)
 			event_info->occur_event |= OE_READ;
 		if(m_epoll_events[count].events & EPOLLOUT)
 			event_info->occur_event |= OE_WRITE;
+		if(event_info->timeout > 0)
+		{
+			m_timeout_heap.remove((HeapItem*)event_info);
+			event_info->expire_time = now_ms+event_info->timeout;
+		}
 		m_event_list.push_front(event_info);
 	}
 
@@ -327,6 +333,7 @@ void IODemuxerEpoll::dispatch_events(uint64_t now_ms, uint32_t wait_ms)
 				}
 			}
 			event_info->type = new_type;
+			m_timeout_heap.insert((HeapItem*)event_info);
 			LOG4CPLUS_DEBUG(logger, "modify event success. fd="<<event_info->fd<<" new_event_type="<<event_info->type);
 		}
 	}

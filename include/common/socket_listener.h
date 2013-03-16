@@ -32,6 +32,7 @@ public:
 
 	//忽略等待时间wait_ms
 	bool open(int32_t /*wait_ms*/);
+
 private:
 	uint32_t m_backlog;
 private:

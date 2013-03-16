@@ -17,12 +17,12 @@ namespace easynet
 
 typedef struct _heap_item_
 {
-	uint32_t index;
+	int32_t index;
 }HeapItem;
 
 //比较函数指针.返回值:小于0(a小于b); 0(a等于b); 大于0(a大于b)
 //如果a不大于b,则a排列在b的前面
-typedef int (*ItemCompare)(HeapItem *item0, HeapItem *item1);
+typedef int32_t (*ItemCompare)(HeapItem *item0, HeapItem *item1);
 //元素销毁函数指针
 typedef void (*ItemDestroy)(HeapItem *item);
 
@@ -38,20 +38,20 @@ public:
 	HeapItem* top();                     //获取堆顶元素
 	void pop();                          //删除堆顶元素
 	void clear(ItemDestroy des_func);    //清除堆(如果指定destroy函数,则用该函数处理每个heap item)
-	HeapItem* get_item(uint32_t index);  //获取指定的heap item
+	HeapItem* get_item(int32_t index);  //获取指定的heap item
 private:
-	int m_size;              //堆元素个数
-	int m_capacity;          //堆当前容量
+	int32_t m_size;              //堆元素个数
+	int32_t m_capacity;          //堆当前容量
 	HeapItem **m_items;      //堆元素数组
 	ItemCompare m_cmp_func;  //堆元素比较函数
 private:
-	void _shift_up(uint32_t index);      //自底向上调整
-	void _shift_down(uint32_t index);    //自顶向下调整
+	void _shift_up(int32_t index);      //自底向上调整
+	void _shift_down(int32_t index);    //自顶向下调整
 	bool _expand_capacity();             //扩展堆的大小
 };
 
 inline
-int Heap::size()
+int32_t Heap::size()
 {
 	return m_size;
 }
@@ -63,7 +63,7 @@ HeapItem* Heap::top()
 }
 
 inline
-HeapItem* Heap::get_item(uint32_t index)
+HeapItem* Heap::get_item(int32_t index)
 {
 	return index>=m_size?NULL:m_items[index];
 }

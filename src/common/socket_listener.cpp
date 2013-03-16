@@ -83,7 +83,6 @@ bool SocketListener::open(int32_t /*wait_ms*/)
 	return true;
 }
 
-
 }//namespace
 
 

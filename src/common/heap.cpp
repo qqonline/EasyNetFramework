@@ -50,11 +50,11 @@ bool Heap::insert(HeapItem *item)
 bool Heap::remove(HeapItem *item)
 {
 	assert(item != NULL);
-	if(item->index >= m_size)
+	if(item->index<0 || item->index>=m_size)
 		return false;
 	HeapItem *temp = m_items[item->index] = m_items[--m_size];
 	temp->index = item->index;
-	int result = m_cmp_func(temp, item);
+	int32_t result = m_cmp_func(temp, item);
 	if(result == -1)
 		_shift_up(temp->index);
 	else if(result == 1)
@@ -101,11 +101,11 @@ bool Heap::_expand_capacity()
 	return true;
 }
 
-void Heap::_shift_up(uint32_t index)
+void Heap::_shift_up(int32_t index)
 {
 	HeapItem *item = m_items[index];
 	assert(index == item->index);
-	int32_t parent = ((int32_t)index-1)/2;
+	int32_t parent = (index-1)/2;
 	while(index>0 && parent>=0)
 	{
 		if(m_cmp_func(m_items[parent], item) <= 0)    //parent不大于child
@@ -113,17 +113,17 @@ void Heap::_shift_up(uint32_t index)
 		m_items[index] = m_items[parent];
 		m_items[index]->index = index;
 		index = parent;
-		parent = ((int32_t)index-1)/2;
+		parent = (index-1)/2;
 	}
 	m_items[index] = item;
 	item->index = index;
 }
 
-void Heap::_shift_down(uint32_t index)
+void Heap::_shift_down(int32_t index)
 {
 	HeapItem *item = m_items[index];
 	assert(index == item->index);
-	uint32_t child = index*2+1;
+	int32_t child = index*2+1;
 	while(child < m_size)
 	{
 		if(child+1<m_size && m_cmp_func(m_items[child+1], m_items[child]) < 0)  //右孩子更小
