@@ -35,14 +35,14 @@ public:
 	bool start();
 	//等待线程结束
 	void wait_terminate();
+
+	//线程实际运行接口
+	virtual void do_run()=0;
 private:
 	pthread_t m_thread_id;
 	bool m_detachable;
 	uint32_t m_stack_size;
 
-protected:
-	//线程实际运行接口
-	virtual void do_run()=0;
 private:
 	DECL_LOGGER(logger);
 };
