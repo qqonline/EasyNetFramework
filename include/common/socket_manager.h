@@ -1,0 +1,105 @@
+/*
+ * socket_manager.h
+ *
+ *  Created on: Mar 18, 2013
+ *      Author: LiuYongJin
+ */
+
+
+#ifndef _COMMON_SOCKET_MANAGER_H_
+#define _COMMON_SOCKET_MANAGER_H_
+#include <stdint.h>
+#include <string>
+#include <assert.h>
+#include <map>
+using std::string;
+using std::map;
+
+#include <new>
+
+#include <common/socket_transceiver.h>
+#include <common/objectpool.h>
+#include <common/logger.h>
+
+namespace easynet
+{
+
+template <class SocketType>
+class SocketManager
+{
+public:
+	SocketManager(string addr, uint32_t port, bool block=false, uint32_t n_cache=OBPOOL_MAX_FREE)
+		:m_socket_pool(sizeof(SocketType), n_cache)
+		,m_addr(addr)
+		,m_port(port)
+		,m_block(block)
+	{}
+	virtual ~SocketManager(){}
+
+	SocketType* get_active(int32_t wait_ms=0);
+	SocketType* get_passive(int32_t fd, const char *peer_addr, uint32_t peer_port);
+
+	bool recycle(SocketType *socket);
+	uint32_t size(){return m_socket_map.size();}
+private:
+	ObjectPool m_socket_pool;
+	string m_addr;
+	uint32_t m_port;
+	bool m_block;
+
+	map<int32_t, SocketType*> m_socket_map;
+};
+
+template <class SocketType>
+SocketType* SocketManager<SocketType>::get_active(int32_t wait_ms/*=0*/)
+{
+	SocketType *socket = (SocketType*)m_socket_pool.get();
+	if(socket != NULL)
+	{
+		socket = new((void*)socket) SocketType(-1, m_addr.c_str(), m_port, m_block, true);
+		if(!socket->open(wait_ms))
+		{
+			m_socket_pool.recycle(socket);
+			socket = NULL;
+		}
+		else
+			m_socket_map.insert(std::make_pair(socket->get_fd(), socket));
+	}
+
+	return socket;
+}
+
+template <class SocketType>
+SocketType* SocketManager<SocketType>::get_passive(int32_t fd, const char *peer_addr, uint32_t peer_port)
+{
+	SocketType *socket = (SocketType*)m_socket_pool.get();
+	if(socket != NULL)
+	{
+		socket = new((void*)socket) SocketType(fd, peer_addr, peer_port, m_block, false);
+		if(!socket->open(0))
+		{
+			m_socket_pool.recycle(socket);
+			socket = NULL;
+		}
+		else
+			m_socket_map.insert(std::make_pair(socket->get_fd(), socket));
+	}
+	return socket;
+}
+
+template <class SocketType>
+bool SocketManager<SocketType>::recycle(SocketType *socket)
+{
+	assert(socket != NULL);
+	map<int32_t, SocketType*>::iterator it = m_socket_map.find(socket->get_fd());
+	if(m_socket_map.find(socket->get_fd()) == m_socket_map.end())
+		return false;
+	socket->close();
+	m_socket_map.erase(it);
+	m_socket_pool.recycle((void*)socket);
+	return true;
+}
+
+}//namespace
+#endif //_COMMON_SOCKET_MANAGER_H_
+

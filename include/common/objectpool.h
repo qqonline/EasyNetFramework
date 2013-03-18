@@ -21,7 +21,6 @@ public:
 	//object_size: 返回的内存对象大小;
 	//max_free:pool中维护的最大空闲对象数;
 	ObjectPool(uint32_t object_size, uint32_t max_free=OBPOOL_MAX_FREE);
-
 	~ObjectPool();
 
 	//从pool中获取一个对象
