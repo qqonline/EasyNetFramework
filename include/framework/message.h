@@ -20,15 +20,17 @@ namespace easynet
 class Message
 {
 public:
-	Message(ByteBuffer *bytebuf, const string &detail)
+	Message(ByteBuffer *bytebuf, const string &detail, uint64_t timestamp=0)
 		:m_bytebuf(bytebuf)
 		,m_detail(detail)
+		,m_timestamp(timestamp)
 	{
 		assert(bytebuf != NULL);
 	}
-	Message(ByteBuffer *bytebuf, const char *detail)
+	Message(ByteBuffer *bytebuf, const char *detail, uint64_t timestamp=0)
 		:m_bytebuf(bytebuf)
 		,m_detail(detail)
+		,m_timestamp(timestamp)
 	{
 		assert(bytebuf != NULL);
 	}
@@ -37,6 +39,7 @@ public:
 public:
 	ByteBuffer *m_bytebuf;
 	string m_detail;
+	uint64_t m_timestamp;    //时间戳
 };
 
 
