@@ -23,14 +23,19 @@ HANDLE_RESULT TransHandler::on_fd_readable(uint32_t fd)
 
 	ByteBuffer *bytebuf = socket->get_input_buffer();
 	uint32_t wait_size = socket->get_input_wait_size();
-	LenType len_type = LENTYPE_MAX;
 	if(bytebuf == NULL)
 	{
 		bytebuf = new ByteBuffer;
-		len_type = m_msg_factory->msg_decode_length(wait_size);
+		wait_size = m_msg_factory->msg_decode_length();
 	}
-	assert(wait_size > 0);
+	assert(bytebuf!=NULL && wait_size>0);
 
+	char *buf = bytebuf->get_append_buffer(wait_size);
+	int32_t read_size = socket->receive(buf, wait_size);
+	if(read_size < 0)  //出错
+	{
+
+	}
 	return HANDLE_FINISH;
 }
 HANDLE_RESULT TransHandler::on_fd_writeable(uint32_t fd)

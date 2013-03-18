@@ -14,22 +14,14 @@
 namespace easynet
 {
 
-typedef enum
-{
-	LENTYPE_FIXED,      //固定长度
-	LENTYPE_MAX         //最大长度
-}LenType;
-
 class MsgFactory
 {
 public:
 	MsgFactory();
 	virtual ~MsgFactory(){};
 
-	//遇到一个新的消息时,第一次需要读取的消息字节数len,以及该长度的类别:
-	//  LENTYPE_FIXED:必须读进固定的字节数
-	//  LENTYPE_MAX:可读进的最大字节数
-	virtual LenType msg_decode_length(uint32_t &len)=0;
+	//遇到一个新的消息时,第一次需要读取的消息字节数len
+	virtual uint32_t msg_decode_length()=0;
 
 	//解码读进的数据,返回值:
 	//  小于0:失败,msg无效;

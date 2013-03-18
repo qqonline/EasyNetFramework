@@ -85,6 +85,7 @@ private:
 	Message *m_msg;           //待发送的msg
 	ByteBuffer *m_bytebuf;    //已经接收到数据的buffer
 	uint32_t m_wait_size;     //剩下待接收的字节数
+
 };
 
 }//namespace
