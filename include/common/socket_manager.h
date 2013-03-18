@@ -104,7 +104,7 @@ bool SocketManager<SocketType>::release(SocketType *socket)
 	map<int32_t, SocketType*>::iterator it = m_socket_map.find(socket->get_fd());
 	if(it == m_socket_map.end())
 		return false;
-	socket->close();
+	socket->~SocketType();
 	m_socket_map.erase(it);
 	m_socket_pool.recycle((void*)socket);
 	return true;
