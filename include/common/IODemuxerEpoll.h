@@ -1,5 +1,5 @@
 /*
- * iodemuxer_epoll.h
+ * IODemuxerEpoll.h
  *
  *  Created on: 2013-3-11
  *      Author: LiuYongJin
@@ -8,9 +8,9 @@
 #ifndef _COMMON_IODEMUXER_EPOLL_H_
 #define _COMMON_IODEMUXER_EPOLL_H_
 
-#include <common/iodemuxer.h>
-#include <common/objectpool.h>
-#include <common/logger.h>
+#include <common/IODemuxer.h>
+#include <common/ObjectPool.h>
+#include <common/Logger.h>
 
 #include <sys/epoll.h>
 #include <stdint.h>

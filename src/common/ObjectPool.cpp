@@ -1,12 +1,12 @@
 /*
- * objectpool.cpp
+ * ObjectPool.cpp
  *
  *  Created on: 2013-3-8
- *      Author: Administrator
+ *      Author: LiuYongJin
  */
 
-#include <common/objectpool.h>
-#include <common/logger.h>
+#include <common/ObjectPool.h>
+#include <common/Logger.h>
 #include <assert.h>
 #include <stdlib.h>
 
@@ -30,7 +30,7 @@ ObjectPool::~ObjectPool()
 	free(m_free_objects);
 }
 
-void* ObjectPool::get()
+void* ObjectPool::Get()
 {
 	if(m_free_size > 0)
 		return m_free_objects[--m_free_size];
@@ -38,7 +38,7 @@ void* ObjectPool::get()
 		return malloc(m_object_size);
 }
 
-void ObjectPool::recycle (void *object)
+void ObjectPool::Recycle (void *object)
 {
 	if(m_free_size < m_max_free)
 		m_free_objects[m_free_size++] = object;

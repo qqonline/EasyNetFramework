@@ -10,8 +10,8 @@
 
 #include <stdint.h>
 
-#include <common/socket_interface.h>
-#include <common/logger.h>
+#include <common/SocketInterface.h>
+#include <common/Logger.h>
 
 namespace easynet
 {

@@ -1,5 +1,5 @@
 /*
- * objectpool.h
+ * ObjectPool.h
  *
  *  Created on: 2013-3-8
  *      Author: LiuYongJin
@@ -24,10 +24,10 @@ public:
 	~ObjectPool();
 
 	//从pool中获取一个对象
-	void* get();
+	void* Get();
 
 	//回收对象到pool
-	void recycle (void *object);
+	void Recycle (void *object);
 
 private:
 	const uint32_t m_object_size;

@@ -1,5 +1,5 @@
 /*
- * socket_transceiver.h
+ * SocketTransceiver.h
  *
  *  Created on: Mar 15, 2013
  *      Author: LiuYongJin
@@ -10,8 +10,8 @@
 
 #include <stdint.h>
 
-#include <common/socket_interface.h>
-#include <common/logger.h>
+#include <common/SocketInterface.h>
+#include <common/Logger.h>
 
 namespace easynet
 {

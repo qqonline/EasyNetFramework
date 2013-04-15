@@ -1,5 +1,5 @@
 /*
- * thread.cpp
+ * Thread.cpp
  *
  *  Created on: Mar 14, 2013
  *      Author: LiuYongJin
@@ -8,7 +8,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include <common/thread.h>
+#include <common/Thread.h>
 
 namespace easynet
 {

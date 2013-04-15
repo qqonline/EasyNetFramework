@@ -1,5 +1,5 @@
 /*
- * socket_manager.h
+ * SocketManager.h
  *
  *  Created on: Mar 18, 2013
  *      Author: LiuYongJin
@@ -17,9 +17,9 @@ using std::map;
 
 #include <new>
 
-#include <common/socket_transceiver.h>
-#include <common/objectpool.h>
-#include <common/logger.h>
+#include <common/SocketTransceiver.h>
+#include <common/ObjectPool.h>
+#include <common/Logger.h>
 
 namespace easynet
 {
@@ -117,6 +117,9 @@ SocketType* SocketManager<SocketType>::find(int32_t fd)
 	return it==m_socket_map.end()?NULL:it->second;
 }
 
+
+
 }//namespace
+
 #endif //_COMMON_SOCKET_MANAGER_H_
 

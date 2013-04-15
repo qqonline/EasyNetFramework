@@ -1,11 +1,11 @@
 /*
- * threadpool.cpp
+ * ThreadPool.cpp
  *
  *  Created on: Mar 14, 2013
  *      Author: LiuYongJin
  */
 
-#include <common/threadpool.h>
+#include <common/ThreadPool.h>
 
 namespace easynet
 {

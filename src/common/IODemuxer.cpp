@@ -1,12 +1,12 @@
 /*
- * iodemuxer.cpp
+ * IODemuxer.cpp
  *
  *  Created on: 2013-3-7
  *      Author: LiuYongJin
  */
 
-#include <common/iodemuxer.h>
-#include <common/logger.h>
+#include <common/IODemuxer.h>
+#include <common/Logger.h>
 
 #include <sys/time.h>
 #include <stdlib.h>

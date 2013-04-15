@@ -1,11 +1,11 @@
 /*
- * iodemuxer_epoll.cpp
+ * IODemuxerEpoll.cpp
  *
  *  Created on: 2013-3-11
  *      Author: LiuYongJin
  */
 
-#include <common/iodemuxer_epoll.h>
+#include <common/IODemuxerEpoll.h>
 
 #include <sys/time.h>
 #include <assert.h>
