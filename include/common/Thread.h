@@ -1,5 +1,5 @@
 /*
- * thread.h
+ * Thread.h
  *
  *  Created on: 2013-03-15
  *      Author: LiuYongjin
@@ -12,7 +12,7 @@
 #include <pthread.h>
 #include <assert.h>
 
-#include <common/logger.h>
+#include <common/Logger.h>
 
 namespace easynet
 {

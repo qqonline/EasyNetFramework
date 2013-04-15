@@ -1,11 +1,11 @@
 /*
- * condqueue.cpp
+ * CondQueue.cpp
  *
  *  Created on: Mar 15, 2013
  *      Author: LiuYongJin
  */
 
-#include <common/condqueue.h>
+#include <common/CondQueue.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <time.h>
@@ -38,7 +38,7 @@ CondQueue::~CondQueue()
 	pthread_cond_destroy(&m_cond);
 }
 
-bool CondQueue::push(void *data)
+bool CondQueue::Push(void *data)
 {
 	assert(data != NULL);
 	pthread_mutex_lock(&m_lock);
@@ -47,7 +47,7 @@ bool CondQueue::push(void *data)
 		pthread_mutex_unlock(&m_lock);
 		return false;
 	}
-	CQItem *item = (CQItem*)m_data_pool.get();
+	CQItem *item = (CQItem*)m_data_pool.Get();
 	if(item == NULL)
 	{
 		pthread_mutex_unlock(&m_lock);
@@ -62,7 +62,7 @@ bool CondQueue::push(void *data)
 	return true;
 }
 
-void* CondQueue::pop()
+void* CondQueue::Pop()
 {
 	void *data = NULL;
 	pthread_mutex_lock(&m_lock);
@@ -93,7 +93,7 @@ void* CondQueue::pop()
 			assert(m_queue_head != NULL);
 			data = ((CQItem*)m_queue_head)->data;
 			CQItem *next = ((CQItem*)m_queue_head)->next;
-			m_data_pool.recycle(m_queue_head);
+			m_data_pool.Recycle(m_queue_head);
 			m_queue_head = (void*)next;
 			--m_size;
 		}
@@ -102,18 +102,19 @@ void* CondQueue::pop()
 	return data;
 }
 
-void CondQueue::set_capacity(int32_t capacity)
+void CondQueue::SetCapacity(int32_t capacity)
 {
 	pthread_mutex_lock(&m_lock);
 	m_capacity = capacity;
 	pthread_mutex_unlock(&m_lock);
 }
 
-void CondQueue::set_wait_time(int32_t wait_ms)
+void CondQueue::SetWaitTime(int32_t wait_ms)
 {
 	pthread_mutex_lock(&m_lock);
 	m_wait_time = wait_ms;
 	pthread_mutex_unlock(&m_lock);
 }
+
 
 }//namespace

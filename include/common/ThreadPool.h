@@ -8,8 +8,9 @@
 #define _COMMON_THREAD_POOL_H_
 
 #include <stdint.h>
-#include <common/thread.h>
-#include <common/logger.h>
+
+#include <common/Thread.h>
+#include <common/Logger.h>
 
 namespace easynet
 {

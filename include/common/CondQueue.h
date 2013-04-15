@@ -1,5 +1,5 @@
 /*
- * condqueue.h
+ * CondQueue.h
  *
  *  Created on: Mar 15, 2013
  *      Author: LiuYongJin
@@ -24,13 +24,13 @@ public:
 	CondQueue(int32_t capacity, int32_t wait_ms);
 	virtual ~CondQueue();
 
-	void set_capacity(int32_t capacity);
-	void set_wait_time(int32_t wait_ms);
+	void SetCapacity(int32_t capacity);
+	void SetWaitTime(int32_t wait_ms);
 
 	//添加data到队列,成功返回true;失败返回false(队列满);
-	bool push(void *data);
+	bool Push(void *data);
 	//从队列获取一个data,(等待wait_ms)队列空返回NULL;
-	void* pop();
+	void* Pop();
 private:
 	int32_t m_size;
 	int32_t m_capacity;

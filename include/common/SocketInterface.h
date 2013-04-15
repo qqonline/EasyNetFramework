@@ -1,5 +1,5 @@
 /*
- * socket_interface.h
+ * SocketInterface.h
  *
  *  Created on: 2013-3-15
  *      Author: LiuYongJin
@@ -13,7 +13,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <common/logger.h>
+#include <common/Logger.h>
 
 namespace easynet
 {

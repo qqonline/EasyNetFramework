@@ -1,5 +1,5 @@
 /*
- * logger.h
+ * Logger.h
  *
  *  Created on: Mar 14, 2013
  *      Author: LiuYongJin
@@ -15,9 +15,6 @@
 #include <log4cplus/configurator.h>
 
 using namespace log4cplus;
-
-#include <list>
-using namespace std;
 
 #define DECL_LOGGER(logger)     static Logger logger
 #define IMPL_LOGGER(classname, logger)  Logger classname::logger = Logger::getInstance(#classname)

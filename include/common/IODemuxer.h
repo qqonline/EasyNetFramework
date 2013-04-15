@@ -1,5 +1,5 @@
 /*
- * iodemuxer.h
+ * IODemuxer.h
  *
  *  Created on: 2013-3-7
  *      Author: LiuYongJin
@@ -10,10 +10,10 @@
 
 #include <stdint.h>
 
-#include <common/eventhandler.h>
-#include <common/heap.h>
-#include <common/objectpool.h>
-#include <common/logger.h>
+#include <common/EventHandler.h>
+#include <common/Heap.h>
+#include <common/ObjectPool.h>
+#include <common/Logger.h>
 
 namespace easynet
 {

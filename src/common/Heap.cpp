@@ -4,7 +4,7 @@
  *  Created on: 2012-12-23
  *      Author: LiuYongJin
  */
-#include <common/heap.h>
+#include <common/Heap.h>
 
 #include <string.h>
 #include <assert.h>
@@ -33,7 +33,7 @@ Heap::~Heap()
 }
 
 //插入元素.成功返回ture,失败返回false
-bool Heap::insert(HeapItem *item)
+bool Heap::Insert(HeapItem *item)
 {
 	assert(item != NULL);
 	if(m_size == m_capacity)
@@ -47,7 +47,7 @@ bool Heap::insert(HeapItem *item)
 }
 
 //删除堆元素.成功返回ture,失败返回false
-bool Heap::remove(HeapItem *item)
+bool Heap::Remove(HeapItem *item)
 {
 	assert(item != NULL);
 	if(item->index<0 || item->index>=m_size)
@@ -63,7 +63,7 @@ bool Heap::remove(HeapItem *item)
 }
 
 //删除堆顶元素
-void Heap::pop()
+void Heap::Pop()
 {
 	if(m_size <= 0)
 		return;
@@ -77,7 +77,7 @@ void Heap::pop()
 }
 
 //清除堆
-void Heap::clear(ItemDestroy des_func)
+void Heap::Clear(ItemDestroy des_func)
 {
 	if(des_func != NULL)
 		while(m_size > 0)

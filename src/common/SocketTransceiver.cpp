@@ -1,5 +1,5 @@
 /*
- * socket_transciver.cpp
+ * SocketTransciver.cpp
  *
  *  Created on: Mar 16, 2013
  *      Author: LiuYongJin
@@ -13,7 +13,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#include <common/socket_transceiver.h>
+#include <common/SocketTransceiver.h>
 
 namespace easynet
 {

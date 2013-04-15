@@ -1,5 +1,5 @@
 /*
- * heap.h
+ * Heap.h
  *
  *  Created on: 2013-03-07
  *      Author: LiuYongJin
@@ -32,13 +32,13 @@ public:
 	Heap(ItemCompare cmp_func);
 	~Heap();
 
-	int size();                          //堆元素个数
-	bool insert(HeapItem *item);         //插入元素.成功返回ture,失败返回false
-	bool remove(HeapItem *item);         //删除元素.成功返回ture,失败返回false
-	HeapItem* top();                     //获取堆顶元素
-	void pop();                          //删除堆顶元素
-	void clear(ItemDestroy des_func);    //清除堆(如果指定destroy函数,则用该函数处理每个heap item)
-	HeapItem* get_item(int32_t index);  //获取指定的heap item
+	int Size();                          //堆元素个数
+	bool Insert(HeapItem *item);         //插入元素.成功返回ture,失败返回false
+	bool Remove(HeapItem *item);         //删除元素.成功返回ture,失败返回false
+	HeapItem* Top();                     //获取堆顶元素
+	void Pop();                          //删除堆顶元素
+	void Clear(ItemDestroy des_func);    //清除堆(如果指定destroy函数,则用该函数处理每个heap item)
+	HeapItem* GetItem(int32_t index);  //获取指定的heap item
 private:
 	int32_t m_size;              //堆元素个数
 	int32_t m_capacity;          //堆当前容量

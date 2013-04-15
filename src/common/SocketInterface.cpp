@@ -1,5 +1,5 @@
 /*
- * socketinterface.cpp
+ * SocketInterface.cpp
  *
  *  Created on: Mar 15, 2013
  *      Author: LiuYongJin
@@ -12,7 +12,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#include <common/socket_interface.h>
+#include <common/SocketInterface.h>
 
 namespace easynet
 {

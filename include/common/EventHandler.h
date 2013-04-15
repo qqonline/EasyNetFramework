@@ -1,5 +1,5 @@
 /*
- * eventhandler.h
+ * EventHandler.h
  *
  *  Created on: 2013-3-7
  *      Author: LiuYongJin
