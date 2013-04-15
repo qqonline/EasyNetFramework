@@ -63,51 +63,51 @@ private:
 };
 
 inline
-void ByteBuffer::set_append_size(uint32_t size)
+void ByteBuffer::SetAppendSize(uint32_t size)
 {
 	assert(m_size+size <= m_capacity);
 	m_size += size;
 }
 
 inline
-void ByteBuffer::set_fetch_size(uint32_t size)
+void ByteBuffer::SetFetchSize(uint32_t size)
 {
 	assert(m_fetch_pos+size <= m_size);
 	m_fetch_pos += size;
 }
 
 inline
-bool ByteBuffer::append_str(char *str)
+bool ByteBuffer::AppendStr(char *str)
 {
-	return str==NULL?true:append_bytes(str, strlen(str));
+	return str==NULL?true:AppendBytes(str, strlen(str));
 }
 
 inline
-bool ByteBuffer::append_int32(int32_t i)
+bool ByteBuffer::AppendInt32(int32_t i)
 {
-	return append_bytes((char*)&i, sizeof(i));
+	return AppendBytes((char*)&i, sizeof(i));
 }
 
 inline
-bool ByteBuffer::append_int64(int64_t i)
+bool ByteBuffer::AppendInt64(int64_t i)
 {
-	return append_bytes((char*)&i, sizeof(i));
+	return AppendBytes((char*)&i, sizeof(i));
 }
 
 inline
-uint32_t ByteBuffer::get_fetch_size()
+uint32_t ByteBuffer::GetFetchSize()
 {
 	return m_fetch_pos<m_size?m_size-m_fetch_pos:0;
 }
 
-bool ByteBuffer::fetch_int32(int32_t *i)
+bool ByteBuffer::FetchInt32(int32_t *i)
 {
-	return i==NULL?false:fetch_bytes((char*)i, sizeof(int32_t));
+	return i==NULL?false:FetchBytes((char*)i, sizeof(int32_t));
 }
 
-bool ByteBuffer::fetch_int64(int64_t *i)
+bool ByteBuffer::FetchInt64(int64_t *i)
 {
-	return i==NULL?false:fetch_bytes((char*)i, sizeof(int64_t));
+	return i==NULL?false:FetchBytes((char*)i, sizeof(int64_t));
 }
 
 
