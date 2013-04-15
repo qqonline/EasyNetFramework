@@ -36,6 +36,7 @@ public:
 	//等待线程结束
 	void wait_terminate();
 
+protected:
 	//线程实际运行接口
 	virtual void do_run()=0;
 private:

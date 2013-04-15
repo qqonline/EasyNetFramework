@@ -8,28 +8,16 @@
 #ifndef _FRAMEWORK_APPLICATION_H_
 #define _FRAMEWORK_APPLICATION_H_
 
-#include <common/thread.h>
-#include <common/iodemuxer.h>
-
-#include <framework/listenhandler.h>
-
 namespace easynet
 {
 
-class Application:public IAcceptor, public Thread
+class IApplication
 {
 public:
-	void do_run();
-	bool on_new_connect(uint32_t fd, struct sockaddr_in *addr);
+	virtual ~IApplication(){}
 
-public:
-	Application();
-	~Application();
+protected:
 
-	bool start();
-	bool stop();
-private:
-	IODemuxer *m_iodemuxer;
 };
 
 }//namespace
