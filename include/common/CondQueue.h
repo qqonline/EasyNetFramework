@@ -18,27 +18,30 @@ namespace easynet
 class CondQueue
 {
 public:
-	/**
-	 * @param capacity   : 队列最大任务数
-	 * @param wait_ms    : 从队列中取任务时等待到最大时间(ms).小于0:一直等待;0:不等待;大于0:等待的时间
-	 */
-	CondQueue(uint32_t capacity, int32_t wait_ms);
+	// @param capacity   : 队列最大任务数
+	CondQueue(uint32_t capacity);
 	virtual ~CondQueue();
 
 	uint32_t GetSize();
 	uint32_t GetCapacity();
-	void SetWaitTime(int32_t wait_ms);
 
+	/** 添加data到队列,成功返回true;失败返回false(队列满);
+	 * @param data    : 需要保存的数据
+	 * @param wait_ms : push到队列等待的时间,单位毫秒.小于0一直等到push到队列中;0无法push时立即返回;大于0等待的时间;
+	 * @return        : true数据成功push到队列;false数据push失败;
+	 */
+	bool Push(void *data, int32_t wait_ms);
 
-	//添加data到队列,成功返回true;失败返回false(队列满);
-	bool Push(void *data);
-	//从队列获取一个data,(等待wait_ms)队列空返回NULL;
-	void* Pop();
+	/** 从队列获取一个data,(等待wait_ms)队列空返回NULL;
+	 * @param wait_ms : 从队列pop数据等待的时间,单位毫秒.小于0一直等到队列中有数据;0无数据时立即返回;大于0等待的时间;
+	 * @return        : 返回pop的数据,无数据时返回NULL;
+	 */
+	void* Pop(int32_t wait_ms);
 private:
 	uint32_t m_capacity;
-	int32_t m_wait_time;
 	pthread_mutex_t m_lock;
-	pthread_cond_t m_cond;
+	pthread_cond_t m_noempty_cond;
+	pthread_cond_t m_nofull_cond;
 
 	void *m_array;
 	uint32_t m_in;
