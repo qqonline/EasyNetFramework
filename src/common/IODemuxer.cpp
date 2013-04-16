@@ -58,7 +58,7 @@ bool IODemuxer::add_timer(TimerHandler *handler, int32_t timeout)
 	uint64_t now_time = tv.tv_sec*1000+tv.tv_usec/1000;
 
 	TimerInfo *timer_info;
-	if((timer_info=(TimerInfo*)m_timerinfo_pool.get()) == NULL)
+	if((timer_info=(TimerInfo*)m_timerinfo_pool.Get()) == NULL)
 	{
 		LOG4CPLUS_WARN(logger, "timerinfo_poll out of memory.");
 		return false;
