@@ -40,7 +40,7 @@ CondQueue::~CondQueue()
 	m_array = NULL;
 }
 
-bool CondQueue::Push(void *data, int32_t wait_ms)
+bool CondQueue::Push(void *data, int32_t wait_ms/*=0*/)
 {
 	uint32_t temp;
 	assert(data != NULL);
@@ -76,7 +76,7 @@ bool CondQueue::Push(void *data, int32_t wait_ms)
 	return true;
 }
 
-void* CondQueue::Pop(int32_t wait_ms)
+void* CondQueue::Pop(int32_t wait_ms/*=-1*/)
 {
 	void *data = NULL;
 	pthread_mutex_lock(&m_lock);
