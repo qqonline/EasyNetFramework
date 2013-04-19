@@ -45,9 +45,14 @@ public:
 	virtual bool OnEventError(int32_t fd)=0;
 };
 
+/** 事件监听server
+ *  1. 监听时钟事件
+ *  2. 监听IO读/写/超时事件
+ */
 class EventServer
 {
 public:
+	EventServer();
 	virtual ~EventServer(){}
 
 	/**添加定时器:
@@ -57,7 +62,7 @@ public:
 	 * @return           : true成功;false失败;
 	 */
 	bool AddTimer(EventHandler *handler, uint32_t timeout_ms, bool persist=true);
-	
+
 	/**添加事件:
 	 * @param fd         : socket描述符;
 	 * @param type       : 待监听的事件.定义见<事件类型>;
@@ -66,7 +71,7 @@ public:
 	 * @return           : true成功;false失败;
 	*/
 	bool AddEvent(int32_t fd, EventType type, EventHandler *handler, uint32_t timeout_ms);
-	
+
 	/**删除事件:
 	 * @param fd         : socket描述符;
 	 * @param type       : type待删除的事件.定义见<事件类型>
@@ -76,16 +81,16 @@ public:
 	
 	//分派一轮事件
 	bool DispatchEvents();
-	
+
 	//循环分派事件
 	bool DispatchEvents_RunLoop();
-	
+
 	//停止循环分派事件
 	void Stop();
 private:
 	bool m_CanStop;
-	Heap m_timer_heap;
-	ObjectPool m_timerinfo_pool;
+	Heap m_TimerHeap;
+	ObjectPool m_EventInfoPool;
 
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////  派生类需要实现的接口  ////////////////////////
@@ -93,6 +98,8 @@ protected:
 	virtual bool AddEvent(int32_t fd, EventType type, void *arg)=0;
 	virtual bool NotifyEvent(int32_t fd, EventType type, void *arg)=0;
 	virtual bool DelEvent(int32_t fd , EventType type)=0;
+private:
+	DECL_LOGGER(logger);
 };
 
 inline

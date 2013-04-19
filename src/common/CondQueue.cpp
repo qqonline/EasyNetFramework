@@ -15,8 +15,7 @@ namespace easynet
 {
 
 CondQueue::CondQueue(uint32_t capacity)
-	:m_wait_time(wait_ms)
-	,m_array(NULL)
+	:m_array(NULL)
 	,m_in(0)
 	,m_out(0)
 {
