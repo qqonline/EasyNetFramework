@@ -21,7 +21,11 @@ public:
 	 * @param elem_num  : 元素个数
 	 */
 	ArrayObjectPool(uint32_t elem_size, uint32_t elem_num);
-	～ArrayObjectPool();
+	~ArrayObjectPool();
+
+	uint32_t ElemSize(){return m_ElemSize;}
+	uint32_t Capacity(){return m_ElemNum;}
+	bool IsEmpty(){return m_FreeHead==NULL;}
 
 	/** 获取元素
 	 * @return : 返回元素指针,无空闲元素可用返回NULL;

@@ -11,7 +11,7 @@
 #include <stdint.h>
 
 #include <common/Heap.h>
-#include <common/ObjectPool.h>
+#include <common/ArrayObjectPool.h>
 #include <common/Logger.h>
 
 namespace easynet
@@ -21,6 +21,7 @@ namespace easynet
 /////////////////////////////////////////////////////////////////////////////////////////
 //事件类型
 typedef uint8_t EventType;
+#define EV_EMPTY            0x0000                    //空
 #define EV_READ             0x0001                    //读
 #define EV_WRITE            0x0002                    //写
 #define EV_PERSIST          0x1000                    //持续,只对EV_READ有效
@@ -45,6 +46,7 @@ public:
 	virtual bool OnEventError(int32_t fd)=0;
 };
 
+
 /** 事件监听server
  *  1. 监听时钟事件
  *  2. 监听IO读/写/超时事件
@@ -52,7 +54,7 @@ public:
 class EventServer
 {
 public:
-	EventServer();
+	EventServer(uint32_t max_num);
 	virtual ~EventServer(){}
 
 	/**添加定时器:
@@ -88,10 +90,12 @@ public:
 	//停止循环分派事件
 	void Stop();
 private:
+	uint32_t m_MaxNum;
 	bool m_CanStop;
 	Heap m_TimerHeap;
-	ObjectPool m_EventInfoPool;
+	ArrayObjectPool m_EventInfoPool;
 
+	void* _AddTimer(int32_t fd, EventType type, EventHandler *handler, uint32_t timeout_ms);
 ////////////////////////////////////////////////////////////////////////
 ////////////////////////  派生类需要实现的接口  ////////////////////////
 protected:

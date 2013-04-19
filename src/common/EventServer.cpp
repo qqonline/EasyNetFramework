@@ -20,7 +20,7 @@ typedef struct _event_info
 	int32_t fd;
 	EventType type;
 	EventHandler *handler;
-	uint32_t timeout;
+	uint32_t timeout;        //超时时间(ms)
 	uint64_t expire_time;    //超时时间点(ms)
 }EventInfo;
 
@@ -36,42 +36,67 @@ static int _event_info_cmp(HeapItem *item0, HeapItem *item1)
 		return 1;
 }
 
-EventServer::EventServer()
+EventServer::EventServer(uint32_t max_num)
 	:m_TimerHeap(_event_info_cmp)
-	,m_EventInfoPool(sizeof(EventInfo))
+	,m_EventInfoPool(sizeof(EventInfo), max_num)
 	,m_CanStop(false)
 {
 }
 
-bool EventServer::_AddTimer(int32_t fd, EventHandler *handler, int32_t timeout_ms)
+void* EventServer::_AddTimer(int32_t fd, EventType type, EventHandler *handler, uint32_t timeout_ms)
 {
-	assert(handler!=NULL && timeout>=0);
+	EventInfo *event_info;
+	if((event_info=(EventInfo*)m_EventInfoPool.Get()) == NULL)
+	{
+		LOG4CPLUS_ERROR(logger, "event_info_pool out of memory. fd="<<fd<<" type="<<type);
+		return NULL;
+	}
 
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
 	uint64_t now_time = tv.tv_sec*1000+tv.tv_usec/1000;
 
-	TimerInfo *timer_info;
-	if((timer_info=(TimerInfo*)m_timerinfo_pool.Get()) == NULL)
+	event_info->heap_item.index = -1;
+	event_info->fd = fd;
+	event_info->type = type;
+	event_info->handler = handler;
+	event_info->timeout = timeout_ms;
+	event_info->expire_time = now_time+timeout_ms;
+	if(!m_TimerHeap.Insert((HeapItem*)event_info))
 	{
-		LOG4CPLUS_WARN(logger, "timerinfo_poll out of memory.");
-		return false;
+		m_EventInfoPool.Recycle((void*)event_info);
+		LOG4CPLUS_ERROR(logger, "insert event_info into timer_heap failed. fd="<<fd<<" type="<<type);
+		event_info = NULL;
 	}
-	timer_info->heap_item.index = -1;
-	timer_info->handler = handler;
-	timer_info->timeout = timeout;
-	timer_info->expire_time = now_time+timeout;
-	if(!m_timer_heap.insert((HeapItem*)timer_info))
-	{
-		m_timerinfo_pool.recycle((void*)timer_info);
-		LOG4CPLUS_WARN(logger, "insert timerinfo into timer_heap failed.");
-		return false;
-	}
+	LOG4CPLUS_DEBUG(logger, "insert timer success. fd="<<fd<<" type="<<type<<" timeout="<<event_info->timeout<<" expire="<<event_info->expire_time);
 
-	LOG4CPLUS_DEBUG(logger, "insert timer success. timeout="<<timeout);
-	return true;
+	return (void*)event_info;
 }
 
+bool EventServer::AddTimer(EventHandler *handler, uint32_t timeout_ms, bool persist/*=true*/)
+{
+	assert(handler != NULL);
+	EventType type = persist?EV_PERSIST:EV_EMPTY;
+	return _AddTimer(-1, type, handler, timeout_ms) != NULL;
+}
+
+bool EventServer::AddEvent(int32_t fd, EventType type, EventHandler *handler, uint32_t timeout_ms)
+{
+	if(fd<=0 || EV_IS_EMPTY(type) || handler==NULL)
+		return false;
+	EventInfo *event_info = (EventInfo*)_AddTimer(fd, type, handler, timeout_ms);
+	if(event_info == NULL)
+		return false;
+	if(!AddEvent(fd, type, (void*)event_info))
+	{
+		m_TimerHeap.Remove((HeapItem*)event_info);
+		m_EventInfoPool.Recycle((void*)event_info);
+		LOG4CPLUS_ERROR(logger, "add_event failed. fd="<<fd<<" type="<<type);
+		event_info = NULL;
+	}
+
+	return event_info!=NULL?true:false;
+}
 
 }//namespace
 
