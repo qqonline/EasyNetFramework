@@ -19,4 +19,11 @@ using namespace log4cplus;
 #define DECL_LOGGER(logger)     static Logger logger
 #define IMPL_LOGGER(classname, logger)  Logger classname::logger = Logger::getInstance(#classname)
 
+#define LOG_TRACE(logger, log)   LOG4CPLUS_TRACE(logger, log)
+#define LOG_DEBUG(logger, log)   LOG4CPLUS_DEBUG(logger, log)
+#define LOG_INFO(logger, log)    LOG4CPLUS_INFO(logger, log)
+#define LOG_WARN(logger, log)    LOG4CPLUS_WARN(logger, log)
+#define LOG_ERROR(logger, log)   LOG4CPLUS_ERROR(logger, log)
+#define LOG_ERROR(logger, log)   LOG4CPLUS_FATAL(logger, log)
+
 #endif //_COMMON_LOGGER_H_
