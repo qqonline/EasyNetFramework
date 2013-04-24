@@ -56,7 +56,7 @@ typedef struct _event_info
 	uint32_t timeout;
 }EventInfo;
 
-typedef map<uint32_t, void*> EventMap;
+typedef map<uint32_t, EventInfo*> EventMap;
 
 /** 事件监听server
  *  1. 监听时钟事件
@@ -99,7 +99,7 @@ public:
 	//停止分派事件
 	void Stop(){m_CanStop = true;}
 
-private:
+protected:
 	bool m_CanStop;
 	uint32_t m_MaxEvents;
 	Heap m_TimerHeap;

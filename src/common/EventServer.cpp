@@ -22,7 +22,7 @@ typedef struct _timer_info
 }TimerInfo;
 
 #define GetCurTime(now) do{              \
-	struct timeval tv;                   \
+	struct timeval tv;                    \
 	gettimeofday(&tv, NULL);              \
 	now = tv.tv_sec*1000+tv.tv_usec/1000; \
 }while(0)
@@ -35,16 +35,13 @@ typedef struct _timer_info
 }while(0)
 
 #define SetTimerInfo(timer_info, f, t, h, to) do{ \
-	timer_info->heap_item.index    = -1;           \
+	timer_info->heap_item.index = -1;              \
 	int64_t now;                                   \
 	GetCurTime(now);                               \
-	timer_info->expire_time        = now+to;       \
-	timer_info->event_info.fd      = f;            \
-	timer_info->event_info.type    = t;            \
-	timer_info->event_info.handler = h;            \
-	timer_info->event_info.timeout = to;           \
+	timer_info->expire_time = now+to;              \
+	EventInfo *ef = &(timer_info->event_info);     \
+	SetEventInfo(ef, f, t, h, to);                 \
 }while(0)
-
 
 
 static int _timer_cmp(HeapItem *item0, HeapItem *item1)
@@ -145,7 +142,8 @@ bool EventServer::AddEvent(int32_t fd, EventType type, EventHandler *handler, in
 	}
 
 	//find in event map
-	EventInfo *event_info = (EventInfo *)it->second;
+	TimerInfo *timer_info = (TimerInfo *)it->second;
+	EventInfo *event_info = &(timer_info->event_info);
 	EventType old_type = event_info->type&ET_RDWT;
 	EventType new_type = type&ET_RDWT;
 	if(new_type == old_type)
@@ -159,11 +157,6 @@ bool EventServer::AddEvent(int32_t fd, EventType type, EventHandler *handler, in
 	if(!ModifyEvent(fd, type))
 	{
 		LOG_ERROR(logger, "modify event failed and delete all events. fd="<<fd);
-		DelEvent(fd);
-		m_EventMap.erase(fd);
-		if(event_info->timeout >= 0)
-			m_TimerHeap.Remove((HeapItem*)event_info);
-		m_EventInfoPool.Recycle((void*)event_info);
 		return false;
 	}
 
@@ -186,7 +179,8 @@ bool EventServer::DelEvent(int32_t fd, EventType type)
 		return true;
 	}
 
-	EventInfo *event_info = (EventInfo *)it->second;
+	TimerInfo *timer_info = (TimerInfo *)it->second;
+	EventInfo *event_info = &(timer_info->event_info);
 	EventType old_type = event_info->type&ET_RDWT;
 	EventType new_type = type&ET_RDWT;
 	new_type = old_type & ~new_type;
@@ -199,8 +193,8 @@ bool EventServer::DelEvent(int32_t fd, EventType type)
 		}
 		m_EventMap.erase(fd);
 		if(event_info->timeout >= 0)
-			m_TimerHeap.Remove((HeapItem*)event_info);
-		m_EventInfoPool.Recycle((void*)event_info);
+			m_TimerHeap.Remove((HeapItem*)timer_info);
+		m_ObjectPool.Recycle((void*)timer_info);
 		return true;
 	}
 
