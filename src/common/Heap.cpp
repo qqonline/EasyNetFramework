@@ -4,10 +4,10 @@
  *  Created on: 2012-12-23
  *      Author: LiuYongJin
  */
-#include <common/Heap.h>
-
 #include <string.h>
 #include <assert.h>
+
+#include "Heap.h"
 
 namespace easynet
 {
@@ -37,12 +37,12 @@ bool Heap::Insert(HeapItem *item)
 {
 	assert(item != NULL);
 	if(m_size == m_capacity)
-		if(_expand_capacity() != 0)
+		if(_ExpandCapacity() != 0)
 			return false;
 
 	item->index = m_size;
 	m_items[m_size++] = item;
-	_shift_up(item->index);
+	_ShiftUp(item->index);
 	return true;
 }
 
@@ -56,9 +56,9 @@ bool Heap::Remove(HeapItem *item)
 	temp->index = item->index;
 	int32_t result = m_cmp_func(temp, item);
 	if(result == -1)
-		_shift_up(temp->index);
+		_ShiftUp(temp->index);
 	else if(result == 1)
-		_shift_down(temp->index);
+		_ShiftDown(temp->index);
 	return true;
 }
 
@@ -72,7 +72,7 @@ void Heap::Pop()
 
 	m_items[0] = m_items[m_size];
 	m_items[0]->index = 0;
-	_shift_down(0);
+	_ShiftDown(0);
 	return ;
 }
 
@@ -90,7 +90,7 @@ void Heap::Clear(ItemDestroy des_func)
 	}
 }
 
-bool Heap::_expand_capacity()
+bool Heap::_ExpandCapacity()
 {
 	int new_capacity = m_capacity*2;
 	HeapItem **new_ptr =(HeapItem **)realloc((void*)m_items, sizeof(HeapItem*)*new_capacity);
@@ -101,7 +101,7 @@ bool Heap::_expand_capacity()
 	return true;
 }
 
-void Heap::_shift_up(int32_t index)
+void Heap::_ShiftUp(int32_t index)
 {
 	HeapItem *item = m_items[index];
 	assert(index == item->index);
@@ -119,7 +119,7 @@ void Heap::_shift_up(int32_t index)
 	item->index = index;
 }
 
-void Heap::_shift_down(int32_t index)
+void Heap::_ShiftDown(int32_t index)
 {
 	HeapItem *item = m_items[index];
 	assert(index == item->index);

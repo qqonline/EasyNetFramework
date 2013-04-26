@@ -12,7 +12,7 @@
 #include <pthread.h>
 #include <assert.h>
 
-#include <common/Logger.h>
+#include "Logger.h"
 
 namespace easynet
 {

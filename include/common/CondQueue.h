@@ -38,14 +38,14 @@ public:
 	 */
 	void* Pop(int32_t wait_ms=-1);
 private:
-	uint32_t m_capacity;
-	pthread_mutex_t m_lock;
-	pthread_cond_t m_noempty_cond;
-	pthread_cond_t m_nofull_cond;
+	uint32_t         m_capacity;
+	pthread_mutex_t  m_lock;
+	pthread_cond_t   m_noempty_cond;
+	pthread_cond_t   m_nofull_cond;
 
-	void *m_array;
-	uint32_t m_in;
-	uint32_t m_out;
+	void             *m_array;
+	uint32_t         m_in;
+	uint32_t         m_out;
 };
 
 }//namespace

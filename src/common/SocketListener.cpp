@@ -4,7 +4,6 @@
  *  Created on: Mar 15, 2013
  *      Author: LiuYongJin
  */
-
 #include <errno.h>
 #include <string.h>
 #include <fcntl.h>
@@ -13,27 +12,27 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#include <common/SocketListener.h>
+#include "SocketListener.h"
 
 namespace easynet
 {
 
 IMPL_LOGGER(SocketListener, logger);
 
-bool SocketListener::open(int32_t /*wait_ms*/)
+bool SocketListener::Open(int32_t /*wait_ms*/)
 {
-	if(is_valid())
+	if(m_fd > 0)
 	{
 		LOG4CPLUS_DEBUG(logger, "socket already opened. fd="<<m_fd);
 		return true;
 	}
-	else if(m_port<=0)
+	else if(m_port <= 0)
 	{
 		LOG4CPLUS_DEBUG(logger, "socket port is invalid. port="<<m_port);
 		return false;
 	}
 
-	if(!create_socket())
+	if(!_CreateSocket())
 		return false;
 
 	//set reuse
@@ -41,7 +40,7 @@ bool SocketListener::open(int32_t /*wait_ms*/)
 	if(setsockopt(m_fd, SOL_SOCKET, SO_REUSEADDR, (const void*)&reuse, sizeof(reuse)) == -1)
 	{
 		LOG4CPLUS_ERROR(logger, "set socket opt error. errno="<<errno<<"["<<strerror(errno)<<"] fd="<<m_fd);
-		this->close();
+		Close();
 		return false;
 	}
 
@@ -49,9 +48,9 @@ bool SocketListener::open(int32_t /*wait_ms*/)
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(m_port);
-	if(m_addr == NULL)
+	if(m_addr[0] == '\0')
 		addr.sin_addr.s_addr = htonl(INADDR_ANY);
-	else if(is_ip(m_addr))  //ip地址
+	else if(IsIP(m_addr))  //ip地址
 		addr.sin_addr.s_addr = inet_addr(m_addr);
 	else  //域名
 	{
@@ -59,7 +58,7 @@ bool SocketListener::open(int32_t /*wait_ms*/)
 		if(hent==NULL || (hent->h_addrtype!=AF_INET && hent->h_addrtype!=AF_INET6))
 		{
 			LOG4CPLUS_ERROR(logger, "get ip by hostname error. errno="<<errno<<"["<<strerror(errno)<<"] fd="<<m_fd<<" addr:"<<m_addr);
-			this->close();
+			Close();
 			return false;
 		}
 		addr.sin_addr.s_addr = inet_addr(hent->h_addr);
@@ -68,7 +67,7 @@ bool SocketListener::open(int32_t /*wait_ms*/)
 	if(bind(m_fd, (struct sockaddr*)&addr, sizeof(addr)) == -1)
 	{
 		LOG4CPLUS_ERROR(logger, "bind socket error. errno="<<errno<<"["<<strerror(errno)<<"] fd="<<m_fd);
-		this->close();
+		Close();
 		return false;
 	}
 
@@ -76,7 +75,7 @@ bool SocketListener::open(int32_t /*wait_ms*/)
 	if(listen(m_fd, m_backlog) == -1)
 	{
 		LOG4CPLUS_ERROR(logger, "listen socket error. errno="<<errno<<"["<<strerror(errno)<<"] fd="<<m_fd);
-		this->close();
+		Close();
 		return false;
 	}
 

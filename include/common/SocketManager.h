@@ -11,15 +11,14 @@
 #include <stdint.h>
 #include <string>
 #include <assert.h>
+#include <new>
 #include <map>
 using std::string;
 using std::map;
 
-#include <new>
-
-#include <common/SocketTransceiver.h>
-#include <common/ObjectPool.h>
-#include <common/Logger.h>
+#include "SocketTransceiver.h"
+#include "ObjectPool.h"
+#include "Logger.h"
 
 namespace easynet
 {
@@ -116,8 +115,6 @@ SocketType* SocketManager<SocketType>::find(int32_t fd)
 	map<int32_t, SocketType*>::iterator it = m_socket_map.find(fd);
 	return it==m_socket_map.end()?NULL:it->second;
 }
-
-
 
 }//namespace
 

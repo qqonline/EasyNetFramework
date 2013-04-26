@@ -1,5 +1,5 @@
 /*
- * SocketInterface.cpp
+ * ISocket.cpp
  *
  *  Created on: Mar 15, 2013
  *      Author: LiuYongJin
@@ -12,50 +12,38 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 
-#include <common/SocketInterface.h>
+#include "ISocket.h"
 
 namespace easynet
 {
 
 IMPL_LOGGER(ISocket, logger);
 
-bool ISocket::init(int32_t fd, char *addr, int32_t port, bool block)
+bool ISocket::Init(int32_t fd, char *addr, int32_t port, bool block)
 {
 	if(m_fd > 0)
 		return false;
-	m_fd = fd;
-	m_port = port;
-	m_block = block;
-
-	uint32_t len0;
-	if(addr!=NULL && (len0=strlen(addr))>0)
-	{
-		if(m_addr==NULL || strlen(m_addr)<len0)
-		{
-			if(m_addr != NULL)
-				free(m_addr);
-			m_addr = (char*)malloc(len0+1);
-			assert(m_addr != NULL);
-		}
-		memcpy(m_addr, addr, len0+1);
-	}
+	this->ISocket(fd, addr, port, block);
 	return true;
 }
 
-bool ISocket::set_block(bool block)
+bool ISocket::SetBlock(bool block)
 {
-	if(m_fd<0 || m_block == block)
+	if(m_fd <= 0)
+		return false;
+	if(m_block == block)
 		return true;
+
 	int32_t flags = fcntl(m_fd, F_GETFL, 0);
 	if(flags == -1 )
 	{
 		LOG4CPLUS_ERROR(logger, "get fd flag error. errno="<<errno<<"["<<strerror(errno)<<"] fd="<<m_fd);
 		return false;
 	}
-	if(!m_block)
-		flags |= O_NONBLOCK;
-	else
+	if(block)
 		flags &= ~O_NONBLOCK;
+	else
+		flags |= O_NONBLOCK;
 	if(fcntl(m_fd, F_SETFL, flags) == -1 )
 	{
 		LOG4CPLUS_ERROR(logger, "set fd flag error. errno="<<errno<<"["<<strerror(errno)<<"] fd="<<m_fd);
@@ -65,7 +53,7 @@ bool ISocket::set_block(bool block)
 	return true;
 }
 
-bool ISocket::create_socket()
+bool ISocket::_CreateSocket()
 {
 	//1. 创建socket
 	m_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -80,25 +68,25 @@ bool ISocket::create_socket()
 	if(flags == -1)
 	{
 		LOG4CPLUS_ERROR(logger, "get socket flag error. errno="<<errno<<"["<<strerror(errno)<<"] fd="<<m_fd);
-		this->close();
+		Close();
 		return false;
 	}
-	if(!m_block)              //non block mode
-		flags |= O_NONBLOCK;
-	else
+	if(m_block)
 		flags &= ~O_NONBLOCK;
+	else
+		flags |= O_NONBLOCK;
 	flags |= FD_CLOEXEC;      //close on exec
 	if(fcntl(m_fd, F_SETFL, flags) == -1)
 	{
 		LOG4CPLUS_ERROR(logger, "set socket flag error. errno="<<errno<<"["<<strerror(errno)<<"] fd="<<m_fd);
-		this->close();
+		Close();
 		return false;
 	}
 
 	return true;
 }
 
-bool ISocket::is_ip(const char *addr)
+bool ISocket::IsIP(const char *addr)
 {
 	if(addr == NULL)
 		return false;

@@ -38,32 +38,32 @@ public:
 	HeapItem* Top();                     //获取堆顶元素
 	void Pop();                          //删除堆顶元素
 	void Clear(ItemDestroy des_func);    //清除堆(如果指定destroy函数,则用该函数处理每个heap item)
-	HeapItem* GetItem(int32_t index);  //获取指定的heap item
+	HeapItem* GetItem(int32_t index);   //获取指定的heap item
 private:
 	int32_t m_size;              //堆元素个数
 	int32_t m_capacity;          //堆当前容量
 	HeapItem **m_items;      //堆元素数组
 	ItemCompare m_cmp_func;  //堆元素比较函数
 private:
-	void _shift_up(int32_t index);      //自底向上调整
-	void _shift_down(int32_t index);    //自顶向下调整
-	bool _expand_capacity();             //扩展堆的大小
+	void _ShiftUp(int32_t index);      //自底向上调整
+	void _ShiftDown(int32_t index);    //自顶向下调整
+	bool _ExpandCapacity();             //扩展堆的大小
 };
 
 inline
-int32_t Heap::size()
+int32_t Heap::Size()
 {
 	return m_size;
 }
 
 inline
-HeapItem* Heap::top()
+HeapItem* Heap::Top()
 {
 	return m_size>0?m_items[0]:NULL;
 }
 
 inline
-HeapItem* Heap::get_item(int32_t index)
+HeapItem* Heap::GetItem(int32_t index)
 {
 	return index>=m_size?NULL:m_items[index];
 }

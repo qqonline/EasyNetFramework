@@ -9,8 +9,8 @@
 
 #include <stdint.h>
 
-#include <common/Thread.h>
-#include <common/Logger.h>
+#include "Thread.h"
+#include "Logger.h"
 
 namespace easynet
 {

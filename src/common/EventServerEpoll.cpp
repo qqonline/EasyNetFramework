@@ -17,7 +17,7 @@ using std::list;
 namespace easynet
 {
 
-IMPL_LOGGER(IODemuxer, logger);
+IMPL_LOGGER(EventServerEpoll, logger);
 #define WAIT_TIME    200    //io事件的等待时间取该值和最小超时时间的较小值
 
 typedef struct _event_info

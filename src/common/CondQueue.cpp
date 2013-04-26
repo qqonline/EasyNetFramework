@@ -4,12 +4,12 @@
  *  Created on: Mar 15, 2013
  *      Author: LiuYongJin
  */
-
-#include <common/CondQueue.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <time.h>
 #include <sys/time.h>
+
+#include "CondQueue.h"
 
 namespace easynet
 {

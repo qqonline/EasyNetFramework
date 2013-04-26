@@ -10,7 +10,7 @@
 
 #include <stdint.h>
 
-#include "SocketInterface.h"
+#include "ISocket.h"
 #include "Logger.h"
 
 namespace easynet
@@ -31,7 +31,7 @@ public:
 	virtual ~SocketListener(){}
 
 	//忽略等待时间wait_ms
-	bool open(int32_t /*wait_ms*/);
+	bool Open(int32_t /*wait_ms*/);   //基类接口
 
 private:
 	uint32_t m_backlog;

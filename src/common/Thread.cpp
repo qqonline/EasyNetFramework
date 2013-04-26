@@ -4,11 +4,10 @@
  *  Created on: Mar 14, 2013
  *      Author: LiuYongJin
  */
-
 #include <errno.h>
 #include <string.h>
 
-#include <common/Thread.h>
+#include "Thread.h"
 
 namespace easynet
 {

@@ -4,11 +4,11 @@
  *  Created on: 2013-3-8
  *      Author: LiuYongJin
  */
-
-#include <common/ObjectPool.h>
-#include <common/Logger.h>
 #include <assert.h>
 #include <stdlib.h>
+
+#include "ObjectPool.h"
+#include "Logger.h"
 
 namespace easynet
 {
