@@ -7,14 +7,7 @@
 
 #ifndef _COMMON_EVENT_SERVER_H_
 #define _COMMON_EVENT_SERVER_H_
-
 #include <stdint.h>
-#include <map>
-using std::map;
-
-#include <common/Heap.h>
-#include <common/ArrayObjectPool.h>
-#include <common/Logger.h>
 
 namespace easynet
 {
@@ -35,46 +28,42 @@ typedef uint8_t EventType;
 #define ET_IS_EMPTY(x)      (((x)&ET_RDWT) == 0)      //是否为空
 #define ET_IS_READ(x)       (((x)&ET_READ) != 0)      //是否设置读
 #define ET_IS_WRITE(x)      (((x)&ET_WRITE) != 0)     //是否设置写
-#define ET_IS_PERSIST(x)    (((x)&ET_PERSIT)!= 0)     //是否设置持续
+#define ET_IS_PERSIST(x)    (((x)&ET_PERSIST) != 0)   //是否设置持续
 /////////////////////////////////////////////////////////////////////////////////////////
 
 class EventHandler
 {
 public:
 	virtual ~EventHandler(){}
+	//时钟超时
 	virtual bool OnTimeout()=0;
+	//io超时
+	virtual bool OnTimeout(int32_t fd)=0;
+	//可读事件
 	virtual bool OnEventRead(int32_t fd)=0;
+	//可写事件
 	virtual bool onEventWrite(int32_t fd)=0;
+	//错误事件
 	virtual bool OnEventError(int32_t fd)=0;
 };
-
-typedef struct _event_info
-{
-	int32_t fd;
-	EventType type;
-	EventHandler *handler;
-	uint32_t timeout;
-}EventInfo;
-
-typedef map<uint32_t, EventInfo*> EventMap;
 
 /** 事件监听server
  *  1. 监听时钟事件
  *  2. 监听IO读/写/超时事件
  */
-class EventServer
+class IEventServer
 {
 public:
-	EventServer(uint32_t max_events);
-	virtual ~EventServer(){}
+	IEventServer():m_CanStop(false){}
+	virtual ~IEventServer(){}
 
 	/**添加定时器:
 	 * @param handler : 定时器事件的处理接口;
 	 * @param timeout : 定时器超时的时间.单位秒;
-	 * @param persist : true持续性定时器,每隔tiemout触发一次超时事件;false一次性定时器;默认true;
+	 * @param persist : true持续性定时器,每隔tiemout触发一次超时事件;false一次性定时器;
 	 * @return        : true成功;false失败;
 	 */
-	bool AddTimer(EventHandler *handler, uint32_t timeout, bool persist=true);
+	virtual bool AddTimer(EventHandler *handler, uint32_t timeout, bool persist)=0;
 
 	/**添加事件:
 	 * @param fd      : socket描述符;
@@ -84,38 +73,35 @@ public:
 	 *                  小于0表示永不超时.单位秒;
 	 * @return        : true成功;false失败;
 	*/
-	bool AddEvent(int32_t fd, EventType type, EventHandler *handler, int32_t timeout);
+	virtual bool AddEvent(int32_t fd, EventType type, EventHandler *handler, int32_t timeout)=0;
 
 	/**删除事件:
 	 * @param fd      : socket描述符;
 	 * @param type    : type待删除的事件.定义见<事件类型>
 	 * @return        : true成功;false失败;
 	*/
-	bool DelEvent(int32_t fd, EventType type);
+	virtual bool DelEvent(int32_t fd, EventType type)=0;
+
+	/** 分派事件
+	 * @return        : true成功;false失败
+	 */
+	virtual bool DispatchEvents()=0;
 
 	//循环分派事件
-	bool RunLoop();
+	void RunLoop()
+	{
+		while(!m_CanStop)
+		{
+			if(!DispatchEvents())
+				break;
+		}
+		m_CanStop = false;
+	}
 
 	//停止分派事件
 	void Stop(){m_CanStop = true;}
-
-protected:
-	bool m_CanStop;
-	uint32_t m_MaxEvents;
-	Heap m_TimerHeap;
-	EventMap m_EventMap;
-	ArrayObjectPool m_ObjectPool;
-
-////////////////////////////////////////////////////////////////////////
-////////////////////////  派生类需要实现的接口  ////////////////////////
-protected:
-	virtual bool AddEvent(int32_t fd, EventType type, EventInfo *event_info)=0;
-	virtual bool ModifyEvent(int32_t fd, EventType type)=0;
-	virtual bool DelEvent(int32_t fd)=0;
-
-
 private:
-	DECL_LOGGER(logger);
+	bool m_CanStop;
 };
 
 

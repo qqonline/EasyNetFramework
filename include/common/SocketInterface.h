@@ -13,7 +13,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <common/Logger.h>
+#include "Logger.h"
 
 namespace easynet
 {
