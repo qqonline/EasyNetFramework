@@ -102,6 +102,38 @@ bool KVProtocol::Set(uint16_t key, string str)
 	return _Set(key, TYPE_BYTES, (int8_t*)str.c_str(), str.size());
 }
 
+bool KVProtocol::Decode()
+{
+	m_PosMap.clear();
+	int8_t *ptr_start = m_Buffer;
+	int8_t *ptr_end   = m_Buffer+m_Size;
+	while(true)
+	{
+		int8_t *pos = ptr_start;
+		//key
+		if(ptr_start+sizeof(uint16_t) > ptr_end)
+			return false;
+		uint16_t key  = *(uint16_t*)ptr_start;
+		ptr_start += sizeof(uint16_t);
+
+		//type
+		if(ptr_start+sizeof(uint16_t) > ptr_end)
+			return false;
+		uint16_t type = *(uint16_t*)ptr_start;
+		ptr_start += sizeof(uint16_t);
+		if(type == TYPE_I32)
+			ptr_start += sizeof(int32_t);
+		else if(type == TYPE_I64)
+			ptr_start += sizeof(int64_t);
+		else if(type == TYPE_BP0)
+		{
+
+		}
+	}
+
+	return true;
+}
+
 bool KVProtocol::Get(uint16_t key, int32_t *val)
 {
 	if(val == NULL)

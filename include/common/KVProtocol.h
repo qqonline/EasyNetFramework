@@ -29,10 +29,12 @@ public:
 	bool Set(uint16_t key, int8_t *bytes, uint32_t size);
 	bool Set(uint16_t key, string str);
 
+	bool Decode();
 	bool Get(uint16_t key, int32_t *val);
 	bool Get(uint16_t key, int64_t *val);
 	bool Get(uint16_t key, int8_t **bytes, uint32_t *size);
 	bool Get(uint16_t key, string *str);
+
 private:
 	uint32_t   m_Size;
 	uint32_t   m_Capacity;
