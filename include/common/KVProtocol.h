@@ -24,12 +24,14 @@ class KVProtocol
 public:
 	KVProtocol();
 	~KVProtocol();
+	bool Set(uint16_t key, int8_t val);
+	bool Set(uint16_t key, int16_t val);
 	bool Set(uint16_t key, int32_t val);
 	bool Set(uint16_t key, int64_t val);
 	bool Set(uint16_t key, int8_t *bytes, uint32_t size);
 	bool Set(uint16_t key, string str);
 
-	bool Decode();
+	bool UnPack();
 	bool Get(uint16_t key, int32_t *val);
 	bool Get(uint16_t key, int64_t *val);
 	bool Get(uint16_t key, int8_t **bytes, uint32_t *size);
