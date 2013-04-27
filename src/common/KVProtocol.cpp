@@ -215,18 +215,22 @@ bool KVProtocol::_Get(uint16_t key, uint16_t type, int8_t **bytes, uint32_t *siz
 	if(it == m_PosMap.end())
 		return false;
 	uint8_t *ptr = it->second;
+	uint16_t key_type = *(uint16_t*)ptr;
 	ptr += sizeof(uint16_t);
-	uint16_t rel_type = *(uint16_t*)ptr;
-	ptr += sizeof(uint16_t);
-	if(rel_type >= TYPE_BP0)
+	uint16_t rkey = ToKey(key_type);
+	uint16_t rtype = ToType(key_type);
+	if(rtype >= TYPE_BP0)
 	{
-		rel_type = TYPE_BYTES;
+		rtype = TYPE_BYTES;
+		ptr += sizeof(uint16_t);
 		*size = *(uint32_t)ptr;
 		ptr += sizeof(uint32_t);
 	}
 
-	if(type != rel_type)
+	if(type != rtype)
 		return false;
+	if(type == TYPE_I8)
+
 	if(type == TYPE_I32)
 		memcpy((void*)bytes, ptr, sizeof(uint32_t));
 	else if(type == TYPE_I64)
