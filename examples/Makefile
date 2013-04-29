@@ -12,4 +12,4 @@ KVData_example:KVData_example.cpp
 	g++ $^ ${INCLUDE} ${LIB} ${LIB_EXT} ${FLAGS} -o $@
 	
 clean:
-	rm Heap_example KVData_Example
+	rm Heap_example KVData_example
