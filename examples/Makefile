@@ -1,15 +1,15 @@
-INCLUDE=-I/usr/include/EasyNetFramework
+INCLUDE=-I/usr/include/EasyNetFramework/common
 LIB=-leasynetframework
 LIB_EXT=-llog4cplus
 FLAGS=-g
 
-all:heap_example iodemuxer_example
+all:Heap_example KVData_example
 
-heap_example:heap_example.cpp
+Heap_example:Heap_example.cpp
 	g++ $^ ${INCLUDE} ${LIB} ${FLAGS} -o $@
 
-iodemuxer_example:iodemuxer_example.cpp
+KVData_example:KVData_example.cpp
 	g++ $^ ${INCLUDE} ${LIB} ${LIB_EXT} ${FLAGS} -o $@
 	
 clean:
-	rm heap_example iodemuxer_example
+	rm Heap_example KVData_Example

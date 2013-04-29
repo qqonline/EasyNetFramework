@@ -35,7 +35,7 @@ CondQueue::~CondQueue()
 	pthread_cond_destroy(&m_noempty_cond);
 	pthread_cond_destroy(&m_nofull_cond);
 
-	delete[] m_array;
+	free(m_array);
 	m_array = NULL;
 }
 
@@ -67,7 +67,7 @@ bool CondQueue::Push(void *data, int32_t wait_ms/*=0*/)
 		}
 	}
 
-	m_array[m_in] = data;
+	((void**)m_array)[m_in] = data;
 	m_in = temp;
 
 	pthread_mutex_unlock(&m_lock);
@@ -104,7 +104,7 @@ void* CondQueue::Pop(int32_t wait_ms/*=-1*/)
 
 	if(m_out != m_in)
 	{
-		data = m_array[m_out];
+		data = ((void**)m_array)[m_out];
 		m_out = (++m_out)%m_capacity;
 	}
 

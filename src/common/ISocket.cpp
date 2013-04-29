@@ -23,7 +23,15 @@ bool ISocket::Init(int32_t fd, char *addr, int32_t port, bool block)
 {
 	if(m_fd > 0)
 		return false;
-	this->ISocket(fd, addr, port, block);
+	m_fd      = fd;
+	m_addr[0] = '\0';
+	m_port    = port;
+	m_block   = block;
+	if(addr!=NULL)
+	{
+		assert(strlen(addr)<sizeof(m_addr));
+		strcpy(m_addr, addr);
+	}
 	return true;
 }
 

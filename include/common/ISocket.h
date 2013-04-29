@@ -52,6 +52,8 @@ protected:
 
 	virtual bool _CreateSocket();
 private:
+	void _copy_addr(char *addr);
+private:
 	DECL_LOGGER(logger);
 };
 
@@ -71,12 +73,10 @@ ISocket::ISocket(int32_t fd, char *addr, int32_t port, bool block)
 	,m_block(block)
 {
 	m_addr[0] = '\0';
-	if(addr != NULL)
+	if(addr!=NULL)
 	{
-		uint32_t len = strlen(addr);
-		assert(len < 20);
-		memcpy(m_addr, addr, len);
-		m_addr[len] = '\0';
+		assert(strlen(addr)<sizeof(m_addr));
+		strcpy(m_addr, addr);
 	}
 }
 
@@ -84,9 +84,6 @@ inline
 ISocket::~ISocket()
 {
 	Close();
-	if(m_addr != NULL)
-		free(m_addr);
-	m_addr = NULL;
 }
 
 inline

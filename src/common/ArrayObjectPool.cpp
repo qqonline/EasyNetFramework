@@ -6,8 +6,9 @@
  */
 #include <assert.h>
 #include <stddef.h>
+#include <stdlib.h>
 
-#include "common/ArrayObjectPool.h"
+#include "ArrayObjectPool.h"
 
 namespace easynet
 {

@@ -5,6 +5,7 @@
  *      Author: LiuYongJin
  */
 #include <sys/epoll.h>
+#include <sys/time.h>
 #include <assert.h>
 #include <unistd.h>
 #include <errno.h>
@@ -294,7 +295,7 @@ bool EventServerEpoll::DispatchEvents()
 	for(i=0; i<event_count; ++i)
 	{
 		struct epoll_event* ep_event = ((struct epoll_event*)m_EventData)+i;
-		EventInfo *event_info = ep_event->data.ptr;
+		EventInfo *event_info = (EventInfo*)ep_event->data.ptr;
 		LOG_DEBUG(logger, "io event occur. fd="<<event_info->fd<<" event_type="<<ep_event->events);
 
 		bool no_error = true;
