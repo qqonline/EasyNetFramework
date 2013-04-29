@@ -5,6 +5,7 @@
  *      Author: LiuYongJin
  */
 #include <stdlib.h>
+#include <string.h>
 #include <assert.h>
 #include <arpa/inet.h>
 
@@ -13,7 +14,7 @@
 namespace easynet
 {
 
-IMPL_LOGGER(KVProtocol, logger);
+IMPL_LOGGER(KVData, logger);
 
 #define KV_CAPACITY   1024    //初始化大小为1k
 
@@ -37,20 +38,25 @@ IMPL_LOGGER(KVProtocol, logger);
 #define  ntohll(x)    (((uint64_t)(ntohl((uint32_t)((x)&0xffffffff)))<<32) | ntohl((uint32_t)(((x)>>32)&0xffffffff)))
 #endif//hton64
 
-KVProtocol::KVProtocol()
+KVData::KVData()
 	:m_Size(0)
 	,m_Capacity(KV_CAPACITY)
 {
 	m_Buffer = calloc(m_Capacity, 1);
 	assert(m_Buffer != NULL);
-	m_Buffer[0] = 'K';
-	m_Buffer[1] = 'V';
-	m_Buffer[2] = 'D';
-	m_Buffer[3] = 'T';
+	char *magic = (char*)m_Buffer;
+	magic[0] = 'K';
+	magic[1] = 'V';
+	magic[2] = 'D';
+	magic[3] = 'T';
 	m_Size = 4;
 }
+KVData::~KVData()
+{
+	free(m_Buffer);
+}
 
-bool KVProtocol::_Set(uint16_t key, uint16_t type, const void *bytes, uint32_t size)
+bool KVData::_Set(uint16_t key, uint16_t type, void *bytes, uint32_t size)
 {
 	uint32_t len = sizeof(uint32_t);   //key+type
 	if(type > TYPE_UI16)
@@ -74,25 +80,25 @@ bool KVProtocol::_Set(uint16_t key, uint16_t type, const void *bytes, uint32_t s
 	switch(type)
 	{
 	case TYPE_UI8:
-		*ptr = *bytes;
+		*ptr = *(uint8_t*)bytes;
 		break;
 	case TYPE_UI16:
 	{
 		uint16_t temp = *(uint16_t*)bytes;
-		*(uint16_t)ptr =  htons(temp);  break;
+		*(uint16_t*)ptr =  htons(temp);  break;
 	}
 	case TYPE_UI32:
 	{
 		ptr += sizeof(uint16_t);
 		uint32_t temp = *(uint32_t*)bytes;
-		*(uint32_t)ptr = htonl(temp);
+		*(uint32_t*)ptr = htonl(temp);
 		break;
 	}
 	case TYPE_UI64:
 	{
 		ptr += sizeof(uint16_t);
 		uint64_t temp = *(uint64_t*)bytes;
-		*(uint64_t)ptr = htonll(temp);
+		*(uint64_t*)ptr = htonll(temp);
 		break;
 	}
 	case TYPE_BY0:
@@ -101,7 +107,7 @@ bool KVProtocol::_Set(uint16_t key, uint16_t type, const void *bytes, uint32_t s
 	case TYPE_BY3:
 	{
 		ptr += sizeof(uint16_t);
-		*(uint32_t)ptr = htonl(size);
+		*(uint32_t*)ptr = htonl(size);
 		ptr += sizeof(uint32_t);
 		memcpy(ptr, bytes, size);
 		break;
@@ -113,7 +119,7 @@ bool KVProtocol::_Set(uint16_t key, uint16_t type, const void *bytes, uint32_t s
 	return true;
 }
 
-bool KVProtocol::_ExpandCapacity(uint32_t need_size)
+bool KVData::_ExpandCapacity(uint32_t need_size)
 {
 	uint32_t capacity = (1+need_size/KV_CAPACITY)*KV_CAPACITY;
 	if(capacity-need_size < KV_CAPACITY/2)
@@ -131,63 +137,64 @@ bool KVProtocol::_ExpandCapacity(uint32_t need_size)
 }
 
 //8
-bool KVProtocol::Set(uint16_t key, int8_t val)
+bool KVData::Set(uint16_t key, int8_t val)
 {
-	return _Set(key, TYPE_UI8, (const void*)&val, sizeof(uint8_t));
+	return _Set(key, TYPE_UI8, (void*)&val, sizeof(uint8_t));
 }
-bool KVProtocol::Set(uint16_t key, uint8_t val)
+bool KVData::Set(uint16_t key, uint8_t val)
 {
-	return _Set(key, TYPE_UI8, (const void*)&val, sizeof(uint8_t));
+	return _Set(key, TYPE_UI8, (void*)&val, sizeof(uint8_t));
 }
 
 //16
-bool KVProtocol::Set(uint16_t key, int16_t val)
+bool KVData::Set(uint16_t key, int16_t val)
 {
-	return _Set(key, TYPE_UI16, (const void*)&val, sizeof(uint16_t));
+	return _Set(key, TYPE_UI16, (void*)&val, sizeof(uint16_t));
 }
-bool KVProtocol::Set(uint16_t key, uint16_t val)
+bool KVData::Set(uint16_t key, uint16_t val)
 {
-	return _Set(key, TYPE_UI16, (const void*)&val, sizeof(uint16_t));
+	return _Set(key, TYPE_UI16, (void*)&val, sizeof(uint16_t));
 }
 
 //32
-bool KVProtocol::Set(uint16_t key, int32_t val)
+bool KVData::Set(uint16_t key, int32_t val)
 {
-	return _Set(key, TYPE_UI32, (const void*)&val, sizeof(uint32_t));
+	return _Set(key, TYPE_UI32, (void*)&val, sizeof(uint32_t));
 }
-bool KVProtocol::Set(uint16_t key, uint32_t val)
+bool KVData::Set(uint16_t key, uint32_t val)
 {
-	return _Set(key, TYPE_UI32, (const void*)&val, sizeof(uint32_t));
+	return _Set(key, TYPE_UI32, (void*)&val, sizeof(uint32_t));
 }
 
 //64
-bool KVProtocol::Set(uint16_t key, int64_t val)
+bool KVData::Set(uint16_t key, int64_t val)
 {
-	return _Set(key, TYPE_UI64, (const void*)&val, sizeof(uint64_t));
+	return _Set(key, TYPE_UI64, (void*)&val, sizeof(uint64_t));
 }
-bool KVProtocol::Set(uint16_t key, uint64_t val)
+bool KVData::Set(uint16_t key, uint64_t val)
 {
-	return _Set(key, TYPE_UI64, (const void*)&val, sizeof(uint64_t));
+	return _Set(key, TYPE_UI64, (void*)&val, sizeof(uint64_t));
 }
 
 //bytes
-bool KVProtocol::Set(uint16_t key, const void *bytes, uint32_t size)
+bool KVData::Set(uint16_t key, const void *bytes, uint32_t size)
 {
 	if(bytes==NULL || size==0)
 		return false;
-	return _Set(key, TYPE_BYTES, bytes, size);
+	return _Set(key, TYPE_BYTES, (void*)bytes, size);
 }
 
-bool KVProtocol::Set(uint16_t key, const string &str)
+bool KVData::Set(uint16_t key, const string &str)
 {
 	if(str.size() == 0)
 		return false;
-	return _Set(key, TYPE_BYTES, (const void*)str.c_str(), str.size());
+	return _Set(key, TYPE_BYTES, (void*)str.c_str(), str.size());
 }
 
-bool KVProtocol::UnPack()
+bool KVData::UnPack()
 {
-	if(m_Size<4 || m_Buffer[0]!='K' || m_Buffer[1]!='V' || m_Buffer[2]!='D' || m_Buffer[3]!='T')
+	char *temp = (char*)m_Buffer;
+	if(m_Size<4 || temp[0]!='K' || temp[1]!='V' || temp[2]!='D' || temp[3]!='T')
 		return false;
 	m_PosMap.clear();
 	char *ptr_start = (char*)m_Buffer+4;
@@ -214,7 +221,7 @@ bool KVProtocol::UnPack()
 		{
 			if(ptr_start+sizeof(uint32_t) > ptr_end)
 				return false;
-			uint32_t size = *(uint32_t)*ptr_start;
+			uint32_t size = *(uint32_t*)ptr_start;
 			size = ntohl(size);
 			if(size == 0)
 				return false;
@@ -238,7 +245,7 @@ bool KVProtocol::UnPack()
 	return true;
 }
 
-bool KVProtocol::_Get(uint16_t key, uint16_t type, void **bytes, uint32_t *size/*=NULL*/)
+bool KVData::_Get(uint16_t key, uint16_t type, void **bytes, uint32_t *size/*=NULL*/)
 {
 	if(bytes==NULL)
 		return false;
@@ -246,7 +253,7 @@ bool KVProtocol::_Get(uint16_t key, uint16_t type, void **bytes, uint32_t *size/
 	if(it == m_PosMap.end())
 		return false;
 
-	char *ptr = it->second;
+	char *ptr = (char*)(it->second);
 	uint16_t key_type = *(uint16_t*)ptr;
 	key_type = ntohs(key_type);
 	ptr += sizeof(uint16_t);
@@ -254,7 +261,7 @@ bool KVProtocol::_Get(uint16_t key, uint16_t type, void **bytes, uint32_t *size/
 	uint16_t rtype = ToType(key_type);
 	if(rtype > TYPE_BY3)
 		return false;
-	if(rtype>= TYPE_BY0 || rtype<=TYPE_BY3)
+	if(rtype>= TYPE_BY0 && rtype<=TYPE_BY3)
 	{
 		rtype = TYPE_BYTES;
 		ptr += sizeof(uint16_t);
@@ -262,28 +269,30 @@ bool KVProtocol::_Get(uint16_t key, uint16_t type, void **bytes, uint32_t *size/
 	if(type != rtype)
 		return false;
 
-	if(type==TYPE_UI8)          //8
+	if(type == TYPE_UI8)          //8
 		*(uint8_t*)bytes = *(uint8_t*)ptr;
-	else if(type==TYPE_UI16)  //16
+	else if(type == TYPE_UI16)  //16
 	{
-		uint16_t temp = *(uint16_t)ptr;
+		uint16_t temp = *(uint16_t*)ptr;
 		*(uint16_t*)bytes = ntohs(temp);
 	}
-	else if(type==TYPE_UI32)  //32
+	else if(type == TYPE_UI32)  //32
 	{
-		uint32_t temp = *(uint32_t)ptr;
+		ptr += sizeof(uint16_t);
+		uint32_t temp = *(uint32_t*)ptr;
 		*(uint32_t*)bytes = ntohl(temp);
 	}
-	else if(type==TYPE_UI64)  //64
+	else if(type == TYPE_UI64)  //64
 	{
-		uint64_t temp = *(uint64_t)ptr;
+		ptr += sizeof(uint16_t);
+		uint64_t temp = *(uint64_t*)ptr;
 		*(uint64_t*)bytes = ntohll(temp);
 	}
 	else
 	{
 		if(size == NULL)
 			return false;
-		uint32_t temp = *(uint32_t)ptr;
+		uint32_t temp = *(uint32_t*)ptr;
 		*size = ntohl(temp);
 		if(*size == 0)
 			return false;
@@ -294,53 +303,53 @@ bool KVProtocol::_Get(uint16_t key, uint16_t type, void **bytes, uint32_t *size/
 }
 
 //8
-bool KVProtocol::Get(uint16_t key, int8_t *val)
+bool KVData::Get(uint16_t key, int8_t *val)
 {
 	return _Get(key, TYPE_UI8, (void**)val);
 }
-bool KVProtocol::Get(uint16_t key, uint8_t *val)
+bool KVData::Get(uint16_t key, uint8_t *val)
 {
 	return _Get(key, TYPE_UI8, (void**)val);
 }
 
 //16
-bool KVProtocol::Get(uint16_t key, int16_t *val)
+bool KVData::Get(uint16_t key, int16_t *val)
 {
-	return _Get(key, TYPE_UI8, (void**)val);
+	return _Get(key, TYPE_UI16, (void**)val);
 }
-bool KVProtocol::Get(uint16_t key, uint16_t *val)
+bool KVData::Get(uint16_t key, uint16_t *val)
 {
-	return _Get(key, TYPE_UI8, (void**)val);
+	return _Get(key, TYPE_UI16, (void**)val);
 }
 
 //32
-bool KVProtocol::Get(uint16_t key, int32_t *val)
+bool KVData::Get(uint16_t key, int32_t *val)
 {
 	return _Get(key, TYPE_UI32, (void**)val);
 }
-bool KVProtocol::Get(uint16_t key, uint32_t *val)
+bool KVData::Get(uint16_t key, uint32_t *val)
 {
 	return _Get(key, TYPE_UI32, (void**)val);
 }
 
 //64
-bool KVProtocol::Get(uint16_t key, int64_t *val)
+bool KVData::Get(uint16_t key, int64_t *val)
 {
 	return _Get(key, TYPE_UI64, (void**)val);
 }
-bool KVProtocol::Get(uint16_t key, int64_t *val)
+bool KVData::Get(uint16_t key, uint64_t *val)
 {
 	return _Get(key, TYPE_UI64, (void**)val);
 }
 
 //bytes
-bool KVProtocol::Get(uint16_t key, void **bytes, uint32_t *size)
+bool KVData::Get(uint16_t key, void **bytes, uint32_t *size)
 {
-	if(bytes == NULL || *bytes==NULL || size==NULL)
+	if(bytes == NULL || size==NULL)
 		return false;
 	return _Get(key, TYPE_BYTES, bytes, size);
 }
-bool KVProtocol::Get(uint16_t key, string &str)
+bool KVData::Get(uint16_t key, string &str)
 {
 	void *bytes = NULL;
 	uint32_t size = 0;

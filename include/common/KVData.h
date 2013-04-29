@@ -22,11 +22,11 @@ typedef map<uint16_t, void*> PosMap;
 
 //key-value 数据格式.
 //key的取值范围:0~4095(即KVData最多只能设置4k个key)
-class KVProtocol
+class KVData
 {
 public:
-	KVProtocol();
-	~KVProtocol();
+	KVData();
+	~KVData();
 	bool Set(uint16_t key, int8_t val);
 	bool Set(uint16_t key, uint8_t val);
 	bool Set(uint16_t key, int16_t val);
@@ -56,7 +56,7 @@ private:
 	void      *m_Buffer;
 	PosMap     m_PosMap;
 
-	bool _Set(uint16_t key, uint16_t type, const void *bytes, uint32_t size);
+	bool _Set(uint16_t key, uint16_t type, void *bytes, uint32_t size);
 	bool _Get(uint16_t key, uint16_t type, void **bytes, uint32_t *size=NULL);
 	bool _ExpandCapacity(uint32_t need_size);
 private:
