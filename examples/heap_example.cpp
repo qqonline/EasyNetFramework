@@ -4,9 +4,10 @@
  *  Created on: Mar 14, 2013
  *      Author: LiuYongJin
  */
-
-#include <common/heap.h>
 #include <stdio.h>
+
+#include "Heap.h"
+using namespace easynet;
 
 typedef struct _a_
 {
@@ -29,14 +30,14 @@ int main()
 	for(i=9; i>=0; --i)
 	{
 		a[i].a = i;
-		heap.insert((HeapItem*)&a[i]);
+		heap.Insert((HeapItem*)&a[i]);
 	}
 
 	A *temp;
-	while((temp=(A*)heap.top()) != NULL)
+	while((temp=(A*)heap.Top()) != NULL)
 	{
 		printf("%d ", temp->a);
-		heap.pop();
+		heap.Pop();
 	}
 	printf("\n");
 	return 0;
