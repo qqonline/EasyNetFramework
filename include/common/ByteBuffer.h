@@ -15,7 +15,7 @@
 namespace easynet
 {
 
-#define BF_INIT_CAPACITY 512
+#define BF_INIT_CAPACITY 1024      //初始化大小1k
 
 class ByteBuffer
 {
@@ -39,6 +39,8 @@ public:
 	char* GetFetchBuffer(uint32_t *size=NULL);
 	//设置从buffer中取出的数据大小;
 	void SetFetchSize(uint32_t size);
+
+	void Clear();
 public:
 	//添加大小为size的bytes数组到buffer后面
 	bool AppendBytes(char *bytes, uint32_t size);

@@ -42,7 +42,7 @@ public:
 	//接收全部数据
 	bool ReceiveAll(char *data, uint32_t size);
 private:
-	bool m_active;
+	bool m_active;    //主动连接
 private:
 	DECL_LOGGER(logger);
 };

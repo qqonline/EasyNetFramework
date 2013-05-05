@@ -89,6 +89,16 @@ bool ByteBuffer::FetchBytes(char *buf, uint32_t size)
 	return true;
 }
 
+void ByteBuffer::Clear()
+{
+	if(m_capacity < BF_INIT_CAPACITY)
+		return ;
+	char* new_base = (char*)realloc((void*)m_base, BF_INIT_CAPACITY);
+	if(new_base == NULL)
+		return;
+	m_base = new_base;
+	m_capacity = BF_INIT_CAPACITY;
+}
 
 }//namespace
 
