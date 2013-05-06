@@ -17,7 +17,8 @@ class MemSlab
 public:
 	// @param elem_size : 元素大小.不小于4个字节
 	// @param slab_n    : 每个块包含的元素个数
-	MemSlab(uint32_t elem_size, uint32_t slab_n=100);
+	// @param block_n   : 最大多块数.-1时表示不限制
+	MemSlab(uint32_t elem_size, uint32_t slab_n=100, int32_t block_n=-1);
 	~MemSlab();
 
 	uint32_t ElementSize(){return m_ElemSize;}
@@ -31,6 +32,7 @@ private:
 	void     *m_FreeList;
 	void     **m_SlabArray; //块数组
 	uint32_t m_Size;        //块数组大小
+	int32_t  m_BlockNum;  //最大的块数
 	uint32_t m_CurBlock;    //当前空闲块下标
 	uint32_t m_CurIndex;    //当前空闲块中可用的元素下标
 };
@@ -46,10 +48,11 @@ class MemPool
 public:
 	//默认的MemSlab元素大小为:4,8,16,32,64,128,256,512,1024,2048
 	MemPool();
-	// @param n            : size_array和slab_n_array的大小
-	// @param size_array   : 指示每个MemSlab的元素大小的数组
-	// @param slab_n_array : 指示每个MemSlab中的块包含的元素个数(为NULL时使用默认值)
-	MemPool(uint32_t n, uint32_t *size_array, uint32_t *slab_n_array=NULL);
+	// @param n             : size_array和slab_n_array的大小
+	// @param size_array    : 指示每个MemSlab的元素大小的数组
+	// @param slab_n_array  : 指示每个MemSlab中的块包含的元素个数(NULL时使用默认值)
+	// @param block_n_array : 指示每个MemSlab中最多的块数(NULL或者元素值为-1时表示没有限制)
+	MemPool(uint32_t n, uint32_t *size_array, uint32_t *slab_n_array=NULL, int32_t *block_n_array=NULL);
 
 	~MemCache();
 
@@ -61,6 +64,7 @@ private:
 	uint32_t m_ClassNum;
 	uint32_t *m_SizeArray;
 	uint32_t *m_SlabNumArray;
+	int32_t  *m_BlockNumArray;
 
 	MemSlab  **m_MemSlabArray;
 	void InitMemSlab();

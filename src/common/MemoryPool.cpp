@@ -12,12 +12,13 @@
 namespace easynet
 {
 
-MemSlab::MemSlab(uint32_t elem_size, uint32_t slab_n)
+MemSlab::MemSlab(uint32_t elem_size, uint32_t slab_n, int32_t block_n)
 {
 	if(elem_size < 4)    //至少4个字节
 		elem_size = 4;
 	m_ElemSize  = elem_size;
 	m_SlabNum   = slab_n;
+	m_BlockNum = block_n;
 	m_FreeList  = NULL;
 
 	m_Size      = 100;
@@ -50,6 +51,10 @@ void* MemSlab::Alloc()
 	{
 		if(m_CurIndex == m_SlabNum)  //块已经使用完
 		{
+			if(m_BlockNum>-1 && m_CurBlock==m_BlockNum-1)    //达到最大块数
+				return NULL;
+
+			//分配新块
 			++m_CurBlock;
 			if(m_CurBlock == m_Size) //数组空间已经使用完
 			{
@@ -85,25 +90,39 @@ bool MemSlab::Free(void *slab)
 /////////////////////// MemCache /////////////////////
 static uint32_t _defaut_size[10] = {4,8,16,32,64,128,256,512,1024,2048};
 static uint32_t _defaut_num[10]  = {100,100,100,100,100,100,100,100,100,100};
+static uint32_t _defaut_block_num[10]  = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 
 MemPool::MemPool()
 {
 	m_ClassNum = 10;
 	m_SizeArray = (uint32_t*)malloc(m_ClassNum*sizeof(uint32_t));
 	m_SlabNumArray = (uint32_t*)malloc(m_ClassNum*sizeof(uint32_t));
+	m_BlockNumArray = (uint32_t*)malloc(m_ClassNum*sizeof(uint32_t));
+
 	memcpy(m_SizeArray, _defaut_size, m_ClassNum*sizeof(uint32_t));
 	memcpy(m_SlabNumArray, _defaut_num, m_ClassNum*sizeof(uint32_t));
+	memcpy(m_BlockNumArray, _defaut_block_num, m_ClassNum*sizeof(uint32_t));
 
 	InitMemSlab();
 }
 
-MemPool::MemPool(uint32_t n, uint32_t *size_array, uint32_t *slab_n_array=NULL)
+MemPool::MemPool(uint32_t n, uint32_t *size_array, uint32_t *slab_n_array/*=NULL*/, int32_t *block_n_array/*=NULL*/)
 {
 	m_ClassNum = n;
 	m_SizeArray = (uint32_t*)malloc(m_ClassNum*sizeof(uint32_t));
 	m_SlabNumArray = (uint32_t*)malloc(m_ClassNum*sizeof(uint32_t));
+	m_BlockNumArray = (uint32_t*)malloc(m_ClassNum*sizeof(uint32_t));
+
 	memcpy(m_SizeArray, size_array, m_ClassNum*sizeof(uint32_t));
-	memcpy(m_SlabNumArray, slab_n_array, m_ClassNum*sizeof(uint32_t));
+	if(slab_n_array != NULL)
+		memcpy(m_SlabNumArray, slab_n_array, m_ClassNum*sizeof(uint32_t));
+	else
+		memcpy(m_SlabNumArray, _defaut_num, m_ClassNum*sizeof(uint32_t));
+
+	if(block_n_array != NULL)
+		memcpy(m_BlockNumArray, block_n_array, m_ClassNum*sizeof(uint32_t));
+	else
+		memcpy(m_BlockNumArray, _defaut_block_num, m_ClassNum*sizeof(uint32_t));
 
 	InitMemSlab();
 }
