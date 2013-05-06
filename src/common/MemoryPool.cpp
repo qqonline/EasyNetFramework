@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "MemoryCache.h"
+#include "MemoryPool.h"
 
 namespace easynet
 {
@@ -38,7 +38,7 @@ MemSlab::~MemSlab()
 	free(m_SlabArray);
 }
 
-void* MemSlab::Get()
+void* MemSlab::Alloc()
 {
 	void *temp = NULL;
 	if(m_FreeList != NULL)    //从空闲队列中获取
@@ -72,7 +72,7 @@ void* MemSlab::Get()
 	return temp;
 }
 
-bool MemSlab::Recycle(void *slab)
+bool MemSlab::Free(void *slab)
 {
 	if(slab == NULL)
 		return true;
@@ -86,7 +86,7 @@ bool MemSlab::Recycle(void *slab)
 static uint32_t _defaut_size[10] = {4,8,16,32,64,128,256,512,1024,2048};
 static uint32_t _defaut_num[10]  = {100,100,100,100,100,100,100,100,100,100};
 
-MemCache::MemCache()
+MemPool::MemPool()
 {
 	m_ClassNum = 10;
 	m_SizeArray = (uint32_t*)malloc(m_ClassNum*sizeof(uint32_t));
@@ -97,7 +97,7 @@ MemCache::MemCache()
 	InitMemSlab();
 }
 
-MemCache::MemCache(uint32_t n, uint32_t *size_array, uint32_t *slab_n_array=NULL)
+MemPool::MemPool(uint32_t n, uint32_t *size_array, uint32_t *slab_n_array=NULL)
 {
 	m_ClassNum = n;
 	m_SizeArray = (uint32_t*)malloc(m_ClassNum*sizeof(uint32_t));
@@ -108,7 +108,7 @@ MemCache::MemCache(uint32_t n, uint32_t *size_array, uint32_t *slab_n_array=NULL
 	InitMemSlab();
 }
 
-void MemCache::InitMemSlab()
+void MemPool::InitMemSlab()
 {
 	m_MemSlabArray = (MemSlab**)malloc(m_ClassNum*sizeof(MemSlab));
 	int i;
@@ -116,7 +116,7 @@ void MemCache::InitMemSlab()
 		m_MemSlabArray[i] = new MemSlab(m_SizeArray[i], m_SlabNumArray[i]);
 }
 
-MemCache::~MemCache()
+MemPool::~MemPool()
 {
 	int i;
 	for(i=0; i<m_ClassNum; ++i)
@@ -127,7 +127,7 @@ MemCache::~MemCache()
 }
 
 
-bool MemCache::Get(uint32_t size, MemInfo *mem_info)
+bool MemPool::Alloc(uint32_t size, MemInfo *mem_info)
 {
 	if(mem_info == NULL)
 		return false;
@@ -142,7 +142,7 @@ bool MemCache::Get(uint32_t size, MemInfo *mem_info)
 	}
 
 	if(slab_id < m_ClassNum)
-		slab = m_MemSlabArray[slab_id]->Get();  //从mem slab中分配
+		slab = m_MemSlabArray[slab_id]->Alloc();  //从mem slab中分配
 	else
 		slab = malloc(size);              //内存太大, 直接分配
 
@@ -154,12 +154,12 @@ bool MemCache::Get(uint32_t size, MemInfo *mem_info)
 }
 
 //回收内存
-bool MemCache::Recycle(MemInfo *mem_info)
+bool MemPool::Free(MemInfo *mem_info)
 {
 	if(mem_info==NULL || mem_info->slab==NULL)
 		return true;
 	if(mem_info->slab_id < m_ClassNum)
-		m_MemSlabArray[mem_info->slab_id]->Recycle(mem_info->slab);
+		m_MemSlabArray[mem_info->slab_id]->Free(mem_info->slab);
 	else
 		free(mem_info->slab);
 	return true;

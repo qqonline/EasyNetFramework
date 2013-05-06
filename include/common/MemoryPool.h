@@ -1,11 +1,11 @@
 /*
- * MemoryCache.h
+ * MemoryPool.h
  *
  *  Created on: 2013-5-5
  *      Author: LiuYongJin
  */
-#ifndef _COMMON_MEMORY_CACHE_H_
-#define _COMMON_MEMORY_CACHE_H_
+#ifndef _COMMON_MEMORY_POOL_H_
+#define _COMMON_MEMORY_POOL_H_
 
 #include <stdint.h>
 
@@ -22,9 +22,9 @@ public:
 
 	uint32_t ElementSize(){return m_ElemSize;}
 	//获取一个元素内存
-	void *Get();
+	void *Alloc();
 	//回收元素内存
-	bool Recycle(void *slab);
+	bool Free(void *slab);
 private:
 	uint32_t m_ElemSize;    //元素大小
 	uint32_t m_SlabNum;     //每个块包含元素个数
@@ -41,22 +41,22 @@ typedef struct _mem_info
 	void *slab;
 }MemInfo;
 
-class MemCache
+class MemPool
 {
 public:
 	//默认的MemSlab元素大小为:4,8,16,32,64,128,256,512,1024,2048
-	MemCache();
+	MemPool();
 	// @param n            : size_array和slab_n_array的大小
 	// @param size_array   : 指示每个MemSlab的元素大小的数组
 	// @param slab_n_array : 指示每个MemSlab中的块包含的元素个数(为NULL时使用默认值)
-	MemCache(uint32_t n, uint32_t *size_array, uint32_t *slab_n_array=NULL);
+	MemPool(uint32_t n, uint32_t *size_array, uint32_t *slab_n_array=NULL);
 
 	~MemCache();
 
 	//获取大小为size的内存,成功返回true,meminfo有效;失败返回flase;
-	bool Get(uint32_t size, MemInfo *mem_info);
+	bool Alloc(uint32_t size, MemInfo *mem_info);
 	//回收内存
-	bool Recycle(MemInfo *mem_info);
+	bool Free(MemInfo *mem_info);
 private:
 	uint32_t m_ClassNum;
 	uint32_t *m_SizeArray;
@@ -67,5 +67,5 @@ private:
 };
 
 }//namespace
-#endif //_COMMON_MEMORY_CACHE_H_
+#endif //_COMMON_MEMORY_POOL_H_
 
