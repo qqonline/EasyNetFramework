@@ -88,7 +88,7 @@ bool TransHandler::OnEventRead(int32_t fd)
 		LOG_DEBUG(logger, "decode data type succ. data_type="<<context->data_type<<" header_size="<<context->header_size<<" body_size="<<context->body_size);
 	}
 
-	if(context->data_type == DTYPE_BIN)  //解码二进制协议头
+	if(context->data_type==DTYPE_BIN && context->body_size==0)  //解码二进制协议头
 	{
 		assert(context->header_size > 0);
 		ByteBuffer *byte_buffer = &context->byte_buffer;
