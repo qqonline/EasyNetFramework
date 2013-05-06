@@ -1,5 +1,5 @@
 /*
- * MemoryMgr.cpp
+ * MemoryCache.cpp
  *
  *  Created on: 2013-5-5
  *      Author: LiuYongJin
@@ -7,7 +7,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#include "MemoryMgr.h"
+#include "MemoryCache.h"
 
 namespace easynet
 {

@@ -1,11 +1,11 @@
 /*
- * MemoryMgr.h
+ * MemoryCache.h
  *
  *  Created on: 2013-5-5
  *      Author: LiuYongJin
  */
-#ifndef _COMMON_MEMORY_MGR_H_
-#define _COMMON_MEMORY_MGR_H_
+#ifndef _COMMON_MEMORY_CACHE_H_
+#define _COMMON_MEMORY_CACHE_H_
 
 #include <stdint.h>
 
@@ -67,5 +67,5 @@ private:
 };
 
 }//namespace
-#endif //_COMMON_MEMORY_MGR_H_
+#endif //_COMMON_MEMORY_CACHE_H_
 
