@@ -39,7 +39,7 @@ bool TransHandler::OnEventRead(int32_t fd)
 {
 	LOG_DEBUG(logger, "on event_read. fd="<<fd);
 
-	ProtocolContext *context = NULL;
+	RecvContext *context = NULL;
 	FDMap::iterator it = m_FdMap.find(fd);
 	if(it == m_FdMap.end())
 	{
@@ -64,12 +64,10 @@ bool TransHandler::OnEventRead(int32_t fd)
 	//检查数据类型:二进制协议/文本协议
 	if(context->data_type == DTYPE_INVALID)
 	{
-		ByteBuffer *byte_buffer = &context->byte_buffer;
-		const uint32_t HEADER_SIZE = m_ProtocolFactory->HeaderSize();    //伪协议头长度
-		uint32_t cur_header_size = byte_buffer->GetSize();
-		assert(cur_header_size < HEADER_SIZE);
+		const uint32_t DATA_HEADER_SIZE = m_ProtocolFactory->DataHeaderSize();    //伪协议头长度
+		assert(context->cur_data_size < DATA_HEADER_SIZE);
 
-		if(ReadData(byte_buffer, HEADER_SIZE-cur_header_size) == -1)
+		if(ReadData(context->buffer, context->buffer_size, DATA_HEADER_SIZE-context->cur_data_size) == -1)
 		{
 			LOG_ERROR(logger, "read temp_header data error. fd="<<fd);
 			m_ProtocolFactory->DeleteContext(context);
@@ -84,6 +82,12 @@ bool TransHandler::OnEventRead(int32_t fd)
 			m_FdMap.erase(it);
 			return false;
 		}
+		else if(result == DECODE_DATA)
+		{
+			LOG_DEBUG(logger, "wait for more temp_header data. temp_header_size="<<DATA_HEADER_SIZE<<" cur_size="<<context->cur_data_size<<" fd="<<fd);
+			return true;
+		}
+
 		assert(context->data_type != DTYPE_INVALID);
 		LOG_DEBUG(logger, "decode data type succ. data_type="<<context->data_type<<" header_size="<<context->header_size<<" body_size="<<context->body_size);
 	}
@@ -91,13 +95,9 @@ bool TransHandler::OnEventRead(int32_t fd)
 	if(context->data_type==DTYPE_BIN && context->body_size==0)  //解码二进制协议头
 	{
 		assert(context->header_size > 0);
-		ByteBuffer *byte_buffer = &context->byte_buffer;
-		const uint32_t HEADER_SIZE = context->header_size;         //协议头长度
-		uint32_t cur_header_size = byte_buffer->GetSize();
-		assert(cur_header_size <= HEADER_SIZE);
-
-		uint32_t need_size = HEADER_SIZE-cur_header_size;
-		if(need_size>0 && ReadData(byte_buffer, need_size)==-1)    //读协议头数据
+		assert(context->cur_header_size <= context->header_size);
+		uint32_t need_size = context->header_size-context->cur_header_size;
+		if(need_size>0 && ReadData(context->buffer, context->buffer_size, need_size)==-1)    //读协议头数据
 		{
 			LOG_ERROR(logger, "read bin_header data error. fd="<<fd);
 			m_ProtocolFactory->DeleteContext(context);
@@ -115,7 +115,7 @@ bool TransHandler::OnEventRead(int32_t fd)
 		}
 		else if(decode_result == DECODE_DATA)
 		{
-			LOG_DEBUG(logger, "wait for more bin_header data. header_size="<<context->header_size<<" cur_size="<<context->byte_buffer.GetSize()<<" fd="<<fd);
+			LOG_DEBUG(logger, "wait for more bin_header data. header_size="<<context->header_size<<" cur_header_size="<<context->cur_header_size<<" fd="<<fd);
 			return true;
 		}
 
@@ -130,10 +130,8 @@ bool TransHandler::OnEventRead(int32_t fd)
 	}
 
 	//解码二进制/文本协议的包体
-	ByteBuffer *byte_buffer = &context->byte_buffer;
-	uint32_t cur_body_size = byte_buffer->GetSize()-context->header_size;
-	assert(cur_body_size < context->body_size);
-	if(ReadData(byte_buffer, context->body_size-cur_body_size) == -1)      //读协议体数据
+	assert(context->body_size > 0);
+	if(ReadData(context->buffer, context->buffer_size, context->body_size-context->cur_body_size) == -1)      //读协议体数据
 	{
 		LOG_ERROR(logger, "read body data error. fd="<<fd);
 		m_ProtocolFactory->DeleteContext(context);
@@ -155,12 +153,11 @@ bool TransHandler::OnEventRead(int32_t fd)
 	}
 	else if(decode_result == DECODE_DATA)
 	{
-		cur_body_size = context->byte_buffer.GetSize()-context->header_size;
-		LOG_DEBUG(logger, "wait for more body data. body_size="<<context->body_size<<" cur_size="<<cur_body_size<<" fd="<<fd);
+		LOG_DEBUG(logger, "wait for more body data. body_size="<<context->body_size<<" cur_body_size="<<context->cur_body_size<<" fd="<<fd);
 		return true;
 	}
 
-	LOG_DEBUG(logger, "decode protocol succ. data_type="<<context->data_type<<" fd="<<fd);
+	LOG_DEBUG(logger, "decode body succ. data_type="<<context->data_type<<" fd="<<fd);
 	m_FdMap.erase(it);
 
 	bool detach_context = false;

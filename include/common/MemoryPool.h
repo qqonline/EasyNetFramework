@@ -43,12 +43,26 @@ typedef struct _mem_info
 	void *slab;
 }MemInfo;
 
+
+/**内存池:提供不同大小区间的内存块.
+ *分配策略:
+ *    1. 根据请求的size在对应的内存区间中的free list找一个空闲的内存块.有的话返回,否则:
+ *    2. 从对应内存区间中的block中找一个内存块.有的话返回,否则重新分配一个内存block,从新的block中分配并返回.
+ *    3. 超过最大内存区间的直接从系统分配内存.
+ *    4. 释放时,将内存块加入到对应内存区间的free list中.
+ *
+ *默认配置:
+ *    每个区间元素大小          : 4,8,16,32,64,128,256,512,1024,2048
+ *    每个区间每个block元素个数 : 100
+ *    每个区间最大的block个数   : 不限制
+ *比如需要大小50字节的内存块,则将在元素大小为64的内存块中分配.
+ */
 class MemPool
 {
 public:
-	//默认的MemSlab元素大小为:4,8,16,32,64,128,256,512,1024,2048
 	MemPool();
-	// @param n             : size_array和slab_n_array的大小
+
+	// @param n             : size_array和slab_n_array,block_n_array的大小
 	// @param size_array    : 指示每个MemSlab的元素大小的数组
 	// @param slab_n_array  : 指示每个MemSlab中的块包含的元素个数(NULL时使用默认值)
 	// @param block_n_array : 指示每个MemSlab中最多的块数(NULL或者元素值为-1时表示没有限制)
@@ -56,10 +70,10 @@ public:
 
 	~MemCache();
 
-	//获取大小为size的内存,成功返回true,meminfo有效;失败返回flase;
-	bool Alloc(uint32_t size, MemInfo *mem_info);
+	//获取大小为size的内存
+	void* Alloc(uint32_t size);
 	//回收内存
-	bool Free(MemInfo *mem_info);
+	bool Free(void *data, uint32_t size);
 private:
 	uint32_t m_ClassNum;
 	uint32_t *m_SizeArray;

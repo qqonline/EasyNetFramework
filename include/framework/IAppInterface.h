@@ -21,7 +21,7 @@ public:
 	// @param fd             : 收到协议的socket fd
 	// @param context        : 接收到的协议上下文
 	// @param detach_context : 被设置为trues时,由应用层控制context的生存期
-	virtual bool OnReceiveProtocol(int32_t fd, ProtocolContext *context, bool &detach_context)=0;
+	virtual bool OnReceiveProtocol(int32_t fd, RecvContext *context, bool &detach_context)=0;
 	virtual bool OnSocketError(int32_t fd)=0;
 	virtual bool OnSocketTimeout(int32_t fd)=0;
 

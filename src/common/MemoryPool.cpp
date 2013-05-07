@@ -88,13 +88,14 @@ bool MemSlab::Free(void *slab)
 
 
 /////////////////////// MemCache /////////////////////
-static uint32_t _defaut_size[10] = {4,8,16,32,64,128,256,512,1024,2048};
-static uint32_t _defaut_num[10]  = {100,100,100,100,100,100,100,100,100,100};
-static uint32_t _defaut_block_num[10]  = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+#define DEFUALT_SIZE 10
+static uint32_t _defaut_size[DEFUALT_SIZE] = {4,8,16,32,64,128,256,512,1024,2048};
+static uint32_t _defaut_num[DEFUALT_SIZE]  = {100,100,100,100,100,100,100,100,100,100};
+static uint32_t _defaut_block_num[DEFUALT_SIZE]  = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 
 MemPool::MemPool()
 {
-	m_ClassNum = 10;
+	m_ClassNum = DEFUALT_SIZE;
 	m_SizeArray = (uint32_t*)malloc(m_ClassNum*sizeof(uint32_t));
 	m_SlabNumArray = (uint32_t*)malloc(m_ClassNum*sizeof(uint32_t));
 	m_BlockNumArray = (uint32_t*)malloc(m_ClassNum*sizeof(uint32_t));
@@ -146,11 +147,8 @@ MemPool::~MemPool()
 }
 
 
-bool MemPool::Alloc(uint32_t size, MemInfo *mem_info)
+void* MemPool::Alloc(uint32_t size)
 {
-	if(mem_info == NULL)
-		return false;
-
 	int slab_id;
 	void *slab = NULL;
 
@@ -165,22 +163,24 @@ bool MemPool::Alloc(uint32_t size, MemInfo *mem_info)
 	else
 		slab = malloc(size);              //内存太大, 直接分配
 
-	if(slab == NULL)
-		return false;
-	mem_info->slab_id = slab_id;
-	mem_info->slab    = slab;
-	return true;
+	return slab;
 }
 
 //回收内存
-bool MemPool::Free(MemInfo *mem_info)
+bool MemPool::Free(void *data, uint32_t size)
 {
-	if(mem_info==NULL || mem_info->slab==NULL)
+	if(data==NULL)
 		return true;
-	if(mem_info->slab_id < m_ClassNum)
-		m_MemSlabArray[mem_info->slab_id]->Free(mem_info->slab);
+	uint32_t slab_id;
+	for(slab_id=0; slab_id<m_ClassNum; ++slab_id)
+	{
+		if(size <= m_SizeArray[slab_id])
+			break;
+	}
+	if(slab_id < m_ClassNum)
+		return m_MemSlabArray[slab_id]->Free(data);
 	else
-		free(mem_info->slab);
+		free(data);
 	return true;
 }
 
