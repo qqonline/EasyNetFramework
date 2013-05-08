@@ -23,11 +23,11 @@ bool TransHandler::OnTimeout(int32_t fd)
 {
 	LOG_DEBUG(logger, "on time_out. fd="<<fd);
 
-	FDMap::iterator it = m_FdMap.find(fd);
-	if(it != m_FdMap.end())
+	FDMap::iterator it = m_RecvFdMap.find(fd);
+	if(it != m_RecvFdMap.end())
 	{
-		m_ProtocolFactory->DeleteRecvContext(it->second);
-		m_FdMap.erase(it);
+		m_ProtocolFactory->DeleteContext(it->second);
+		m_RecvFdMap.erase(it);
 	}
 
 	m_AppInterface->OnSocketTimeout(fd);
@@ -39,9 +39,9 @@ bool TransHandler::OnEventRead(int32_t fd)
 {
 	LOG_DEBUG(logger, "on event_read. fd="<<fd);
 
-	RecvContext *context = NULL;
-	FDMap::iterator it = m_FdMap.find(fd);
-	if(it == m_FdMap.end())
+	ProtocolContext *context = NULL;
+	FDMap::iterator it = m_RecvFdMap.find(fd);
+	if(it == m_RecvFdMap.end())
 	{
 		context = m_ProtocolFactory->NewRecvContext();
 		if(context == NULL)
@@ -50,11 +50,11 @@ bool TransHandler::OnEventRead(int32_t fd)
 			return false;
 		}
 		context->fd = fd;
-		std::pair<FDMap::iterator, bool> result = m_FdMap.insert(std::make_pair(fd, context));
+		std::pair<FDMap::iterator, bool> result = m_RecvFdMap.insert(std::make_pair(fd, context));
 		if(result.second == false)
 		{
 			LOG_ERROR(logger, "insert to map failed. fd="<<fd);
-			m_ProtocolFactory->DeleteRecvContext(context);
+			m_ProtocolFactory->DeleteContext(context);
 			return false;
 		}
 		it = result.first;
@@ -64,32 +64,32 @@ bool TransHandler::OnEventRead(int32_t fd)
 	//检查数据类型:二进制协议/文本协议
 	if(context->data_type == DTYPE_INVALID)
 	{
-		assert(context->cur_recv_size < context->data_header_size);
+		assert(context->cur_data_size < context->data_header_size);
 
-		char *buffer         = context->buffer+context->cur_recv_size;
-		uint32_t buffer_size = context->buffer_size-context->cur_recv_size;
-		uint32_t need_size   = context->data_header_size-context->cur_recv_size;
+		char *buffer         = context->buffer+context->cur_data_size;
+		uint32_t buffer_size = context->buffer_size-context->cur_data_size;
+		uint32_t need_size   = context->data_header_size-context->cur_data_size;
 		int32_t recv_size    = ReadData(buffer, buffer_size, need_size);
 		if(recv_size== -1)
 		{
 			LOG_ERROR(logger, "read temp_header data error. fd="<<fd);
-			m_ProtocolFactory->DeleteRecvContext(context);
-			m_FdMap.erase(it);
+			m_ProtocolFactory->DeleteContext(context);
+			m_RecvFdMap.erase(it);
 			return false;
 		}
-		context->cur_recv_size += recv_size;
+		context->cur_data_size += recv_size;
 
 		DecodeResult result = m_ProtocolFactory->DecodeDataType(context);
 		if(result == DECODE_ERROR)
 		{
 			LOG_ERROR(logger, "decode data type error. fd="<<fd);
-			m_ProtocolFactory->DeleteRecvContext(context);
-			m_FdMap.erase(it);
+			m_ProtocolFactory->DeleteContext(context);
+			m_RecvFdMap.erase(it);
 			return false;
 		}
 		else if(result == DECODE_DATA)
 		{
-			LOG_DEBUG(logger, "wait for more temp_header data. temp_header_size="<<context->data_header_size<<" cur_size="<<context->cur_recv_size<<" fd="<<fd);
+			LOG_DEBUG(logger, "wait for more temp_header data. temp_header_size="<<context->data_header_size<<" cur_size="<<context->cur_data_size<<" fd="<<fd);
 			return true;
 		}
 
@@ -109,32 +109,32 @@ bool TransHandler::OnEventRead(int32_t fd)
 		LOG_DEBUG(logger, "decode data type succ. data_type="<<context->data_type<<" header_size="<<context->header_size<<" body_size="<<context->body_size);
 	}
 
-	if(context->data_type==DTYPE_BIN && context->cur_recv_size<=context->header_size)  //解码二进制协议头
+	if(context->data_type==DTYPE_BIN && context->cur_data_size<=context->header_size)  //解码二进制协议头
 	{
-		char *buffer         = context->buffer+context->cur_recv_size;
-		uint32_t buffer_size = context->buffer_size-context->cur_recv_size;
-		uint32_t need_size   = context->header_size-context->cur_recv_size;
+		char *buffer         = context->buffer+context->cur_data_size;
+		uint32_t buffer_size = context->buffer_size-context->cur_data_size;
+		uint32_t need_size   = context->header_size-context->cur_data_size;
 		int32_t recv_size    = need_size>0?ReadData(buffer, buffer_size, need_size):0;
 		if(recv_size== -1)
 		{
 			LOG_ERROR(logger, "read bin_header data error. fd="<<fd);
-			m_ProtocolFactory->DeleteRecvContext(context);
-			m_FdMap.erase(it);
+			m_ProtocolFactory->DeleteContext(context);
+			m_RecvFdMap.erase(it);
 			return false;
 		}
-		context->cur_recv_size += recv_size;
+		context->cur_data_size += recv_size;
 
 		DecodeResult decode_result = m_ProtocolFactory->DecodeBinHeader(context);
 		if(decode_result == DECODE_ERROR)
 		{
 			LOG_ERROR(logger, "decode bin_header error. fd="<<fd);
-			m_ProtocolFactory->DeleteRecvContext(context);
-			m_FdMap.erase(it);
+			m_ProtocolFactory->DeleteContext(context);
+			m_RecvFdMap.erase(it);
 			return false;
 		}
 		else if(decode_result == DECODE_DATA)
 		{
-			LOG_DEBUG(logger, "wait for more bin_header data. header_size="<<context->header_size<<" cur_header_size="<<context->cur_header_size<<" fd="<<fd);
+			LOG_DEBUG(logger, "wait for more bin_header data. header_size="<<context->header_size<<" cur_header_size="<<context->cur_data_size<<" fd="<<fd);
 			return true;
 		}
 
@@ -142,26 +142,26 @@ bool TransHandler::OnEventRead(int32_t fd)
 		if(context->body_size == 0)    //允许空包
 		{
 			LOG_INFO(logger, "receive a empty bin_packet. do nothing. fd="<<fd);
-			m_ProtocolFactory->DeleteRecvContext(context);
-			m_FdMap.erase(it);
+			m_ProtocolFactory->DeleteContext(context);
+			m_RecvFdMap.erase(it);
 			return true;
 		}
 	}
 
 	//解码二进制/文本协议的包体
 	assert(context->body_size > 0);
-	char *buffer         = context->buffer+context->cur_recv_size;
-	uint32_t buffer_size = context->buffer_size-context->cur_recv_size;
-	uint32_t need_size   = context->header_size+context->body_size-context->cur_recv_size;
+	char *buffer         = context->buffer+context->cur_data_size;
+	uint32_t buffer_size = context->buffer_size-context->cur_data_size;
+	uint32_t need_size   = context->header_size+context->body_size-context->cur_data_size;
 	int32_t recv_size    = need_size>0?ReadData(buffer, buffer_size, need_size):0;
 	if(recv_size== -1)
 	{
 		LOG_ERROR(logger, "read body data error. fd="<<fd);
-		m_ProtocolFactory->DeleteRecvContext(context);
-		m_FdMap.erase(it);
+		m_ProtocolFactory->DeleteContext(context);
+		m_RecvFdMap.erase(it);
 		return false;
 	}
-	context->cur_recv_size += recv_size;
+	context->cur_data_size += recv_size;
 
 	DecodeResult decode_result = DECODE_ERROR;
 	if(context->data_type == DTYPE_BIN)
@@ -171,23 +171,23 @@ bool TransHandler::OnEventRead(int32_t fd)
 	if(decode_result == DECODE_ERROR)
 	{
 		LOG_ERROR(logger, "decode body error. fd="<<fd);
-		m_ProtocolFactory->DeleteRecvContext(context);
-		m_FdMap.erase(it);
+		m_ProtocolFactory->DeleteContext(context);
+		m_RecvFdMap.erase(it);
 		return false;
 	}
 	else if(decode_result == DECODE_DATA)
 	{
-		LOG_DEBUG(logger, "wait for more body data. body_size="<<context->body_size<<" cur_body_size="<<context->cur_body_size<<" fd="<<fd);
+		LOG_DEBUG(logger, "wait for more body data. body_size="<<context->body_size<<" cur_body_size="<<context->cur_data_size-context->header_size<<" fd="<<fd);
 		return true;
 	}
 
 	LOG_DEBUG(logger, "decode body succ. data_type="<<context->data_type<<" fd="<<fd);
-	m_FdMap.erase(it);
+	m_RecvFdMap.erase(it);
 
 	bool detach_context = false;
 	bool result = m_AppInterface->OnReceiveProtocol(fd, context, detach_context);
 	if(!result || !detach_context)
-		m_ProtocolFactory->DeleteRecvContext(context);
+		m_ProtocolFactory->DeleteContext(context);
 	return result;
 }
 
@@ -201,8 +201,7 @@ bool TransHandler::onEventWrite(int32_t fd)
 
 	while(true)
 	{
-		SendContext *context = NULL;
-		m_AppInterface->GetSendProtocol(fd, &context);
+		ProtocolContext *context = m_AppInterface->GetSendProtocol(fd);
 		if(context == NULL)
 			break;
 		if(context->expire_time < time_now)
@@ -224,11 +223,11 @@ bool TransHandler::OnEventError(int32_t fd)
 {
 	LOG_DEBUG(logger, "on event_error. fd="<<fd);
 
-	FDMap::iterator it = m_FdMap.find(fd);
-	if(it != m_FdMap.end())
+	FDMap::iterator it = m_RecvFdMap.find(fd);
+	if(it != m_RecvFdMap.end())
 	{
-		m_ProtocolFactory->DeleteRecvContext(it->second);
-		m_FdMap.erase(it);
+		m_ProtocolFactory->DeleteContext(it->second);
+		m_RecvFdMap.erase(it);
 	}
 
 	m_AppInterface->OnSocketError(fd);

@@ -70,6 +70,7 @@ public:
 		buffer_size       = 0;
 		cur_data_size     = 0;
 		fd                = 0;
+		expire_time       = -1;
 		m_ProtocolFactory = protocol_factory;
 	}
 
@@ -83,6 +84,7 @@ public:
 	uint32_t  cur_data_size;     //当前接收到/已发送的数据大小
 
 	uint32_t  fd;
+	uint64_t  expire_time;       //超时时间点
 	IProtocolFactory *m_ProtocolFactory;
 };
 

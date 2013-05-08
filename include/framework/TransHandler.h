@@ -18,7 +18,7 @@ using std::map;
 namespace easynet
 {
 
-typedef map<int32_t, RecvContext*> FDMap;
+typedef map<int32_t, ProtocolContext*> FDMap;
 
 class TransHandler:public EventHandler
 {
@@ -43,7 +43,7 @@ private:
 	//成功返回读取的字节数,错误返回-1
 	int32_t ReadData(char *buffer, uint32_t buffer_size, uint32_t need_size);
 private:
-	FDMap m_FdMap;
+	FDMap m_RecvFdMap;
 	IAppInterface     *m_AppInterface;
 	IProtocolFactory  *m_ProtocolFactory;
 
