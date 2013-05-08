@@ -38,6 +38,7 @@ public:
 	uint32_t  body_size;         //协议体长度.当data_type=DTYPE_BIN时为固定长度,data_type=DTYPE_TEXT时为可能的最大长度
 };
 
+//二进制协议接口
 class IProtocol
 {
 public:
@@ -51,6 +52,7 @@ public:
 		protocol_type(-1);
 		protocol(NULL);
 	}
+
 	//销毁自己
 	virtual void Destroy()=0;
 };
@@ -134,6 +136,11 @@ protected:
 	virtual void* NewProtocol(uint32_t protocol_type, char *buffer, uint32_t buffer_size)=0;
 	//销毁protocol_type类型的protocol
 	virtual void DeleteProtocol(void *protocol, uint32_t protocol_type)=0;
+
+	//对协议进行编码,编码数据放到大小为buffer_size字节的buffer中.成功返回true,失败返回false
+	//buffer是NewProtocol方法中传入的缓冲区.如果在NewProtocol方法中创建的protocol使用了buffer,则对该protocol
+	//进行编码时,应该忽略本buffer参数,否则可能回引起问题!
+	virtual bool EncodeProtocol(void *protocol, uint32_t protocol_type, char *buffer, uint32_t buffer_size)=0;
 protected:
 	MemPool *m_MemPool;
 };
