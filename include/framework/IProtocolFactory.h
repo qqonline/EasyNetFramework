@@ -71,7 +71,10 @@ public:
 		m_ProtocolFactory = protocol_factory;
 	}
 
-	void Destroy();
+	void Destroy()
+	{
+		m_ProtocolFactory->DeleteContext(this);
+	}
 public:
 	char      *buffer;           //存放数据的缓冲区
 	uint32_t  buffer_size;       //缓冲区的大小
@@ -93,7 +96,7 @@ typedef enum _decode_result
 class IProtocolFactory
 {
 public:
-	IProtocolFactory();
+	IProtocolFactory():m_MemPool(NULL){}
 	virtual ~IProtocolFactory();
 
 	//创建接收协议的context

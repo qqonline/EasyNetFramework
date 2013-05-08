@@ -14,16 +14,8 @@
 namespace easynet
 {
 
+//最小的接收缓冲区大小
 #define MIN_BUFFER_SIZE 128
-
-void ProtocolContext::Destroy()
-{
-	m_ProtocolFactory->DeleteContext(this);
-}
-
-IProtocolFactory::IProtocolFactory():m_MemPool(NULL)
-{
-}
 
 IProtocolFactory::~IProtocolFactory()
 {
