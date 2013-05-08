@@ -64,16 +64,21 @@ bool TransHandler::OnEventRead(int32_t fd)
 	//检查数据类型:二进制协议/文本协议
 	if(context->data_type == DTYPE_INVALID)
 	{
-		const uint32_t DATA_HEADER_SIZE = m_ProtocolFactory->DataHeaderSize();    //伪协议头长度
-		assert(context->cur_data_size < DATA_HEADER_SIZE);
+		assert(context->cur_recv_size < context->data_header_size);
 
-		if(ReadData(context->buffer, context->buffer_size, DATA_HEADER_SIZE-context->cur_data_size) == -1)
+		char *buffer         = context->buffer+context->cur_recv_size;
+		uint32_t buffer_size = context->buffer_size-context->cur_recv_size;
+		uint32_t need_size   = context->data_header_size-context->cur_recv_size;
+		int32_t recv_size    = ReadData(buffer, buffer_size, need_size);
+		if(recv_size== -1)
 		{
 			LOG_ERROR(logger, "read temp_header data error. fd="<<fd);
 			m_ProtocolFactory->DeleteRecvContext(context);
 			m_FdMap.erase(it);
 			return false;
 		}
+		context->cur_recv_size += recv_size;
+
 		DecodeResult result = m_ProtocolFactory->DecodeDataType(context);
 		if(result == DECODE_ERROR)
 		{
@@ -84,26 +89,40 @@ bool TransHandler::OnEventRead(int32_t fd)
 		}
 		else if(result == DECODE_DATA)
 		{
-			LOG_DEBUG(logger, "wait for more temp_header data. temp_header_size="<<DATA_HEADER_SIZE<<" cur_size="<<context->cur_data_size<<" fd="<<fd);
+			LOG_DEBUG(logger, "wait for more temp_header data. temp_header_size="<<context->data_header_size<<" cur_size="<<context->cur_recv_size<<" fd="<<fd);
 			return true;
 		}
 
-		assert(context->data_type != DTYPE_INVALID);
+		if(context->data_type == DTYPE_INVALID)
+			assert(0);
+		else if(context->data_type==DTYPE_BIN)
+		{
+			assert(context->header_size>0);
+			context->body_size = 0;
+		}
+		else
+		{
+			assert(context->body_size > 0);
+			context->header_size = 0;
+		}
+
 		LOG_DEBUG(logger, "decode data type succ. data_type="<<context->data_type<<" header_size="<<context->header_size<<" body_size="<<context->body_size);
 	}
 
-	if(context->data_type==DTYPE_BIN && context->body_size==0)  //解码二进制协议头
+	if(context->data_type==DTYPE_BIN && context->cur_recv_size<=context->header_size)  //解码二进制协议头
 	{
-		assert(context->header_size > 0);
-		assert(context->cur_header_size <= context->header_size);
-		uint32_t need_size = context->header_size-context->cur_header_size;
-		if(need_size>0 && ReadData(context->buffer, context->buffer_size, need_size)==-1)    //读协议头数据
+		char *buffer         = context->buffer+context->cur_recv_size;
+		uint32_t buffer_size = context->buffer_size-context->cur_recv_size;
+		uint32_t need_size   = context->header_size-context->cur_recv_size;
+		int32_t recv_size    = need_size>0?ReadData(buffer, buffer_size, need_size):0;
+		if(recv_size== -1)
 		{
 			LOG_ERROR(logger, "read bin_header data error. fd="<<fd);
 			m_ProtocolFactory->DeleteRecvContext(context);
 			m_FdMap.erase(it);
 			return false;
 		}
+		context->cur_recv_size += recv_size;
 
 		DecodeResult decode_result = m_ProtocolFactory->DecodeBinHeader(context);
 		if(decode_result == DECODE_ERROR)
@@ -131,13 +150,18 @@ bool TransHandler::OnEventRead(int32_t fd)
 
 	//解码二进制/文本协议的包体
 	assert(context->body_size > 0);
-	if(ReadData(context->buffer, context->buffer_size, context->body_size-context->cur_body_size) == -1)      //读协议体数据
+	char *buffer         = context->buffer+context->cur_recv_size;
+	uint32_t buffer_size = context->buffer_size-context->cur_recv_size;
+	uint32_t need_size   = context->header_size+context->body_size-context->cur_recv_size;
+	int32_t recv_size    = need_size>0?ReadData(buffer, buffer_size, need_size):0;
+	if(recv_size== -1)
 	{
 		LOG_ERROR(logger, "read body data error. fd="<<fd);
 		m_ProtocolFactory->DeleteRecvContext(context);
 		m_FdMap.erase(it);
 		return false;
 	}
+	context->cur_recv_size += recv_size;
 
 	DecodeResult decode_result = DECODE_ERROR;
 	if(context->data_type == DTYPE_BIN)

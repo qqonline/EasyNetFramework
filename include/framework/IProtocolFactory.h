@@ -48,7 +48,7 @@ public:
 		cur_body_size    = 0;
 		buffer           = NULL;
 		buffer_size      = 0;
-		cur_data_size    = 0;
+		cur_recv_size    = 0;
 		protocol         = NULL;
 		protocol_type    = 0;
 		fd               = 0;
@@ -60,7 +60,7 @@ public:
 
 	char      *buffer;           //存放数据的缓冲区
 	uint32_t  buffer_size;       //缓冲区的大小
-	uint32_t  cur_data_size;     //当前数据大小
+	uint32_t  cur_recv_size;     //当前接收到的数据大小
 
 	uint32_t  protocol_type;     //协议类型
 	void      *protocol;         //具体的协议
@@ -76,19 +76,18 @@ typedef enum _decode_result
 	DECODE_DATA,    //数据不够
 }DecodeResult;
 
-class SendContext
+class SendContext:public ProtocolInfo
 {
 public:
+	char      *buffer;           //存放数据的缓冲区
+	uint32_t  buffer_size;       //缓冲区大小
+	uint32_t  cur_send_size;     //已发送数据大小
+
 	uint32_t  protocol_type;     //协议类型
 	void      *protocol;         //具体的协议
 
-	char      *buffer;           //存放数据的缓冲区
-	uint32_t  buffer_size;       //缓冲区大小
-	uint32_t  total_send_size;   //待发送数据大小
-	uint32_t  cur_send_size;     //已发送数据大小
-
-	uint64_t  expire_time;       //超时时间点
 	uint32_t  fd;
+	uint64_t  expire_time;       //超时时间点
 };
 
 //支持文本协议和二进制协议
@@ -107,9 +106,6 @@ public:
 	// data_type=DTYPE_TEXT时,body_size必需设置;
 	// data_type=DTYPE_BIN时,header_size必需设置;
 	virtual bool InitProtocolInfo(ProtocolInfo *pro_info)=0;
-
-	//伪协议头长度.用来区分二进制和文本协议
-	virtual uint32_t DataHeaderSize()=0;
 
 	//检测是二进制还是文本数据
 	//成功的话,设置data_type(DTYPE_BIN时必须设置header_size; DTYPE_TEXT时必须设置body_size,表示文本协议数据可能的最大长度)
