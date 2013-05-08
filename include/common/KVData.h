@@ -26,7 +26,10 @@ class KVData
 {
 public:
 	KVData();
+	KVData(void *buffer, uint32_t buffer_size);
 	~KVData();
+	bool DetachBuffer(void *&buffer, uint32_t &buffer_size, uint32_t &data_size);
+
 	bool Set(uint16_t key, int8_t val);
 	bool Set(uint16_t key, uint8_t val);
 	bool Set(uint16_t key, int16_t val);
@@ -53,8 +56,9 @@ public:
 private:
 	uint32_t   m_Size;
 	uint32_t   m_Capacity;
-	void      *m_Buffer;
+	void       *m_Buffer;
 	PosMap     m_PosMap;
+	bool       m_UseInternalBuffer;
 
 	bool _Set(uint16_t key, uint16_t type, void *bytes, uint32_t size);
 	bool _Get(uint16_t key, uint16_t type, void **bytes, uint32_t *size=NULL);

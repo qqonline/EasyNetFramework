@@ -26,7 +26,7 @@ bool TransHandler::OnTimeout(int32_t fd)
 	FDMap::iterator it = m_FdMap.find(fd);
 	if(it != m_FdMap.end())
 	{
-		m_ProtocolFactory->DeleteContext(it->second);
+		m_ProtocolFactory->DeleteRecvContext(it->second);
 		m_FdMap.erase(it);
 	}
 
@@ -43,7 +43,7 @@ bool TransHandler::OnEventRead(int32_t fd)
 	FDMap::iterator it = m_FdMap.find(fd);
 	if(it == m_FdMap.end())
 	{
-		context = m_ProtocolFactory->NewContext();
+		context = m_ProtocolFactory->NewRecvContext();
 		if(context == NULL)
 		{
 			LOG_ERROR(logger, "get protocol context failed. maybe out of memory. fd="<<fd);
@@ -54,7 +54,7 @@ bool TransHandler::OnEventRead(int32_t fd)
 		if(result.second == false)
 		{
 			LOG_ERROR(logger, "insert to map failed. fd="<<fd);
-			m_ProtocolFactory->DeleteContext(context);
+			m_ProtocolFactory->DeleteRecvContext(context);
 			return false;
 		}
 		it = result.first;
@@ -70,7 +70,7 @@ bool TransHandler::OnEventRead(int32_t fd)
 		if(ReadData(context->buffer, context->buffer_size, DATA_HEADER_SIZE-context->cur_data_size) == -1)
 		{
 			LOG_ERROR(logger, "read temp_header data error. fd="<<fd);
-			m_ProtocolFactory->DeleteContext(context);
+			m_ProtocolFactory->DeleteRecvContext(context);
 			m_FdMap.erase(it);
 			return false;
 		}
@@ -78,7 +78,7 @@ bool TransHandler::OnEventRead(int32_t fd)
 		if(result == DECODE_ERROR)
 		{
 			LOG_ERROR(logger, "decode data type error. fd="<<fd);
-			m_ProtocolFactory->DeleteContext(context);
+			m_ProtocolFactory->DeleteRecvContext(context);
 			m_FdMap.erase(it);
 			return false;
 		}
@@ -100,7 +100,7 @@ bool TransHandler::OnEventRead(int32_t fd)
 		if(need_size>0 && ReadData(context->buffer, context->buffer_size, need_size)==-1)    //读协议头数据
 		{
 			LOG_ERROR(logger, "read bin_header data error. fd="<<fd);
-			m_ProtocolFactory->DeleteContext(context);
+			m_ProtocolFactory->DeleteRecvContext(context);
 			m_FdMap.erase(it);
 			return false;
 		}
@@ -109,7 +109,7 @@ bool TransHandler::OnEventRead(int32_t fd)
 		if(decode_result == DECODE_ERROR)
 		{
 			LOG_ERROR(logger, "decode bin_header error. fd="<<fd);
-			m_ProtocolFactory->DeleteContext(context);
+			m_ProtocolFactory->DeleteRecvContext(context);
 			m_FdMap.erase(it);
 			return false;
 		}
@@ -123,7 +123,7 @@ bool TransHandler::OnEventRead(int32_t fd)
 		if(context->body_size == 0)    //允许空包
 		{
 			LOG_INFO(logger, "receive a empty bin_packet. do nothing. fd="<<fd);
-			m_ProtocolFactory->DeleteContext(context);
+			m_ProtocolFactory->DeleteRecvContext(context);
 			m_FdMap.erase(it);
 			return true;
 		}
@@ -134,7 +134,7 @@ bool TransHandler::OnEventRead(int32_t fd)
 	if(ReadData(context->buffer, context->buffer_size, context->body_size-context->cur_body_size) == -1)      //读协议体数据
 	{
 		LOG_ERROR(logger, "read body data error. fd="<<fd);
-		m_ProtocolFactory->DeleteContext(context);
+		m_ProtocolFactory->DeleteRecvContext(context);
 		m_FdMap.erase(it);
 		return false;
 	}
@@ -147,7 +147,7 @@ bool TransHandler::OnEventRead(int32_t fd)
 	if(decode_result == DECODE_ERROR)
 	{
 		LOG_ERROR(logger, "decode body error. fd="<<fd);
-		m_ProtocolFactory->DeleteContext(context);
+		m_ProtocolFactory->DeleteRecvContext(context);
 		m_FdMap.erase(it);
 		return false;
 	}
@@ -163,7 +163,7 @@ bool TransHandler::OnEventRead(int32_t fd)
 	bool detach_context = false;
 	bool result = m_AppInterface->OnReceiveProtocol(fd, context, detach_context);
 	if(!result || !detach_context)
-		m_ProtocolFactory->DeleteContext(context);
+		m_ProtocolFactory->DeleteRecvContext(context);
 	return result;
 }
 
@@ -203,7 +203,7 @@ bool TransHandler::OnEventError(int32_t fd)
 	FDMap::iterator it = m_FdMap.find(fd);
 	if(it != m_FdMap.end())
 	{
-		m_ProtocolFactory->DeleteContext(it->second);
+		m_ProtocolFactory->DeleteRecvContext(it->second);
 		m_FdMap.erase(it);
 	}
 

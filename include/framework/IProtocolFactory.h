@@ -62,8 +62,8 @@ public:
 	uint32_t  buffer_size;       //缓冲区的大小
 	uint32_t  cur_data_size;     //当前数据大小
 
-	void      *protocol;         //具体的协议
 	uint32_t  protocol_type;     //协议类型
+	void      *protocol;         //具体的协议
 
 	uint32_t  fd;
 };
@@ -79,18 +79,16 @@ typedef enum _decode_result
 class SendContext
 {
 public:
-	virtual ~SendContext(){}
+	uint32_t  protocol_type;     //协议类型
+	void      *protocol;         //具体的协议
 
-	void Init()
-	{
-		fd = -1;
-		expire_time = 0;
-		protocol_context = NULL;
-	}
-public:
-	int32_t     fd;
-	uint64_t    expire_time;    //超时时间点
-	RecvContext *protocol_context;     //待发送的协议
+	char      *buffer;           //存放数据的缓冲区
+	uint32_t  buffer_size;       //缓冲区大小
+	uint32_t  total_send_size;   //待发送数据大小
+	uint32_t  cur_send_size;     //已发送数据大小
+
+	uint64_t  expire_time;       //超时时间点
+	uint32_t  fd;
 };
 
 //支持文本协议和二进制协议
@@ -101,8 +99,8 @@ public:
 	IProtocolFactory();
 	virtual ~IProtocolFactory();
 
-	virtual RecvContext* NewContext();
-	virtual void DeleteContext(RecvContext *context);
+	virtual RecvContext* NewRecvContext();
+	virtual void DeleteRecvContext(RecvContext *context);
 
 	//设置协议信息
 	// data_type=DTYPE_INVALID时,data_header_size必需设置;
@@ -116,14 +114,15 @@ public:
 	//检测是二进制还是文本数据
 	//成功的话,设置data_type(DTYPE_BIN时必须设置header_size; DTYPE_TEXT时必须设置body_size,表示文本协议数据可能的最大长度)
 	virtual DecodeResult DecodeDataType(RecvContext *protocol_context)=0;
-
 	//解码二进制协议的协议头,设置body_size.
 	virtual DecodeResult DecodeBinHeader(RecvContext *protocol_context)=0;
-
 	//解码二进制协议头数据
 	virtual DecodeResult DecodeBinBody(RecvContext *protocol_context)=0;
 	//解码文本协议体数据
 	virtual DecodeResult DecodeTextBody(RecvContext *protocol_context)=0;
+
+	virtual SendContext* NewSendContext(DataType data_type, uint32_t protocol_type);
+
 
 	virtual void* NewProtocol(uint32_t protocol_type)=0;
 	virtual void DeleteProtocol(void *protocol, uint32_t protocol_type)=0;

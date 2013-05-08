@@ -16,34 +16,36 @@ namespace easynet
 
 IMPL_LOGGER(KVData, logger);
 
-#define KV_CAPACITY   1024    //初始化大小为1k
+#define KV_CAPACITY   512    //初始化大小为512Bytes
 
 #define TYPE_UI8       0
 #define TYPE_UI16      1
 #define TYPE_UI32      2
 #define TYPE_UI64      3
-#define TYPE_BYTES    4
-#define TYPE_BY0      4    //byte,多出0字节
-#define TYPE_BY1      5    //byte,多出1字节,需要填充3字节
-#define TYPE_BY2      6   //byte,多出2字节,需要填充2字节
-#define TYPE_BY3      7   //byte,多出3字节,需要填充1字节
+#define TYPE_BYTES     4
+#define TYPE_BY0       4    //byte,多出0字节
+#define TYPE_BY1       5    //byte,多出1字节,需要填充3字节
+#define TYPE_BY2       6    //byte,多出2字节,需要填充2字节
+#define TYPE_BY3       7    //byte,多出3字节,需要填充1字节
 
-#define KeyType(k, t)   (k<<3|t)
-#define ToKey(ky)       (ky>>3)
-#define ToType(ky)      (ky&0x07)
+#define KeyType(k, t)  (k<<3|t)
+#define ToKey(ky)      (ky>>3)
+#define ToType(ky)     (ky&0x07)
 
 
 #ifndef  htonll
-#define  htonll(x)    (((uint64_t)(htonl((uint32_t)((x)&0xffffffff)))<<32) | htonl((uint32_t)(((x)>>32)&0xffffffff)))
-#define  ntohll(x)    (((uint64_t)(ntohl((uint32_t)((x)&0xffffffff)))<<32) | ntohl((uint32_t)(((x)>>32)&0xffffffff)))
+#define  htonll(x)     (((uint64_t)(htonl((uint32_t)((x)&0xffffffff)))<<32) | htonl((uint32_t)(((x)>>32)&0xffffffff)))
+#define  ntohll(x)     (((uint64_t)(ntohl((uint32_t)((x)&0xffffffff)))<<32) | ntohl((uint32_t)(((x)>>32)&0xffffffff)))
 #endif//hton64
 
 KVData::KVData()
-	:m_Size(0)
-	,m_Capacity(KV_CAPACITY)
 {
+	m_UseInternalBuffer = true;
+
+	m_Capacity = KV_CAPACITY;
 	m_Buffer = calloc(m_Capacity, 1);
-	assert(m_Buffer != NULL);
+	assert(m_Buffer!=NULL && m_Capacity>=4);
+
 	char *magic = (char*)m_Buffer;
 	magic[0] = 'K';
 	magic[1] = 'V';
@@ -51,9 +53,43 @@ KVData::KVData()
 	magic[3] = 'T';
 	m_Size = 4;
 }
+
+KVData::KVData(void *buffer, uint32_t buffer_size)
+{
+	m_UseInternalBuffer = false;
+
+	m_Capacity = buffer_size;
+	m_Buffer = buffer;
+	assert(m_Buffer!=NULL && m_Capacity>=4);
+
+	char *magic = (char*)m_Buffer;
+	magic[0] = 'K';
+	magic[1] = 'V';
+	magic[2] = 'D';
+	magic[3] = 'T';
+	m_Size = 4;
+}
+
 KVData::~KVData()
 {
-	free(m_Buffer);
+	if(m_UseInternalBuffer==true && m_Buffer!=NULL)
+		free(m_Buffer);
+}
+
+bool KVData::DetachBuffer(void *&buffer, uint32_t &buffer_size, uint32_t &data_size)
+{
+	if(m_UseInternalBuffer == true)
+		return false;
+
+	buffer      = m_Buffer;
+	buffer_size = m_Capacity;
+	data_size   = m_Size;
+
+	m_Buffer    = NULL;
+	m_Capacity  = 0;
+	m_Size      = 0;
+	m_UseInternalBuffer = true;
+	return true;
 }
 
 bool KVData::_Set(uint16_t key, uint16_t type, void *bytes, uint32_t size)
@@ -121,6 +157,9 @@ bool KVData::_Set(uint16_t key, uint16_t type, void *bytes, uint32_t size)
 
 bool KVData::_ExpandCapacity(uint32_t need_size)
 {
+	if(m_UseInternalBuffer == false)  //只有使用内部buffer才可以进行扩展. 外部传进来的buffer内存不够,返回失败
+		return false;
+
 	uint32_t capacity = (1+need_size/KV_CAPACITY)*KV_CAPACITY;
 	if(capacity-need_size < KV_CAPACITY/2)
 		capacity += KV_CAPACITY;
