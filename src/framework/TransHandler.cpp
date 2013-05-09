@@ -24,13 +24,50 @@ bool TransHandler::OnTimeout(int32_t fd)
 	LOG_DEBUG(logger, "on time_out. fd="<<fd);
 
 	FDMap::iterator it = m_RecvFdMap.find(fd);
-	if(it != m_RecvFdMap.end())
+	if(it != m_RecvFdMap.end())    //删除正在接收的协议
 	{
-		m_ProtocolFactory->DeleteContext(it->second);
 		m_RecvFdMap.erase(it);
+		m_ProtocolFactory->DeleteContext(it->second);
+	}
+
+	it = m_SendFdMap.find(fd);
+	if(it != m_SendFdMap.end())
+	{
+		m_SendFdMap.erase(it);
+		m_AppInterface->OnSendError(fd, it->second);    //删除正在发送的协议
+		ProtocolContext *context;
+		while((context = m_AppInterface->GetSendProtocol(fd)) != NULL)    //删除等待发送队列中的协议
+			m_AppInterface->OnSendError(fd, it->second);
 	}
 
 	m_AppInterface->OnSocketTimeout(fd);
+	return true;
+}
+
+
+//错误事件
+bool TransHandler::OnEventError(int32_t fd)
+{
+	LOG_DEBUG(logger, "on event_error. fd="<<fd);
+
+	FDMap::iterator it = m_RecvFdMap.find(fd);
+	if(it != m_RecvFdMap.end())    //删除正在接收的协议
+	{
+		m_RecvFdMap.erase(it);
+		m_ProtocolFactory->DeleteContext(it->second);
+	}
+
+	it = m_SendFdMap.find(fd);
+	if(it != m_SendFdMap.end())
+	{
+		m_SendFdMap.erase(it);
+		m_AppInterface->OnSendError(fd, it->second);    //删除正在发送的协议
+		ProtocolContext *context;
+		while((context = m_AppInterface->GetSendProtocol(fd)) != NULL)    //删除等待发送队列中的协议
+			m_AppInterface->OnSendError(fd, it->second);
+	}
+
+	m_AppInterface->OnSocketError(fd);
 	return true;
 }
 
@@ -69,7 +106,7 @@ bool TransHandler::OnEventRead(int32_t fd)
 		char *buffer         = context->buffer+context->cur_data_size;
 		uint32_t buffer_size = context->buffer_size-context->cur_data_size;
 		uint32_t need_size   = context->data_header_size-context->cur_data_size;
-		int32_t recv_size    = ReadData(buffer, buffer_size, need_size);
+		int32_t recv_size    = ReadData(fd, buffer, buffer_size, need_size);
 		if(recv_size== -1)
 		{
 			LOG_ERROR(logger, "read temp_header data error. fd="<<fd);
@@ -114,7 +151,7 @@ bool TransHandler::OnEventRead(int32_t fd)
 		char *buffer         = context->buffer+context->cur_data_size;
 		uint32_t buffer_size = context->buffer_size-context->cur_data_size;
 		uint32_t need_size   = context->header_size-context->cur_data_size;
-		int32_t recv_size    = need_size>0?ReadData(buffer, buffer_size, need_size):0;
+		int32_t recv_size    = need_size>0?ReadData(fd, buffer, buffer_size, need_size):0;
 		if(recv_size== -1)
 		{
 			LOG_ERROR(logger, "read bin_header data error. fd="<<fd);
@@ -153,7 +190,7 @@ bool TransHandler::OnEventRead(int32_t fd)
 	char *buffer         = context->buffer+context->cur_data_size;
 	uint32_t buffer_size = context->buffer_size-context->cur_data_size;
 	uint32_t need_size   = context->header_size+context->body_size-context->cur_data_size;
-	int32_t recv_size    = need_size>0?ReadData(buffer, buffer_size, need_size):0;
+	int32_t recv_size    = need_size>0?ReadData(fd, buffer, buffer_size, need_size):0;
 	if(recv_size== -1)
 	{
 		LOG_ERROR(logger, "read body data error. fd="<<fd);
@@ -199,39 +236,76 @@ bool TransHandler::onEventWrite(int32_t fd)
 	uint64_t time_now;
 	GetCurTime(time_now);
 
+	ProtocolContext *context = NULL;
+	FDMap::iterator it = m_SendFdMap.find(fd);
 	while(true)
 	{
-		ProtocolContext *context = m_AppInterface->GetSendProtocol(fd);
+		//检查是否有正在发送的协议
+		if(it != m_SendFdMap.end())
+		{
+			context = it->second;
+			assert(context != NULL);
+		}
+		//没有正在发送的协议,再检查待发送队列是否有需要发送的协议
+		if(context == NULL)
+			context = m_AppInterface->GetSendProtocol(fd);
 		if(context == NULL)
 			break;
+		//发送超时
 		if(context->expire_time < time_now)
 		{
 			m_AppInterface->OnSendTimeout(fd, context);
 			continue;
 		}
+		//需要解码
+		if(it==m_SendFdMap.end() && !m_ProtocolFactory->EncodeProtocol((IProtocol*)context, context->buffer, context->buffer_size))    //编码错误(数据有问题?)
+		{
+			LOG_ERROR(logger, "encode protocol error. context="<<context<<" data_type="<<context->data_type<<" protocol_type="<<context->protocol_type<<" fd="<<fd);
+			m_AppInterface->OnSendError(fd, context);
+			continue;
+		}
+		//发送数据
+		char *buffer = context->buffer+context->cur_data_size;
+		uint32_t need_size = context->body_size+context->header_size-context->cur_data_size;
+		int32_t send_size = SendData(fd, buffer, need_size);
+		if(send_size == -1)    //socket有问题,发送失败,返回false
+		{
+			LOG_ERROR(logger, "send data error. context="<<context<<" data_type="<<context->data_type<<" protocol_type="<<context->protocol_type<<" fd="<<fd);
+			if(it == m_SendFdMap.end())    //保存为正在发送的协议,由OnEventError方法处理
+				m_SendFdMap.insert(std::make_pair(fd, context));
+			return false;
+		}
 
-		//TODO
-		//sent protocol
-		m_AppInterface->OnSendSucc(fd, context);
-		m_AppInterface->OnSendError(fd, context);
+		context->cur_data_size += send_size;
+		if(context->cur_data_size >= context->header_size+context->body_size)  //发送完成
+		{
+			LOG_DEBUG(logger, "send data finised. context="<<context
+						<<" data_type="<<context->data_type
+						<<" protocol_type="<<context->protocol_type
+						<<" total size="<<context->body_size+context->header_size
+						<<" send size="<<context->cur_data_size
+						<<" fd="<<fd);
+			if(it != m_SendFdMap.end())
+			{
+				m_SendFdMap.erase(it);
+				it = m_SendFdMap.end();
+			}
+			m_AppInterface->OnSendSucc(fd, context);
+			continue;
+		}
+
+		LOG_INFO(logger, "send data partly. context="<<context
+					<<" data_type="<<context->data_type
+					<<" protocol_type="<<context->protocol_type
+					<<" total size="<<context->body_size+context->header_size
+					<<" send size="<<context->cur_data_size
+					<<" fd="<<fd);
+		if(it == m_SendFdMap.end())    //保存为正在发送的数据
+			m_SendFdMap.insert(std::make_pair(fd, context));
+		break;
 	}
 	return true;
 }
 
-//错误事件
-bool TransHandler::OnEventError(int32_t fd)
-{
-	LOG_DEBUG(logger, "on event_error. fd="<<fd);
-
-	FDMap::iterator it = m_RecvFdMap.find(fd);
-	if(it != m_RecvFdMap.end())
-	{
-		m_ProtocolFactory->DeleteContext(it->second);
-		m_RecvFdMap.erase(it);
-	}
-
-	m_AppInterface->OnSocketError(fd);
-	return true;
-}
 
 }//namespace
