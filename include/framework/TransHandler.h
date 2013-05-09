@@ -48,12 +48,6 @@ private:
 	// @return            : 成功返回读取的字节数,错误返回-1
 	int32_t ReadData(int32_t fd, char *buffer, uint32_t buffer_size, uint32_t need_size);
 
-	//发送数据
-	// @param fd          : socket fd
-	// @param buffer      : 发送数据缓冲区
-	// @param need_size   : 需要发送的数据大小
-	// @return            : 成功返回发送的字节数,失败返回-1
-	int32_t SendData(int32_t fd, char *buffer, uint32_t need_size);
 private:
 	FDMap m_RecvFdMap;
 	FDMap m_SendFdMap;

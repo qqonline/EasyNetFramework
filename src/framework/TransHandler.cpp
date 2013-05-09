@@ -13,10 +13,10 @@ namespace easynet
 {
 IMPL_LOGGER(TransHandler, logger);
 
-#define GetCurTime(now) do{              \
-	struct timeval tv;                    \
-	gettimeofday(&tv, NULL);              \
-	now = tv.tv_sec*1000+tv.tv_usec/1000; \
+#define GetCurTime(now) do{                  \
+	struct timeval tv;                        \
+	gettimeofday(&tv, NULL);                  \
+	now = tv.tv_sec*1000+tv.tv_usec/1000;     \
 }while(0)
 
 bool TransHandler::OnTimeout(int32_t fd)
@@ -267,7 +267,7 @@ bool TransHandler::onEventWrite(int32_t fd)
 		//发送数据
 		char *buffer = context->buffer+context->cur_data_size;
 		uint32_t need_size = context->body_size+context->header_size-context->cur_data_size;
-		int32_t send_size = SendData(fd, buffer, need_size);
+		int32_t send_size = send(fd, buffer, need_size, 0);
 		if(send_size == -1)    //socket有问题,发送失败,返回false
 		{
 			LOG_ERROR(logger, "send data error. context="<<context<<" data_type="<<context->data_type<<" protocol_type="<<context->protocol_type<<" fd="<<fd);
@@ -305,6 +305,18 @@ bool TransHandler::onEventWrite(int32_t fd)
 		break;
 	}
 	return true;
+}
+
+int32_t TransHandler::ReadData(int32_t fd, char *buffer, uint32_t buffer_size, uint32_t need_size)
+{
+	assert(buffer_size >= need_size);
+	int32_t recv_size = recv(fd, buffer, need_size, 0);
+	if(recv_size == 0)
+	{
+		LOG_DEBUG(logger, "peer close socket gracefully. fd="<<fd);
+		recv_size = -1;
+	}
+	return recv_size;
 }
 
 
