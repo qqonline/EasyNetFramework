@@ -31,10 +31,10 @@ typedef uint8_t EventType;
 #define ET_IS_PERSIST(x)    (((x)&ET_PERSIST) != 0)   //是否设置持续
 /////////////////////////////////////////////////////////////////////////////////////////
 
-class EventHandler
+class IEventHandler
 {
 public:
-	virtual ~EventHandler(){}
+	virtual ~IEventHandler(){}
 	//时钟超时
 	virtual bool OnTimeout(uint64_t now_time)=0;
 	//io超时
@@ -63,7 +63,7 @@ public:
 	 * @param persist : true持续性定时器,每隔tiemout触发一次超时事件;false一次性定时器;
 	 * @return        : true成功;false失败;
 	 */
-	virtual bool AddTimer(EventHandler *handler, uint32_t timeout, bool persist)=0;
+	virtual bool AddTimer(IEventHandler *handler, uint32_t timeout, bool persist)=0;
 
 	/**添加事件:
 	 * @param fd      : socket描述符;
@@ -73,7 +73,7 @@ public:
 	 *                  小于0表示永不超时.单位秒;
 	 * @return        : true成功;false失败;
 	*/
-	virtual bool AddEvent(int32_t fd, EventType type, EventHandler *handler, int32_t timeout)=0;
+	virtual bool AddEvent(int32_t fd, EventType type, IEventHandler *handler, int32_t timeout)=0;
 
 	/**删除事件:
 	 * @param fd      : socket描述符;

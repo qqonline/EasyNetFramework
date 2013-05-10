@@ -19,11 +19,14 @@ bool TransHandler::OnTimeout(int32_t fd, uint64_t now_time)
 {
 	LOG_DEBUG(logger, "on time_out. fd="<<fd);
 
+	IProtocolFactory *protocol_factory = m_AppInterface->GetProtocolFactory();
+	assert(protocol_factory != NULL);
+
 	FDMap::iterator it = m_RecvFdMap.find(fd);
 	if(it != m_RecvFdMap.end())    //删除正在接收的协议
 	{
 		m_RecvFdMap.erase(it);
-		m_ProtocolFactory->DeleteContext(it->second);
+		protocol_factory->DeleteContext(it->second);
 	}
 
 	it = m_SendFdMap.find(fd);
@@ -46,11 +49,14 @@ bool TransHandler::OnEventError(int32_t fd, uint64_t now_time)
 {
 	LOG_DEBUG(logger, "on event_error. fd="<<fd);
 
+	IProtocolFactory *protocol_factory = m_AppInterface->GetProtocolFactory();
+	assert(protocol_factory != NULL);
+
 	FDMap::iterator it = m_RecvFdMap.find(fd);
 	if(it != m_RecvFdMap.end())    //删除正在接收的协议
 	{
 		m_RecvFdMap.erase(it);
-		m_ProtocolFactory->DeleteContext(it->second);
+		protocol_factory->DeleteContext(it->second);
 	}
 
 	it = m_SendFdMap.find(fd);
@@ -72,22 +78,29 @@ bool TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 {
 	LOG_DEBUG(logger, "on event_read. fd="<<fd);
 
+	IProtocolFactory *protocol_factory = m_AppInterface->GetProtocolFactory();
+	assert(protocol_factory != NULL);
+
 	ProtocolContext *context = NULL;
 	FDMap::iterator it = m_RecvFdMap.find(fd);
 	if(it == m_RecvFdMap.end())
 	{
-		context = m_ProtocolFactory->NewRecvContext(now_time);
+		context = protocol_factory->NewRecvContext();
 		if(context == NULL)
 		{
 			LOG_ERROR(logger, "get protocol context failed. maybe out of memory. fd="<<fd);
 			return false;
 		}
 		context->fd = fd;
+		context->time_out = m_AppInterface->GetRecvTimeout();
+		if(context->time_out > 0)
+			context->expire_time = now_time+context->time_out;
+
 		std::pair<FDMap::iterator, bool> result = m_RecvFdMap.insert(std::make_pair(fd, context));
 		if(result.second == false)
 		{
 			LOG_ERROR(logger, "insert to map failed. fd="<<fd);
-			m_ProtocolFactory->DeleteContext(context);
+			protocol_factory->DeleteContext(context);
 			return false;
 		}
 		it = result.first;
@@ -100,7 +113,7 @@ bool TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 		{
 			LOG_ERROR(logger, "receive protocol data timeout. fd="<<fd<<" time_out="<<context->time_out);
 			m_RecvFdMap.erase(it);
-			m_ProtocolFactory->DeleteContext(context);
+			protocol_factory->DeleteContext(context);
 			return false;
 		}
 	}
@@ -118,17 +131,17 @@ bool TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 		{
 			LOG_ERROR(logger, "read temp_header data error. fd="<<fd);
 			m_RecvFdMap.erase(it);
-			m_ProtocolFactory->DeleteContext(context);
+			protocol_factory->DeleteContext(context);
 			return false;
 		}
 		context->cur_data_size += recv_size;
 
-		DecodeResult result = m_ProtocolFactory->DecodeDataType(context);
+		DecodeResult result = protocol_factory->DecodeDataType(context);
 		if(result == DECODE_ERROR)
 		{
 			LOG_ERROR(logger, "decode data type error. fd="<<fd);
 			m_RecvFdMap.erase(it);
-			m_ProtocolFactory->DeleteContext(context);
+			protocol_factory->DeleteContext(context);
 			return false;
 		}
 		else if(result == DECODE_DATA)
@@ -163,17 +176,17 @@ bool TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 		{
 			LOG_ERROR(logger, "read bin_header data error. fd="<<fd);
 			m_RecvFdMap.erase(it);
-			m_ProtocolFactory->DeleteContext(context);
+			protocol_factory->DeleteContext(context);
 			return false;
 		}
 		context->cur_data_size += recv_size;
 
-		DecodeResult decode_result = m_ProtocolFactory->DecodeBinHeader(context);
+		DecodeResult decode_result = protocol_factory->DecodeBinHeader(context);
 		if(decode_result == DECODE_ERROR)
 		{
 			LOG_ERROR(logger, "decode bin_header error. fd="<<fd);
 			m_RecvFdMap.erase(it);
-			m_ProtocolFactory->DeleteContext(context);
+			protocol_factory->DeleteContext(context);
 			return false;
 		}
 		else if(decode_result == DECODE_DATA)
@@ -187,7 +200,7 @@ bool TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 		{
 			LOG_INFO(logger, "receive a empty bin_packet. do nothing. fd="<<fd);
 			m_RecvFdMap.erase(it);
-			m_ProtocolFactory->DeleteContext(context);
+			protocol_factory->DeleteContext(context);
 			return true;
 		}
 	}
@@ -202,21 +215,21 @@ bool TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 	{
 		LOG_ERROR(logger, "read body data error. fd="<<fd);
 		m_RecvFdMap.erase(it);
-		m_ProtocolFactory->DeleteContext(context);
+		protocol_factory->DeleteContext(context);
 		return false;
 	}
 	context->cur_data_size += recv_size;
 
 	DecodeResult decode_result = DECODE_ERROR;
 	if(context->data_type == DTYPE_BIN)
-		decode_result = m_ProtocolFactory->DecodeBinBody(context);
+		decode_result = protocol_factory->DecodeBinBody(context);
 	else if (context->data_type == DTYPE_TEXT)
-		decode_result = m_ProtocolFactory->DecodeBinBody(context);
+		decode_result = protocol_factory->DecodeBinBody(context);
 	if(decode_result == DECODE_ERROR)
 	{
 		LOG_ERROR(logger, "decode body error. fd="<<fd);
 		m_RecvFdMap.erase(it);
-		m_ProtocolFactory->DeleteContext(context);
+		protocol_factory->DeleteContext(context);
 		return false;
 	}
 	else if(decode_result == DECODE_DATA)
@@ -231,7 +244,7 @@ bool TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 	bool detach_context = false;
 	bool result = m_AppInterface->OnReceiveProtocol(fd, context, detach_context);
 	if(!result || !detach_context)
-		m_ProtocolFactory->DeleteContext(context);
+		protocol_factory->DeleteContext(context);
 	return result;
 }
 
@@ -239,6 +252,9 @@ bool TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 bool TransHandler::onEventWrite(int32_t fd, uint64_t now_time)
 {
 	LOG_DEBUG(logger, "on event_write. fd="<<fd);
+
+	IProtocolFactory *protocol_factory = m_AppInterface->GetProtocolFactory();
+	assert(protocol_factory != NULL);
 
 	ProtocolContext *context = NULL;
 	FDMap::iterator it = m_SendFdMap.find(fd);
@@ -256,13 +272,13 @@ bool TransHandler::onEventWrite(int32_t fd, uint64_t now_time)
 		if(context == NULL)
 			break;
 		//发送超时
-		if(context->time_out>=0 && context->expire_time<now_time)
+		if(context->time_out>0 && context->expire_time<now_time)
 		{
 			m_AppInterface->OnSendTimeout(fd, context);
 			continue;
 		}
 		//需要解码
-		if(it==m_SendFdMap.end() && !m_ProtocolFactory->EncodeProtocol((IProtocol*)context, context->buffer, context->buffer_size))    //编码错误(数据有问题?)
+		if(it==m_SendFdMap.end() && !protocol_factory->EncodeProtocol(context->protocol, context->protocol_type, context->buffer, context->buffer_size))    //编码错误(数据有问题?)
 		{
 			LOG_ERROR(logger, "encode protocol error. context="<<context<<" data_type="<<context->data_type<<" protocol_type="<<context->protocol_type<<" fd="<<fd);
 			m_AppInterface->OnSendError(fd, context);

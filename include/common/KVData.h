@@ -26,8 +26,16 @@ class KVData
 {
 public:
 	KVData();
+	//使用外部buffer. buffer_size必须不小于4
 	KVData(void *buffer, uint32_t buffer_size);
 	~KVData();
+
+	//返回当前数据大小
+	uint32_t Size(){return m_Size;}
+
+	//使用外部buffer. buffer_size必须不小于4
+	//当data_size大于0时保持buffer的数据不变,不对buffer进行初始化
+	bool AttachBuffer(void *buffer, uint32_t buffer_size, uint32_t data_size=0);
 	bool DetachBuffer(void *&buffer, uint32_t &buffer_size, uint32_t &data_size);
 
 	bool Set(uint16_t key, int8_t val);

@@ -44,13 +44,15 @@ class IProtocol
 public:
 	int32_t  protocol_type;     //协议类型
 	void     *protocol;         //具体的协议
+	char     *info;          //跟协议有关的信息
 
 	virtual ~IProtocol(){}
 
 	void Init()
 	{
-		protocol_type(-1);
-		protocol(NULL);
+		protocol_type = -1;
+		protocol      = NULL;
+		info          = "";
 	}
 
 	//销毁自己
@@ -102,13 +104,11 @@ typedef enum _decode_result
 class IProtocolFactory
 {
 public:
-    //@param recv_timeout: 接收协议数据超时时间(从收到协议第一个字节开始,在该时间内没有收到完整的数据时发生超时事件), 默认不超时
-	IProtocolFactory():m_MemPool(NULL), m_RecvTimeout(-1){}
-	IProtocolFactory(int32_t recv_timeout):m_MemPool(NULL){}
+	IProtocolFactory():m_MemPool(NULL){}
 	virtual ~IProtocolFactory();
 
 	//创建接收协议的context
-	virtual ProtocolContext* NewRecvContext(uint64_t now_time);
+	virtual ProtocolContext* NewRecvContext();
 
 	//创建发送协议的context
 	// @param max_data_size : 需要发送的数据可能的最大值
@@ -117,10 +117,19 @@ public:
 	//                          a) 为DTYPE_TEXT时,只分配了max_data_size字节的buffer给应用层写入文本数据,
 	//                             应用层需要设置body_size为实际写入的数据大小并且不能超过max_data_size;
 	//                          b) 为DTYPE_BIN时,除了生成buffer缓冲区外,还创建了protocol_type类的协议protocol;
-	virtual ProtocolContext* NewSendContext(DataType data_type, uint32_t max_data_size, uint32_t protocol_type);
+	virtual ProtocolContext* NewSendContext(DataType data_type, uint32_t max_data_size, int32_t protocol_type);
 
 	//删除接收/发送协议的context
 	virtual void DeleteContext(ProtocolContext *context);
+
+protected:
+	MemPool *m_MemPool;
+
+	//重新分配数据缓冲区的内存为need_size
+	virtual bool ReAllocBuffer(ProtocolContext *context, uint32_t need_size);
+//////////////////////////////////////////////////////////////////
+//////////////////////   派生类实现的接口   //////////////////////
+//////////////////////////////////////////////////////////////////
 protected:
 	//初始化待接收协议的解码信息
 	// data_type=DTYPE_INVALID时,data_header_size必需设置;
@@ -130,26 +139,24 @@ protected:
 
 	//检测是二进制还是文本数据
 	//成功的话,设置data_type(DTYPE_BIN时必须设置header_size; DTYPE_TEXT时必须设置body_size,表示文本协议数据可能的最大长度)
-	virtual DecodeResult DecodeDataType(ProtocolContext *protocol_context)=0;
+	virtual DecodeResult DecodeDataType(ProtocolContext *context)=0;
 	//解码二进制协议的协议头,设置body_size.
-	virtual DecodeResult DecodeBinHeader(ProtocolContext *protocol_context)=0;
+	virtual DecodeResult DecodeBinHeader(ProtocolContext *context)=0;
 	//解码二进制协议头数据
-	virtual DecodeResult DecodeBinBody(ProtocolContext *protocol_context)=0;
+	virtual DecodeResult DecodeBinBody(ProtocolContext *context)=0;
 	//解码文本协议体数据
-	virtual DecodeResult DecodeTextBody(ProtocolContext *protocol_context)=0;
+	virtual DecodeResult DecodeTextBody(ProtocolContext *context)=0;
 
 	//创建protocol_type类型的protocol. buffer是大小为buffer_size字节的可用缓冲区(如果创建的protocol需要使用的话)
-	virtual void* NewProtocol(uint32_t protocol_type, char *buffer, uint32_t buffer_size)=0;
+	virtual void* NewProtocol(int32_t protocol_type, char *buffer, uint32_t buffer_size)=0;
 	//销毁protocol_type类型的protocol
-	virtual void DeleteProtocol(void *protocol, uint32_t protocol_type)=0;
+	virtual void DeleteProtocol(void *protocol, int32_t protocol_type)=0;
 
 	//对协议进行编码,编码数据放到大小为buffer_size字节的buffer中.成功返回true,失败返回false
 	//buffer是NewProtocol方法中传入的缓冲区.如果在NewProtocol方法中创建的protocol使用了buffer,
-	//则对该protocol进行编码时,应该忽略本buffer参数,否则可能会引起问题!
-	virtual bool EncodeProtocol(IProtocol *protocol, char *buffer, uint32_t buffer_size)=0;
-protected:
-	MemPool *m_MemPool;
-	int32_t m_RecvTimeout;
+	//则对该protocol进行编码时,应该忽略buffer参数,否则可能会引起问题!
+	virtual bool EncodeProtocol(void *protocol, int32_t protocol_type, char *buffer, uint32_t buffer_size)=0;
+
 };
 
 }//namespace

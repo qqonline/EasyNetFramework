@@ -26,7 +26,7 @@ typedef struct _event_info
 	HeapItem       heap_item;
 	int32_t        fd;
 	EventType      type;
-	EventHandler   *handler;
+	IEventHandler  *handler;
 	uint32_t       timeout;
 	uint64_t       expire_time;    //超时时间点
 }EventInfo;
@@ -83,7 +83,7 @@ EventServerEpoll::~EventServerEpoll()
 
 //////////////////////////  接口方法  //////////////////////////
 //添加时钟
-bool EventServerEpoll::AddTimer(EventHandler *handler, uint32_t timeout, bool persist)
+bool EventServerEpoll::AddTimer(IEventHandler *handler, uint32_t timeout, bool persist)
 {
 	assert(handler != NULL);
 	EventInfo *event_info = new EventInfo;
@@ -107,7 +107,7 @@ bool EventServerEpoll::AddTimer(EventHandler *handler, uint32_t timeout, bool pe
 }
 
 //添加IO事件
-bool EventServerEpoll::AddEvent(int32_t fd, EventType type, EventHandler *handler, int32_t timeout)
+bool EventServerEpoll::AddEvent(int32_t fd, EventType type, IEventHandler *handler, int32_t timeout)
 {
 	if(fd<=0 || ET_IS_EMPTY(type) || handler==NULL)
 	{

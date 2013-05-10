@@ -25,8 +25,8 @@ typedef map<int32_t, ProtocolList> SendMap;
 class IAppInterface
 {
 public:
-	IAppInterface(){}
-	virtual ~IAppInterface(){}
+	IAppInterface();
+	virtual ~IAppInterface();
 
 	//发送协议(添加到发送队列中等待发送),成功返回true,失败返回false.
 	virtual bool SendProtocol(int32_t fd, ProtocolContext *context);
@@ -34,7 +34,10 @@ public:
 	virtual ProtocolContext* GetSendProtocol(int32_t fd);
 private:
 	SendMap       m_SendMap;        //待发送协议的队列map
-	TransHandler  m_TransHandler;
+
+	IEventServer      *m_EventServer;
+	IProtocolFactory  *m_ProtocolFactory;
+	TransHandler      *m_TransHandler;
 private:
 	DECL_LOGGER(logger);
 //////////////////////////////////////////////////////////////////
@@ -62,11 +65,17 @@ public:
 	//socket读写空闲发生超时事件后调用本接口
 	virtual bool OnSocketTimeout(int32_t fd)=0;
 
-
 	//获取EventServer的实例
-	virtual IEventServer* GetEventServer()=0;
+	virtual IEventServer* GetEventServer();
 	//获取ProtocolFactory的实例
-	virtual IProtocolFactory* GetProtocolFactory()=0;
+	virtual IProtocolFactory* GetProtocolFactory();
+	//获取传输handler
+	virtual IEventHandler* GetTransHandler();
+
+	//获取数据接收的超时时间.
+	//从接收到协议的第一个字节开始,在该时间内如果没有收到完整的数据包将发生接收超时事件
+	//默认不超时
+	virtual int32_t GetRecvTimeout(){return -1;}
 };
 
 }//namespace

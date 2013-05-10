@@ -8,6 +8,7 @@
 #include <string.h>
 #include <assert.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 
 #include "KVData.h"
 
@@ -40,40 +41,44 @@ IMPL_LOGGER(KVData, logger);
 
 KVData::KVData()
 {
+	void *buffer = calloc(KV_CAPACITY, 1);
+	AttachBuffer(buffer, KV_CAPACITY);
 	m_UseInternalBuffer = true;
-
-	m_Capacity = KV_CAPACITY;
-	m_Buffer = calloc(m_Capacity, 1);
-	assert(m_Buffer!=NULL && m_Capacity>=4);
-
-	char *magic = (char*)m_Buffer;
-	magic[0] = 'K';
-	magic[1] = 'V';
-	magic[2] = 'D';
-	magic[3] = 'T';
-	m_Size = 4;
 }
 
 KVData::KVData(void *buffer, uint32_t buffer_size)
 {
-	m_UseInternalBuffer = false;
-
-	m_Capacity = buffer_size;
-	m_Buffer = buffer;
-	assert(m_Buffer!=NULL && m_Capacity>=4);
-
-	char *magic = (char*)m_Buffer;
-	magic[0] = 'K';
-	magic[1] = 'V';
-	magic[2] = 'D';
-	magic[3] = 'T';
-	m_Size = 4;
+	AttachBuffer(buffer, buffer_size);
 }
 
 KVData::~KVData()
 {
 	if(m_UseInternalBuffer==true && m_Buffer!=NULL)
 		free(m_Buffer);
+}
+
+bool KVData::AttachBuffer(void *buffer, uint32_t buffer_size, uint32_t data_size/*=0*/)
+{
+	if(m_Buffer == NULL)
+	{
+		m_UseInternalBuffer = false;
+
+		m_Capacity = buffer_size;
+		m_Buffer = buffer;
+		m_Size = data_size;
+		assert(m_Buffer!=NULL && m_Capacity>=4);
+
+		if(data_size == 0)
+		{
+			char *magic = (char*)m_Buffer;
+			magic[0] = 'K';
+			magic[1] = 'V';
+			magic[2] = 'D';
+			magic[3] = 'T';
+			m_Size = 4;
+		}
+	}
+	return true;
 }
 
 bool KVData::DetachBuffer(void *&buffer, uint32_t &buffer_size, uint32_t &data_size)

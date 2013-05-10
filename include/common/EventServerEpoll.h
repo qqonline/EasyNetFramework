@@ -26,8 +26,8 @@ public:
 	~EventServerEpoll();
 
 public:  //实现接口方法
-	bool AddTimer(EventHandler *handler, uint32_t timeout, bool persist);
-	bool AddEvent(int32_t fd, EventType type, EventHandler *handler, int32_t timeout);
+	bool AddTimer(IEventHandler *handler, uint32_t timeout, bool persist);
+	bool AddEvent(int32_t fd, EventType type, IEventHandler *handler, int32_t timeout);
 	bool DelEvent(int32_t fd, EventType type);
 	bool DispatchEvents();
 

@@ -6,6 +6,7 @@
  */
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 
 #include "MemoryPool.h"
 
@@ -98,7 +99,7 @@ MemPool::MemPool()
 	m_ClassNum = DEFUALT_SIZE;
 	m_SizeArray = (uint32_t*)malloc(m_ClassNum*sizeof(uint32_t));
 	m_SlabNumArray = (uint32_t*)malloc(m_ClassNum*sizeof(uint32_t));
-	m_BlockNumArray = (uint32_t*)malloc(m_ClassNum*sizeof(uint32_t));
+	m_BlockNumArray = (int32_t*)malloc(m_ClassNum*sizeof(uint32_t));
 
 	memcpy(m_SizeArray, _defaut_size, m_ClassNum*sizeof(uint32_t));
 	memcpy(m_SlabNumArray, _defaut_num, m_ClassNum*sizeof(uint32_t));
@@ -112,7 +113,7 @@ MemPool::MemPool(uint32_t n, uint32_t *size_array, uint32_t *slab_n_array/*=NULL
 	m_ClassNum = n;
 	m_SizeArray = (uint32_t*)malloc(m_ClassNum*sizeof(uint32_t));
 	m_SlabNumArray = (uint32_t*)malloc(m_ClassNum*sizeof(uint32_t));
-	m_BlockNumArray = (uint32_t*)malloc(m_ClassNum*sizeof(uint32_t));
+	m_BlockNumArray = (int32_t*)malloc(m_ClassNum*sizeof(uint32_t));
 
 	memcpy(m_SizeArray, size_array, m_ClassNum*sizeof(uint32_t));
 	if(slab_n_array != NULL)

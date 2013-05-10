@@ -7,6 +7,7 @@
 #include <assert.h>
 
 #include "IAppInterface.h"
+#include "EventServerEpoll.h"
 
 namespace easynet
 {
@@ -18,11 +19,27 @@ IMPL_LOGGER(IAppInterface, logger);
 	now = tv.tv_sec*1000+tv.tv_usec/1000;     \
 }while(0)
 
+IAppInterface::IAppInterface()
+	:m_EventServer(NULL)
+	,m_ProtocolFactory(NULL)
+	,m_TransHandler(NULL)
+{}
+
+IAppInterface::~IAppInterface()
+{
+	if(m_EventServer != NULL)
+		delete m_EventServer;
+	if(m_ProtocolFactory != NULL)
+		delete m_ProtocolFactory;
+	if(m_TransHandler != NULL)
+		delete m_TransHandler;
+}
+
 bool IAppInterface::SendProtocol(int32_t fd, ProtocolContext *context)
 {
 	if(fd<0 || context==NULL)
 		return false;
-	if(context->time_out >= 0)
+	if(context->time_out > 0)
 	{
 		uint64_t now;
 		GetCurTime(now);
@@ -57,7 +74,10 @@ bool IAppInterface::SendProtocol(int32_t fd, ProtocolContext *context)
 	//添加可写事件监控
 	IEventServer *event_server = GetEventServer();
 	assert(event_server != NULL);
-	if(!event_server->AddEvent(fd, ET_WRITE, &m_TransHandler, context->time_out))
+	TransHandler* trans_handler = GetTransHandler();
+	assert(trans_handler != NULL);
+
+	if(!event_server->AddEvent(fd, ET_WRITE, trans_handler, context->time_out))
 	{
 		LOG_ERROR(logger, "add write event to event_server failed when send protocol. fd="<<fd<<" context="<<context);
 		return false;
@@ -83,4 +103,29 @@ ProtocolContext* IAppInterface::GetSendProtocol(int32_t fd)
 
 	return context;
 }
+
+//获取EventServer的实例
+IEventServer* IAppInterface::GetEventServer()
+{
+	if(m_EventServer == NULL)
+		m_EventServer = new EventServerEpoll(10000);
+	return m_EventServer;
+}
+
+//获取ProtocolFactory的实例
+IProtocolFactory* IAppInterface::GetProtocolFactory()
+{
+	//TODO
+	//new default protocol
+	return m_ProtocolFactory;
+}
+
+//获取传输handler
+IEventHandler* IAppInterface::GetTransHandler()
+{
+	if(m_TransHandler == NULL)
+		m_TransHandler = new TransHandler(this);
+	return m_TransHandler;
+}
+
 }//namespace

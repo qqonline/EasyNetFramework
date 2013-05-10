@@ -23,7 +23,7 @@ IProtocolFactory::~IProtocolFactory()
 		delete m_MemPool;
 }
 
-ProtocolContext* IProtocolFactory::NewRecvContext(uint64_t now_time)
+ProtocolContext* IProtocolFactory::NewRecvContext()
 {
 	if(m_MemPool == NULL)
 		m_MemPool = new MemPool;
@@ -32,9 +32,6 @@ ProtocolContext* IProtocolFactory::NewRecvContext(uint64_t now_time)
 	if(context == NULL)
 		return NULL;
 	context->Init(this);
-	context->time_out = m_RecvTimeout;    //接收超时时间
-	if(context->time_out > 0)
-		context->expire_time = now_time+context->time_out;
 
 	InitRecvInfo((ProtocolInfo*)context);
 	assert((context->data_type==DTYPE_INVALID&&context->data_header_size>0)
@@ -60,7 +57,7 @@ ProtocolContext* IProtocolFactory::NewRecvContext(uint64_t now_time)
 	return context;
 }
 
-ProtocolContext* IProtocolFactory::NewSendContext(DataType data_type, uint32_t max_data_size, uint32_t protocol_type)
+ProtocolContext* IProtocolFactory::NewSendContext(DataType data_type, uint32_t max_data_size, int32_t protocol_type)
 {
 	assert(data_type!=DTYPE_INVALID && max_data_size>0);
 
@@ -104,6 +101,26 @@ void IProtocolFactory::DeleteContext(ProtocolContext *context)
 	if(context->buffer != NULL)
 		m_MemPool->Free((void*)context->buffer, context->buffer_size);
 	m_MemPool->Free((void*)context, sizeof(ProtocolContext));
+}
+
+bool IProtocolFactory::ReAllocBuffer(ProtocolContext *context, uint32_t need_size)
+{
+	if(context->buffer_size >= need_size)
+		return true;
+
+	//分配新的buffer
+	void *new_buffer = m_MemPool->Alloc(need_size);
+	if(new_buffer == NULL)
+		return false;
+	//复制数据到新的buffer
+	memcpy(new_buffer, context->buffer, context->cur_data_size);
+	//回收旧的buffer
+	m_MemPool->Free(context->buffer, context->buffer_size);
+	//设置新的buffer
+	context->buffer = new_buffer;
+	context->buffer_size = need_size;
+
+	return true;
 }
 
 }//namespace

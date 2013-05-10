@@ -12,7 +12,6 @@ using std::map;
 
 #include "Logger.h"
 #include "EventServer.h"
-#include "IProtocolFactory.h"
 #include "IAppInterface.h"
 
 namespace easynet
@@ -20,18 +19,18 @@ namespace easynet
 
 typedef map<int32_t, ProtocolContext*> FDMap;
 
-class TransHandler:public EventHandler
+class TransHandler:public IEventHandler
 {
 public:
-	TransHandler(IProtocolFactory *protocol_factory)
-		:m_ProtocolFactory(protocol_factory)
+	TransHandler(IAppInterface *app_interface)
+		:m_AppInterface(app_interface)
 	{}
 
 //基类接口方法
 public:
 	//时钟超时
 	bool OnTimeout(uint64_t now_time){return true;}
-	//io超时
+	//io超时protocol_factory
 	bool OnTimeout(int32_t fd, uint64_t now_time);
 	//可读事件
 	bool OnEventRead(int32_t fd, uint64_t now_time);
@@ -52,8 +51,6 @@ private:
 	FDMap m_RecvFdMap;
 	FDMap m_SendFdMap;
 	IAppInterface     *m_AppInterface;
-	IProtocolFactory  *m_ProtocolFactory;
-
 private:
 	DECL_LOGGER(logger);
 };

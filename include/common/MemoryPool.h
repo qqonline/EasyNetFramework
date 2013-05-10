@@ -68,7 +68,7 @@ public:
 	// @param block_n_array : 指示每个MemSlab中最多的块数(NULL或者元素值为-1时表示没有限制)
 	MemPool(uint32_t n, uint32_t *size_array, uint32_t *slab_n_array=NULL, int32_t *block_n_array=NULL);
 
-	~MemCache();
+	~MemPool();
 
 	//获取大小为size的内存
 	void* Alloc(uint32_t size);
