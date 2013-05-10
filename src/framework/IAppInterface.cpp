@@ -10,46 +10,40 @@
 
 namespace easynet
 {
+IMPL_LOGGER(IAppInterface, logger);
 
-IAppInterface::~IAppInterface()
-{
-	if(m_SendMap != NULL)
-		delete m_SendMap;
-}
-
-void IAppInterface::OnCreateAppInstance()
-{
-	m_EventServer     = CreateEventServer();
-	assert(m_EventServer != NULL);
-	m_ProtocolFactory = CreateProtocolFactory();
-	assert(m_ProtocolFactory != NULL);
-}
-
-void IAppInterface::OnDestroyAppInstance()
-{
-	DestroyEventServer(m_EventServer);
-	DestroyProtocolFactory(m_ProtocolFactory);
-}
+#define GetCurTime(now) do{                  \
+	struct timeval tv;                        \
+	gettimeofday(&tv, NULL);                  \
+	now = tv.tv_sec*1000+tv.tv_usec/1000;     \
+}while(0)
 
 bool IAppInterface::SendProtocol(int32_t fd, ProtocolContext *context)
 {
 	if(fd<0 || context==NULL)
 		return false;
-	if(m_SendMap == NULL)
-		m_SendMap = new SendMap;
+	if(context->time_out >= 0)
+	{
+		uint64_t now;
+		GetCurTime(now);
+		context->expire_time = now+context->time_out;
+	}
 
-	SendMap::iterator it = m_SendMap->find(fd);
-	if(it == m_SendMap->end())
+	SendMap::iterator it = m_SendMap.find(fd);
+	if(it == m_SendMap.end())
 	{
 		ProtocolList temp_list;
-		std::pair<SendMap::iterator, bool> result = m_SendMap->insert(std::make_pair(fd, temp_list));
+		std::pair<SendMap::iterator, bool> result = m_SendMap.insert(std::make_pair(fd, temp_list));
 		if(result.second == false)
+		{
+			LOG_ERROR(logger, "add protocol to list failed. fd="<<fd<<" context="<<context);
 			return false;
+		}
 		it = result.first;
 	}
 
 	ProtocolList *protocol_list = &it->second;
-	ProtocolList::iterator list_it = protocol_list->begin();
+	/*ProtocolList::iterator list_it = protocol_list->begin();
 	for(; list_it!=protocol_list->end(); ++list_it)    //按超时时间点从小到大排列
 	{
 		ProtocolContext *temp_context = *list_it;
@@ -57,17 +51,24 @@ bool IAppInterface::SendProtocol(int32_t fd, ProtocolContext *context)
 			break;
 	}
 	protocol_list->insert(list_it, context);
+	*/
+	protocol_list->push_back(context);    //直接添加到队列尾
 
-	//TODO
-	//add to event server
-
+	//添加可写事件监控
+	IEventServer *event_server = GetEventServer();
+	assert(event_server != NULL);
+	if(!event_server->AddEvent(fd, ET_WRITE, &m_TransHandler, context->time_out))
+	{
+		LOG_ERROR(logger, "add write event to event_server failed when send protocol. fd="<<fd<<" context="<<context);
+		return false;
+	}
 	return true;
 }
 
 ProtocolContext* IAppInterface::GetSendProtocol(int32_t fd)
 {
-	SendMap::iterator it = m_SendMap->find(fd);
-	if(it == m_SendMap->end())
+	SendMap::iterator it = m_SendMap.find(fd);
+	if(it == m_SendMap.end())
 		return NULL;
 	ProtocolList *protocol_list = &it->second;
 	ProtocolContext *context = NULL;
@@ -78,7 +79,7 @@ ProtocolContext* IAppInterface::GetSendProtocol(int32_t fd)
 	}
 
 	if(protocol_list->empty())
-		m_SendMap->erase(it);
+		m_SendMap.erase(it);
 
 	return context;
 }

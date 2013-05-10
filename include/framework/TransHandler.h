@@ -30,15 +30,15 @@ public:
 //基类接口方法
 public:
 	//时钟超时
-	bool OnTimeout(){return true;}
+	bool OnTimeout(uint64_t now_time){return true;}
 	//io超时
-	bool OnTimeout(int32_t fd);
+	bool OnTimeout(int32_t fd, uint64_t now_time);
 	//可读事件
-	bool OnEventRead(int32_t fd);
+	bool OnEventRead(int32_t fd, uint64_t now_time);
 	//可写事件
-	bool onEventWrite(int32_t fd);
+	bool onEventWrite(int32_t fd, uint64_t now_time);
 	//错误事件
-	bool OnEventError(int32_t fd);
+	bool OnEventError(int32_t fd, uint64_t now_time);
 private:
 	//接收数据
 	// @param fd          : socket fd

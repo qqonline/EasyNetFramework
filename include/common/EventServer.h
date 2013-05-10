@@ -36,15 +36,15 @@ class EventHandler
 public:
 	virtual ~EventHandler(){}
 	//时钟超时
-	virtual bool OnTimeout()=0;
+	virtual bool OnTimeout(uint64_t now_time)=0;
 	//io超时
-	virtual bool OnTimeout(int32_t fd)=0;
+	virtual bool OnTimeout(int32_t fd, uint64_t now_time)=0;
 	//可读事件
-	virtual bool OnEventRead(int32_t fd)=0;
+	virtual bool OnEventRead(int32_t fd, uint64_t now_time)=0;
 	//可写事件
-	virtual bool onEventWrite(int32_t fd)=0;
+	virtual bool onEventWrite(int32_t fd, uint64_t now_time)=0;
 	//错误事件
-	virtual bool OnEventError(int32_t fd)=0;
+	virtual bool OnEventError(int32_t fd, uint64_t now_time)=0;
 };
 
 /** 事件监听server

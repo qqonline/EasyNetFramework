@@ -6,6 +6,8 @@
  */
 #include <stdlib.h>
 #include <sys/time.h>
+#include <errno.h>
+#include <string.h>
 
 #include "TransHandler.h"
 
@@ -13,13 +15,7 @@ namespace easynet
 {
 IMPL_LOGGER(TransHandler, logger);
 
-#define GetCurTime(now) do{                  \
-	struct timeval tv;                        \
-	gettimeofday(&tv, NULL);                  \
-	now = tv.tv_sec*1000+tv.tv_usec/1000;     \
-}while(0)
-
-bool TransHandler::OnTimeout(int32_t fd)
+bool TransHandler::OnTimeout(int32_t fd, uint64_t now_time)
 {
 	LOG_DEBUG(logger, "on time_out. fd="<<fd);
 
@@ -46,7 +42,7 @@ bool TransHandler::OnTimeout(int32_t fd)
 
 
 //错误事件
-bool TransHandler::OnEventError(int32_t fd)
+bool TransHandler::OnEventError(int32_t fd, uint64_t now_time)
 {
 	LOG_DEBUG(logger, "on event_error. fd="<<fd);
 
@@ -72,7 +68,7 @@ bool TransHandler::OnEventError(int32_t fd)
 }
 
 //可读事件
-bool TransHandler::OnEventRead(int32_t fd)
+bool TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 {
 	LOG_DEBUG(logger, "on event_read. fd="<<fd);
 
@@ -80,7 +76,7 @@ bool TransHandler::OnEventRead(int32_t fd)
 	FDMap::iterator it = m_RecvFdMap.find(fd);
 	if(it == m_RecvFdMap.end())
 	{
-		context = m_ProtocolFactory->NewRecvContext();
+		context = m_ProtocolFactory->NewRecvContext(now_time);
 		if(context == NULL)
 		{
 			LOG_ERROR(logger, "get protocol context failed. maybe out of memory. fd="<<fd);
@@ -98,6 +94,17 @@ bool TransHandler::OnEventRead(int32_t fd)
 	}
 	context = it->second; assert(context != NULL);
 
+	if(context->time_out > 0)    //超时检查
+	{
+		if(context->expire_time < now_time)
+		{
+			LOG_ERROR(logger, "receive protocol data timeout. fd="<<fd<<" time_out="<<context->time_out);
+			m_RecvFdMap.erase(it);
+			m_ProtocolFactory->DeleteContext(context);
+			return false;
+		}
+	}
+
 	//检查数据类型:二进制协议/文本协议
 	if(context->data_type == DTYPE_INVALID)
 	{
@@ -110,8 +117,8 @@ bool TransHandler::OnEventRead(int32_t fd)
 		if(recv_size== -1)
 		{
 			LOG_ERROR(logger, "read temp_header data error. fd="<<fd);
-			m_ProtocolFactory->DeleteContext(context);
 			m_RecvFdMap.erase(it);
+			m_ProtocolFactory->DeleteContext(context);
 			return false;
 		}
 		context->cur_data_size += recv_size;
@@ -120,8 +127,8 @@ bool TransHandler::OnEventRead(int32_t fd)
 		if(result == DECODE_ERROR)
 		{
 			LOG_ERROR(logger, "decode data type error. fd="<<fd);
-			m_ProtocolFactory->DeleteContext(context);
 			m_RecvFdMap.erase(it);
+			m_ProtocolFactory->DeleteContext(context);
 			return false;
 		}
 		else if(result == DECODE_DATA)
@@ -155,8 +162,8 @@ bool TransHandler::OnEventRead(int32_t fd)
 		if(recv_size== -1)
 		{
 			LOG_ERROR(logger, "read bin_header data error. fd="<<fd);
-			m_ProtocolFactory->DeleteContext(context);
 			m_RecvFdMap.erase(it);
+			m_ProtocolFactory->DeleteContext(context);
 			return false;
 		}
 		context->cur_data_size += recv_size;
@@ -165,8 +172,8 @@ bool TransHandler::OnEventRead(int32_t fd)
 		if(decode_result == DECODE_ERROR)
 		{
 			LOG_ERROR(logger, "decode bin_header error. fd="<<fd);
-			m_ProtocolFactory->DeleteContext(context);
 			m_RecvFdMap.erase(it);
+			m_ProtocolFactory->DeleteContext(context);
 			return false;
 		}
 		else if(decode_result == DECODE_DATA)
@@ -179,8 +186,8 @@ bool TransHandler::OnEventRead(int32_t fd)
 		if(context->body_size == 0)    //允许空包
 		{
 			LOG_INFO(logger, "receive a empty bin_packet. do nothing. fd="<<fd);
-			m_ProtocolFactory->DeleteContext(context);
 			m_RecvFdMap.erase(it);
+			m_ProtocolFactory->DeleteContext(context);
 			return true;
 		}
 	}
@@ -194,8 +201,8 @@ bool TransHandler::OnEventRead(int32_t fd)
 	if(recv_size== -1)
 	{
 		LOG_ERROR(logger, "read body data error. fd="<<fd);
-		m_ProtocolFactory->DeleteContext(context);
 		m_RecvFdMap.erase(it);
+		m_ProtocolFactory->DeleteContext(context);
 		return false;
 	}
 	context->cur_data_size += recv_size;
@@ -208,8 +215,8 @@ bool TransHandler::OnEventRead(int32_t fd)
 	if(decode_result == DECODE_ERROR)
 	{
 		LOG_ERROR(logger, "decode body error. fd="<<fd);
-		m_ProtocolFactory->DeleteContext(context);
 		m_RecvFdMap.erase(it);
+		m_ProtocolFactory->DeleteContext(context);
 		return false;
 	}
 	else if(decode_result == DECODE_DATA)
@@ -229,12 +236,9 @@ bool TransHandler::OnEventRead(int32_t fd)
 }
 
 //可写事件
-bool TransHandler::onEventWrite(int32_t fd)
+bool TransHandler::onEventWrite(int32_t fd, uint64_t now_time)
 {
 	LOG_DEBUG(logger, "on event_write. fd="<<fd);
-
-	uint64_t time_now;
-	GetCurTime(time_now);
 
 	ProtocolContext *context = NULL;
 	FDMap::iterator it = m_SendFdMap.find(fd);
@@ -252,7 +256,7 @@ bool TransHandler::onEventWrite(int32_t fd)
 		if(context == NULL)
 			break;
 		//发送超时
-		if(context->expire_time < time_now)
+		if(context->time_out>=0 && context->expire_time<now_time)
 		{
 			m_AppInterface->OnSendTimeout(fd, context);
 			continue;
@@ -315,6 +319,16 @@ int32_t TransHandler::ReadData(int32_t fd, char *buffer, uint32_t buffer_size, u
 	{
 		LOG_DEBUG(logger, "peer close socket gracefully. fd="<<fd);
 		recv_size = -1;
+	}
+	else if(recv_size < 0)
+	{
+		if(errno==EAGAIN || errno==EINTR || errno==EWOULDBLOCK)
+		{
+			LOG_DEBUG(logger, "no data for reading. error="<<errno<<"("<<strerror(errno)<<")");
+			recv_size = 0;
+		}
+		else
+			LOG_ERROR(logger, "read data error. error="<<errno<<"("<<strerror(errno)<<")");
 	}
 	return recv_size;
 }

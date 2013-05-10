@@ -23,7 +23,7 @@ IProtocolFactory::~IProtocolFactory()
 		delete m_MemPool;
 }
 
-ProtocolContext* IProtocolFactory::NewRecvContext()
+ProtocolContext* IProtocolFactory::NewRecvContext(uint64_t now_time)
 {
 	if(m_MemPool == NULL)
 		m_MemPool = new MemPool;
@@ -32,6 +32,9 @@ ProtocolContext* IProtocolFactory::NewRecvContext()
 	if(context == NULL)
 		return NULL;
 	context->Init(this);
+	context->time_out = m_RecvTimeout;    //接收超时时间
+	if(context->time_out > 0)
+		context->expire_time = now_time+context->time_out;
 
 	InitRecvInfo((ProtocolInfo*)context);
 	assert((context->data_type==DTYPE_INVALID&&context->data_header_size>0)

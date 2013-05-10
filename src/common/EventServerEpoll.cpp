@@ -307,13 +307,13 @@ bool EventServerEpoll::DispatchEvents()
 		}
 		if(!no_error && (ep_event->events&EPOLLIN))
 		{
-			no_error = event_info->handler->OnEventRead(event_info->fd);
+			no_error = event_info->handler->OnEventRead(event_info->fd, now);
 			if(!no_error || !ET_IS_PERSIST(event_info->type))      //去掉非持续读事件
 				del_type |= ET_READ;
 		}
 		if(no_error && (ep_event->events&EPOLLOUT))
 		{
-			no_error = event_info->handler->onEventWrite(event_info->fd);
+			no_error = event_info->handler->onEventWrite(event_info->fd, now);
 			del_type |= ET_WRITE;                                  //直接去掉读事件
 		}
 
@@ -323,7 +323,7 @@ bool EventServerEpoll::DispatchEvents()
 			if(!no_error)
 			{
 				LOG_ERROR(logger, "io error occur. delete event from event server. fd="<<event_info->fd<<" del_type="<<del_type);
-				event_info->handler->OnEventError(event_info->fd);
+				event_info->handler->OnEventError(event_info->fd, now);
 			}
 		}
 	}
@@ -346,13 +346,13 @@ bool EventServerEpoll::DispatchEvents()
 
 		if(event_info->fd >= 0)    //io超时
 		{
-			event_info->handler->OnTimeout(event_info->fd);
+			event_info->handler->OnTimeout(event_info->fd, now);
 			m_FDMap.erase(event_info->fd);
 			m_ObjectPool.Recycle((void*)event_info);
 		}
 		else                       //时钟超时
 		{
-			bool no_error = event_info->handler->OnTimeout();
+			bool no_error = event_info->handler->OnTimeout(now);
 			if(no_error && ET_IS_PERSIST(event_info->type))
 			{
 				event_info->heap_item.index = -1;

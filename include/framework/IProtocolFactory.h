@@ -70,21 +70,23 @@ public:
 		buffer_size       = 0;
 		cur_data_size     = 0;
 		fd                = 0;
+		time_out          = -1;
 		expire_time       = -1;
 		m_ProtocolFactory = protocol_factory;
 	}
-
 	void Destroy()
 	{
 		m_ProtocolFactory->DeleteContext(this);
 	}
+
 public:
 	char      *buffer;           //存放数据的缓冲区
 	uint32_t  buffer_size;       //缓冲区的大小
 	uint32_t  cur_data_size;     //当前接收到/已发送的数据大小
 
-	uint32_t  fd;
-	uint64_t  expire_time;       //超时时间点
+	uint32_t  fd;                //接收/发送的socket fd(暂时没有使用)
+	int32_t   time_out;          //超时时间(单位:毫秒),应用层设置
+	uint64_t  expire_time;       //超时时间点(单位:毫秒),框架设置
 	IProtocolFactory *m_ProtocolFactory;
 };
 
@@ -100,11 +102,13 @@ typedef enum _decode_result
 class IProtocolFactory
 {
 public:
-	IProtocolFactory():m_MemPool(NULL){}
+    //@param recv_timeout: 接收协议数据超时时间(从收到协议第一个字节开始,在该时间内没有收到完整的数据时发生超时事件), 默认不超时
+	IProtocolFactory():m_MemPool(NULL), m_RecvTimeout(-1){}
+	IProtocolFactory(int32_t recv_timeout):m_MemPool(NULL){}
 	virtual ~IProtocolFactory();
 
 	//创建接收协议的context
-	virtual ProtocolContext* NewRecvContext();
+	virtual ProtocolContext* NewRecvContext(uint64_t now_time);
 
 	//创建发送协议的context
 	// @param max_data_size : 需要发送的数据可能的最大值
@@ -140,11 +144,12 @@ protected:
 	virtual void DeleteProtocol(void *protocol, uint32_t protocol_type)=0;
 
 	//对协议进行编码,编码数据放到大小为buffer_size字节的buffer中.成功返回true,失败返回false
-	//buffer是NewProtocol方法中传入的缓冲区.如果在NewProtocol方法中创建的protocol使用了buffer,则对该protocol
-	//进行编码时,应该忽略本buffer参数,否则可能回引起问题!
+	//buffer是NewProtocol方法中传入的缓冲区.如果在NewProtocol方法中创建的protocol使用了buffer,
+	//则对该protocol进行编码时,应该忽略本buffer参数,否则可能会引起问题!
 	virtual bool EncodeProtocol(IProtocol *protocol, char *buffer, uint32_t buffer_size)=0;
 protected:
 	MemPool *m_MemPool;
+	int32_t m_RecvTimeout;
 };
 
 }//namespace
