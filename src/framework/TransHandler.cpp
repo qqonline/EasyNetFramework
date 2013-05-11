@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <errno.h>
 #include <string.h>
+#include <sys/socket.h>
 
 #include "TransHandler.h"
 

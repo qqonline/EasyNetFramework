@@ -57,7 +57,7 @@ KVData::~KVData()
 		free(m_Buffer);
 }
 
-bool KVData::AttachBuffer(void *buffer, uint32_t buffer_size, uint32_t data_size/*=0*/)
+bool KVData::AttachBuffer(void *buffer, uint32_t buffer_size, uint32_t data_size/*=0*/, bool init/*=true*/)
 {
 	if(m_Buffer == NULL)
 	{
@@ -68,7 +68,7 @@ bool KVData::AttachBuffer(void *buffer, uint32_t buffer_size, uint32_t data_size
 		m_Size = data_size;
 		assert(m_Buffer!=NULL && m_Capacity>=4);
 
-		if(data_size == 0)
+		if(init && m_Size==0)
 		{
 			char *magic = (char*)m_Buffer;
 			magic[0] = 'K';

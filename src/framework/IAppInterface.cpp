@@ -5,9 +5,11 @@
  *      Author: LiuYongJin
  */
 #include <assert.h>
+#include <netinet/in.h>
 
 #include "IAppInterface.h"
 #include "EventServerEpoll.h"
+#include "KVDataProtocolFactory.h"
 
 namespace easynet
 {
@@ -76,8 +78,8 @@ bool IAppInterface::SendProtocol(int32_t fd, ProtocolContext *context)
 	assert(event_server != NULL);
 	TransHandler* trans_handler = GetTransHandler();
 	assert(trans_handler != NULL);
-
-	if(!event_server->AddEvent(fd, ET_WRITE, trans_handler, context->time_out))
+	int32_t time_out = GetIdleTimeout();
+	if(!event_server->AddEvent(fd, ET_WRITE, trans_handler, time_out))
 	{
 		LOG_ERROR(logger, "add write event to event_server failed when send protocol. fd="<<fd<<" context="<<context);
 		return false;
@@ -115,8 +117,8 @@ IEventServer* IAppInterface::GetEventServer()
 //获取ProtocolFactory的实例
 IProtocolFactory* IAppInterface::GetProtocolFactory()
 {
-	//TODO
-	//new default protocol
+	if(m_ProtocolFactory)
+		m_ProtocolFactory = new KVDataProtocolFactory;
 	return m_ProtocolFactory;
 }
 
@@ -126,6 +128,33 @@ IEventHandler* IAppInterface::GetTransHandler()
 	if(m_TransHandler == NULL)
 		m_TransHandler = new TransHandler(this);
 	return m_TransHandler;
+}
+
+bool IAppInterface::AcceptNewConnect(int32_t fd)
+{
+	const char *peer_ip = "_unknow ip_";
+	int16_t peer_port = -1;
+	struct sockaddr_in peer_addr;
+	int socket_len = sizeof(peer_addr);
+
+	if(getpeername(fd, (struct sockaddr*)&peer_addr, (socklen_t*)&socket_len) == 0)
+	{
+		peer_ip = inet_ntoa(peer_addr.sin_addr);
+		peer_port = ntohs(peer_addr.sin_port);
+	}
+
+	LOG_DEBUG(logger, "accept new connect. fd="<<fd<<" peer_ip="<<peer_ip<<" peer_port="<<peer_port);
+	IEventServer *event_server = GetEventServer();
+	assert(event_server != NULL);
+	TransHandler* trans_handler = GetTransHandler();
+	assert(trans_handler != NULL);
+	int32_t time_out = GetIdleTimeout();
+	if(!event_server->AddEvent(fd, ET_PER_RD, trans_handler, time_out))
+	{
+		LOG_ERROR(logger, "add persist read event to event_server failed when send protocol. fd="<<fd);
+		return false;
+	}
+	return true;
 }
 
 }//namespace

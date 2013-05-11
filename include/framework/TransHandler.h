@@ -7,6 +7,7 @@
 
 #ifndef _FRAMEWORK_TRANS_HANDLER_H_
 #define _FRAMEWORK_TRANS_HANDLER_H_
+#include <assert.h>
 #include <map>
 using std::map;
 
@@ -24,7 +25,9 @@ class TransHandler:public IEventHandler
 public:
 	TransHandler(IAppInterface *app_interface)
 		:m_AppInterface(app_interface)
-	{}
+	{
+		assert(m_AppInterface != NULL);
+	}
 
 //基类接口方法
 public:

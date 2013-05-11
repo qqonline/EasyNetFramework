@@ -44,6 +44,9 @@ private:
 //////////////////////////   接口方法   //////////////////////////
 //////////////////////////////////////////////////////////////////
 public:
+	//接收一个新的连接,添加到EventServer中,开始接收/发送数据
+	virtual bool AcceptNewConnect(int32_t fd);
+
 	//处理收到的请求协议
 	// @param fd             : 收到协议的socket fd
 	// @param context        : 接收到的协议上下文
@@ -76,6 +79,10 @@ public:
 	//从接收到协议的第一个字节开始,在该时间内如果没有收到完整的数据包将发生接收超时事件
 	//默认不超时
 	virtual int32_t GetRecvTimeout(){return -1;}
+
+	//获取连接空闲超时时间(单位毫秒).当连接在该时间内无任何读写事件发生的话,将发生超时事件
+	//默认3s
+	virtual int32_t GetIdleTimeout(){return 3000;}
 };
 
 }//namespace
