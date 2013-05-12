@@ -1,9 +1,11 @@
 INCLUDE=-I/usr/include/EasyNetFramework/common
-LIB=-leasynetframework
+LIB=-leasynet -lpthread -llog4cplus
 LIB_EXT=-llog4cplus
 FLAGS=-g
 
-all:Heap_example KVData_example
+EXEC=Heap_example KVData_example ConfigReader_example
+
+all:${EXEC}
 
 Heap_example:Heap_example.cpp
 	g++ $^ ${INCLUDE} ${LIB} ${FLAGS} -o $@
@@ -11,5 +13,8 @@ Heap_example:Heap_example.cpp
 KVData_example:KVData_example.cpp
 	g++ $^ ${INCLUDE} ${LIB} ${LIB_EXT} ${FLAGS} -o $@
 	
+ConfigReader_example:ConfigReader_example.cpp
+	g++ $^ ${INCLUDE} ${LIB} ${LIB_EXT} ${FLAGS} -o $@
+
 clean:
-	rm Heap_example KVData_example
+	rm ${EXEC}
