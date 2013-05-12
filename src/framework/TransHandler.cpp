@@ -10,6 +10,7 @@
 #include <string.h>
 #include <sys/socket.h>
 
+#include "Socket.h"
 #include "TransHandler.h"
 
 namespace easynet
@@ -288,7 +289,7 @@ bool TransHandler::onEventWrite(int32_t fd, uint64_t now_time)
 		//发送数据
 		char *buffer = context->buffer+context->cur_data_size;
 		uint32_t need_size = context->body_size+context->header_size-context->cur_data_size;
-		int32_t send_size = send(fd, buffer, need_size, 0);
+		int32_t send_size = Socket::Send(fd, buffer, need_size);
 		if(send_size == -1)    //socket有问题,发送失败,返回false
 		{
 			LOG_ERROR(logger, "send data error. context="<<context<<" data_type="<<context->data_type<<" protocol_type="<<context->protocol_type<<" fd="<<fd);
@@ -331,7 +332,7 @@ bool TransHandler::onEventWrite(int32_t fd, uint64_t now_time)
 int32_t TransHandler::ReadData(int32_t fd, char *buffer, uint32_t buffer_size, uint32_t need_size)
 {
 	assert(buffer_size >= need_size);
-	int32_t recv_size = recv(fd, buffer, need_size, 0);
+	int32_t recv_size = Socket::Recv(fd, buffer, need_size);
 	if(recv_size == 0)
 	{
 		LOG_DEBUG(logger, "peer close socket gracefully. fd="<<fd);

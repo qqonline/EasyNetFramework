@@ -2,16 +2,26 @@
 INCLUDE=-I/home/tim/workspace_git/EasyNetFramework/include/common
 FLAGS=-g
 
-LIB=/usr/lib
-LIB_NAME=libeasynetframework.a
+LIBDIR=/usr/lib
+OBJDIR=../objects
+TMPLIBDIR=../lib
+LIBNAME=libeasynet.a
+SONAME=libeasynet.so
 
-all:lib
-lib:*.cpp
-	g++ ${INCLUDE} *.cpp ${FLAGS} -c
-	ar -cr ${LIB_NAME} *.o 
+SRCS=$(wildcard *.cpp)
+OBJS=$(patsubst %.cpp, $(OBJDIR)/%.o, $(SRCS))
+
+all:lib share
+lib:$(OBJS)
+	ar -cr ${TMPLIBDIR}/${LIBNAME} $^
+share:$(OBJS)
+	g++ -fPIC -shared $^ -o ${TMPLIBDIR}/${SONAME}
+$(OBJDIR)/%.o:%.cpp
+	g++ ${INCLUDE} $< ${FLAGS} -c -o $@
 install:
-	cp ${LIB_NAME} ${LIB}
+	cp ${TMPLIBDIR}/${LIBNAME} ${LIBDIR}
+	cp ${TMPLIBDIR}/${SONAME}  ${LIBDIR}
 uninstall:
-	rm ${LIB}/${LIB_NAME}
+	rm ${LIBDIR}/${LIBNAME} ${LIBDIR}/${SONAME}
 clean:
-	rm *.o *.a
+	rm $(OBJDIR)/* ${TMPLIBDIR}/*

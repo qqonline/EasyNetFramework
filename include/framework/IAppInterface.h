@@ -14,6 +14,8 @@ using std::map;
 
 #include "IProtocolFactory.h"
 #include "EventServer.h"
+#include "TransHandler.h"
+#include "ListenHandler.h"
 #include "Logger.h"
 
 namespace easynet
@@ -28,8 +30,15 @@ public:
 	IAppInterface();
 	virtual ~IAppInterface();
 
+	//监听端口
+	//  @param port     : 需要监听的端口
+	//  @param ip       : 需要监听的本地ip(如果没有指定本地的网卡地址,使用默认的)
+	//  @param back_log : accept的队列大小
+	virtual bool Listen(int32_t port, const char *ip=NULL, uint32_t back_log);
+
 	//发送协议(添加到发送队列中等待发送),成功返回true,失败返回false.
 	virtual bool SendProtocol(int32_t fd, ProtocolContext *context);
+
 	//从队列中获取一个待发送的协议
 	virtual ProtocolContext* GetSendProtocol(int32_t fd);
 private:
@@ -38,6 +47,7 @@ private:
 	IEventServer      *m_EventServer;
 	IProtocolFactory  *m_ProtocolFactory;
 	TransHandler      *m_TransHandler;
+	ListenHandler     *m_ListenHandler;
 private:
 	DECL_LOGGER(logger);
 //////////////////////////////////////////////////////////////////
@@ -68,18 +78,21 @@ public:
 	//socket读写空闲发生超时事件后调用本接口
 	virtual bool OnSocketTimeout(int32_t fd)=0;
 
+
 	//获取EventServer的实例
 	virtual IEventServer* GetEventServer();
 	//获取ProtocolFactory的实例
 	virtual IProtocolFactory* GetProtocolFactory();
 	//获取传输handler
 	virtual IEventHandler* GetTransHandler();
+	//服务监听handler
+	virtual IEventHandler* GetListenHander();
+
 
 	//获取数据接收的超时时间.
 	//从接收到协议的第一个字节开始,在该时间内如果没有收到完整的数据包将发生接收超时事件
 	//默认不超时
 	virtual int32_t GetRecvTimeout(){return -1;}
-
 	//获取连接空闲超时时间(单位毫秒).当连接在该时间内无任何读写事件发生的话,将发生超时事件
 	//默认3s
 	virtual int32_t GetIdleTimeout(){return 3000;}

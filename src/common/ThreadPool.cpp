@@ -26,7 +26,7 @@ ThreadPool::~ThreadPool()
 {
 	if(m_thread_num > 0)
 	{
-		LOG4CPLUS_WARN(logger, "destroy thread pool, but "<<m_thread_num<<" threads are running. forget to call stop()?");
+		LOG_WARN(logger, "destroy thread pool, but "<<m_thread_num<<" threads are running. forget to call stop()?");
 	}
 	free((void*)m_threads);
 }
@@ -38,11 +38,11 @@ bool ThreadPool::start()
 	{
 		m_threads[m_thread_num] = create_thread();
 		if(m_threads[m_thread_num] == NULL)
-			LOG4CPLUS_ERROR(logger, "create thread failed.");
+			LOG_ERROR(logger, "create thread failed.");
 		else
 			++m_thread_num;
 	}
-	LOG4CPLUS_DEBUG(logger, "start total "<< m_thread_num<<"/"<<m_size<<" threads.");
+	LOG_DEBUG(logger, "start total "<< m_thread_num<<"/"<<m_size<<" threads.");
 	return true;
 }
 

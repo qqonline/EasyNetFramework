@@ -6,10 +6,14 @@
  */
 #include <assert.h>
 #include <netinet/in.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <string.h>
 
 #include "IAppInterface.h"
 #include "EventServerEpoll.h"
 #include "KVDataProtocolFactory.h"
+#include "Socket.h"
 
 namespace easynet
 {
@@ -35,6 +39,64 @@ IAppInterface::~IAppInterface()
 		delete m_ProtocolFactory;
 	if(m_TransHandler != NULL)
 		delete m_TransHandler;
+	if(m_ListenHandler != NULL)
+		delete m_ListenHandler;
+}
+
+bool IAppInterface::Listen(int32_t port, const char *ip/*=NULL*/, uint32_t back_log/*=128*/)
+{
+	int32_t fd = Socket::CreateListenSocket(port, ip, false);
+	if(fd == -1)
+	{
+		LOG_ERROR(logger, "create listen socket failed. port="<<port<<" errno="<<errno<<"("<<strerror(errno)<<")");
+		return false;
+	}
+	if(Socket::Listen(fd, back_log) == false)
+	{
+		LOG_ERROR(logger, "listen failed. fd="<<fd<<" errno="<<errno<<"("<<strerror(errno)<<")");
+		Socket::Close(fd);
+		return false;
+	}
+
+	IEventServer *event_server = GetEventServer();
+	TransHandler *trans_handler = GetTransHandler();
+	int32_t timeout = GetIdleTimeout();
+	assert(event_server != NULL);
+	assert(trans_handler != NULL);
+	if(!event_server->AddEvent(fd, ET_PER_RD, trans_handler, timeout))
+	{
+		LOG_ERROR(logger, "add perist read event to event_server failed. fd="<<fd);
+		Socket::Close(fd);
+		return false;
+	}
+	return true;
+}
+
+bool IAppInterface::AcceptNewConnect(int32_t fd)
+{
+	const char *peer_ip = "_unknow ip_";
+	int16_t peer_port = -1;
+	struct sockaddr_in peer_addr;
+	int socket_len = sizeof(peer_addr);
+
+	if(getpeername(fd, (struct sockaddr*)&peer_addr, (socklen_t*)&socket_len) == 0)
+	{
+		peer_ip = inet_ntoa(peer_addr.sin_addr);
+		peer_port = ntohs(peer_addr.sin_port);
+	}
+
+	LOG_DEBUG(logger, "accept new connect. fd="<<fd<<" peer_ip="<<peer_ip<<" peer_port="<<peer_port);
+	IEventServer *event_server = GetEventServer();
+	assert(event_server != NULL);
+	TransHandler* trans_handler = GetTransHandler();
+	assert(trans_handler != NULL);
+	int32_t time_out = GetIdleTimeout();
+	if(!event_server->AddEvent(fd, ET_PER_RD, trans_handler, time_out))
+	{
+		LOG_ERROR(logger, "add persist read event to event_server failed when send protocol. fd="<<fd);
+		return false;
+	}
+	return true;
 }
 
 bool IAppInterface::SendProtocol(int32_t fd, ProtocolContext *context)
@@ -130,31 +192,12 @@ IEventHandler* IAppInterface::GetTransHandler()
 	return m_TransHandler;
 }
 
-bool IAppInterface::AcceptNewConnect(int32_t fd)
+//服务监听handler
+IEventHandler* IAppInterface::GetListenHander()
 {
-	const char *peer_ip = "_unknow ip_";
-	int16_t peer_port = -1;
-	struct sockaddr_in peer_addr;
-	int socket_len = sizeof(peer_addr);
-
-	if(getpeername(fd, (struct sockaddr*)&peer_addr, (socklen_t*)&socket_len) == 0)
-	{
-		peer_ip = inet_ntoa(peer_addr.sin_addr);
-		peer_port = ntohs(peer_addr.sin_port);
-	}
-
-	LOG_DEBUG(logger, "accept new connect. fd="<<fd<<" peer_ip="<<peer_ip<<" peer_port="<<peer_port);
-	IEventServer *event_server = GetEventServer();
-	assert(event_server != NULL);
-	TransHandler* trans_handler = GetTransHandler();
-	assert(trans_handler != NULL);
-	int32_t time_out = GetIdleTimeout();
-	if(!event_server->AddEvent(fd, ET_PER_RD, trans_handler, time_out))
-	{
-		LOG_ERROR(logger, "add persist read event to event_server failed when send protocol. fd="<<fd);
-		return false;
-	}
-	return true;
+	if(m_ListenHandler == NULL)
+		m_ListenHandler = new ListenHandler(this);
+	return m_ListenHandler;
 }
 
 }//namespace

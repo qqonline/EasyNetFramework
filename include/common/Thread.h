@@ -48,20 +48,6 @@ private:
 	DECL_LOGGER(logger);
 };
 
-void* Thread::thread_proc(void* thread)
-{
-	assert(thread != NULL);
-	((Thread*)thread)->do_run();
-	return NULL;
-}
-
-void Thread::wait_terminate()
-{
-	if(m_detachable)
-		return;
-	pthread_join(m_thread_id, NULL);
-}
-
 }//namespace
 
 #endif //_COMMON_THREAD_H_
