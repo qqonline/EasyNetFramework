@@ -1,5 +1,5 @@
 #INCLUDE=-I/usr/include/EasyNetFramework
-INCLUDE=-I/home/tim/workspace_git/EasyNetFramework/include/common
+INCLUDE=-I../../include/common
 FLAGS=-g
 
 LIBDIR=/usr/lib
