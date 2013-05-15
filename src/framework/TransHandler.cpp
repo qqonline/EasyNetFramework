@@ -109,15 +109,12 @@ bool TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 	}
 	context = it->second; assert(context != NULL);
 
-	if(context->time_out > 0)    //超时检查
+	if(context->time_out>0 && context->expire_time<now_time)    //超时检查
 	{
-		if(context->expire_time < now_time)
-		{
-			LOG_ERROR(logger, "receive protocol data timeout. fd="<<fd<<" time_out="<<context->time_out);
-			m_RecvFdMap.erase(it);
-			protocol_factory->DeleteContext(context);
-			return false;
-		}
+		LOG_WARN(logger, "receive protocol data timeout. fd="<<fd<<" time_out="<<context->time_out);
+		m_RecvFdMap.erase(it);
+		protocol_factory->DeleteContext(context);
+		return false;
 	}
 
 	//检查数据类型:二进制协议/文本协议
