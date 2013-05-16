@@ -6,9 +6,11 @@
  */
 #include <assert.h>
 #include <netinet/in.h>
+#include <arpa/inet.h>
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
+#include <sys/time.h>
 
 #include "IAppInterface.h"
 #include "EventServerEpoll.h"
@@ -58,12 +60,12 @@ bool IAppInterface::Listen(int32_t port, const char *ip/*=NULL*/, uint32_t back_
 		return false;
 	}
 
-	IEventServer *event_server = GetEventServer();
-	TransHandler *trans_handler = GetTransHandler();
 	int32_t timeout = GetIdleTimeout();
+	IEventServer *event_server = GetEventServer();
+	IEventHandler *event_handler = GetTransHandler();
 	assert(event_server != NULL);
-	assert(trans_handler != NULL);
-	if(!event_server->AddEvent(fd, ET_PER_RD, trans_handler, timeout))
+	assert(event_handler != NULL);
+	if(!event_server->AddEvent(fd, ET_PER_RD, event_handler, timeout))
 	{
 		LOG_ERROR(logger, "add perist read event to event_server failed. fd="<<fd);
 		Socket::Close(fd);
@@ -86,12 +88,12 @@ bool IAppInterface::AcceptNewConnect(int32_t fd)
 	}
 
 	LOG_DEBUG(logger, "accept new connect. fd="<<fd<<" peer_ip="<<peer_ip<<" peer_port="<<peer_port);
-	IEventServer *event_server = GetEventServer();
-	assert(event_server != NULL);
-	TransHandler* trans_handler = GetTransHandler();
-	assert(trans_handler != NULL);
 	int32_t time_out = GetIdleTimeout();
-	if(!event_server->AddEvent(fd, ET_PER_RD, trans_handler, time_out))
+	IEventServer *event_server = GetEventServer();
+	IEventHandler* event_handler = GetTransHandler();
+	assert(event_handler != NULL);
+	assert(event_server != NULL);
+	if(!event_server->AddEvent(fd, ET_PER_RD, event_handler, time_out))
 	{
 		LOG_ERROR(logger, "add persist read event to event_server failed when send protocol. fd="<<fd);
 		return false;
@@ -137,12 +139,12 @@ bool IAppInterface::SendProtocol(int32_t fd, ProtocolContext *context, int32_t s
 	protocol_list->push_back(context);    //直接添加到队列尾
 
 	//添加可写事件监控
-	IEventServer *event_server = GetEventServer();
-	assert(event_server != NULL);
-	TransHandler* trans_handler = GetTransHandler();
-	assert(trans_handler != NULL);
 	int32_t time_out = GetIdleTimeout();
-	if(!event_server->AddEvent(fd, ET_WRITE, trans_handler, time_out))
+	IEventServer *event_server = GetEventServer();
+	IEventHandler* event_handler = GetTransHandler();
+	assert(event_server != NULL);
+	assert(event_handler != NULL);
+	if(!event_server->AddEvent(fd, ET_WRITE, event_handler, time_out))
 	{
 		LOG_ERROR(logger, "add write event to event_server failed when send protocol. fd="<<fd<<" context="<<context);
 		return false;

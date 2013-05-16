@@ -11,11 +11,11 @@
 #include <sys/socket.h>
 
 #include "EventServer.h"
-#include "IAppInterface.h"
 #include "Logger.h"
 
 namespace easynet
 {
+class IAppInterface;
 class ListenHandler:public IEventHandler
 {
 public:

@@ -6,6 +6,8 @@
  */
 #include "ListenHandler.h"
 
+#include "IAppInterface.h"
+
 namespace easynet
 {
 IMPL_LOGGER(ListenHandler, logger);

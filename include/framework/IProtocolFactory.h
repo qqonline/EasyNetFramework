@@ -17,7 +17,7 @@ namespace easynet
 //协议数据的类型
 typedef enum _query_type
 {
-	DTYPE_INVALID,   //无效
+	DTYPE_ALL,       //文本和二进制
 	DTYPE_TEXT,      //文本数据
 	DTYPE_BIN        //二进制数据
 }DataType;
@@ -27,7 +27,7 @@ class ProtocolDefine
 {
 public:
 	ProtocolDefine()
-		:data_type(DTYPE_INVALID)
+		:data_type(DTYPE_ALL)
 		,data_header_size(0)
 		,header_size(0)
 		,body_size(0)
@@ -48,7 +48,7 @@ public:
 	IProtocol()
 		:protocol_type(-1)
 		,protocol(NULL)
-		,info("")
+		,info((char*)"")
 	{
 	}
 	virtual ~IProtocol(){}
@@ -79,10 +79,7 @@ public:
 	}
 
 	//基类的接口
-	void Destroy()
-	{
-		m_ProtocolFactory->DeleteContext(this);
-	}
+	void Destroy();
 
 public:
 	char      *buffer;           //存放数据的缓冲区
@@ -210,6 +207,13 @@ protected:
 	}
 
 };
+
+
+inline
+void ProtocolContext::Destroy()
+{
+	m_ProtocolFactory->DeleteContext(this);
+}
 
 }//namespace
 #endif //_FRAMEWORK_IPROTOCOL_FACTORY_H_

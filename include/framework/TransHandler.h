@@ -13,15 +13,16 @@ using std::map;
 
 #include "Logger.h"
 #include "EventServer.h"
-#include "IAppInterface.h"
+
+#include "IProtocolFactory.h"
 
 namespace easynet
 {
 
-typedef map<int32_t, ProtocolContext*> FDMap;
-
+class IAppInterface;
 class TransHandler:public IEventHandler
 {
+typedef map<int32_t, ProtocolContext*> FDMap;
 public:
 	TransHandler(IAppInterface *app_interface)
 		:m_AppInterface(app_interface)

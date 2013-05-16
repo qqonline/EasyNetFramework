@@ -7,6 +7,7 @@
 
 #include <assert.h>
 #include <string.h>
+#include <new>
 
 #include "IProtocolFactory.h"
 
@@ -33,12 +34,12 @@ ProtocolContext* IProtocolFactory::NewRecvContext()
 		return NULL;
 	ProtocolContext *context = new(mem_block) ProtocolContext(this);
 	InitRecvDefine((ProtocolDefine*)context);
-	assert((context->data_type==DTYPE_INVALID&&context->data_header_size>0)
+	assert((context->data_type==DTYPE_ALL&&context->data_header_size>0)
 			|| (context->data_type==DTYPE_TEXT&&context->body_size>0)
 			|| (context->data_type==DTYPE_BIN&&context->header_size>0));
 
 	//分配缓冲区
-	if(context->data_type == DTYPE_INVALID)
+	if(context->data_type == DTYPE_ALL)
 		context->buffer_size = context->data_header_size;
 	else if(context->data_type == DTYPE_TEXT)
 		context->buffer_size = context->body_size;
@@ -62,7 +63,7 @@ ProtocolContext* IProtocolFactory::NewSendContext(DataType data_type, uint32_t m
 	if(m_MemPool == NULL)
 		m_MemPool = new MemPool;
 
-	assert(data_type!=DTYPE_INVALID && max_data_size>0);
+	assert(max_data_size>0);
 	void *mem_block = m_MemPool->Alloc(sizeof(ProtocolContext));
 	if(mem_block == NULL)
 		return NULL;
@@ -71,7 +72,7 @@ ProtocolContext* IProtocolFactory::NewSendContext(DataType data_type, uint32_t m
 	context->data_type     = data_type;
 	context->protocol_type = protocol_type;
 	context->buffer_size   = max_data_size;
-	context->buffer        = m_MemPool->Alloc(context->buffer_size);
+	context->buffer        = (char*)m_MemPool->Alloc(context->buffer_size);
 	if(context->buffer == NULL)
 	{
 		m_MemPool->Free((void*)context, sizeof(ProtocolContext));
@@ -97,9 +98,6 @@ void IProtocolFactory::DeleteContext(ProtocolContext *context)
 {
 	if(context == NULL)
 		return ;
-	assert(context->data_type!=DTYPE_INVALID);
-	//		|| (context->data_type==DTYPE_TEXT&&context->protocol==NULL)
-	//		|| (context->data_type==DTYPE_BIN&&context->protocol!=NULL));
 
 	if(context->protocol != NULL)
 		DeleteProtocol(context->protocol, context->protocol_type);
@@ -122,7 +120,7 @@ bool IProtocolFactory::ReAllocBuffer(ProtocolContext *context, uint32_t new_size
 	//回收旧的buffer
 	m_MemPool->Free(context->buffer, context->buffer_size);
 	//设置新的buffer
-	context->buffer = new_buffer;
+	context->buffer = (char*)new_buffer;
 	context->buffer_size = new_size;
 
 	return true;

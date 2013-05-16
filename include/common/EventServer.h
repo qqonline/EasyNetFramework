@@ -15,7 +15,7 @@ namespace easynet
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //事件类型
-typedef uint8_t EventType;
+typedef uint16_t EventType;
 #define ET_EMPTY            0x0000                    //空
 #define ET_READ             0x0001                    //读
 #define ET_WRITE            0x0002                    //写

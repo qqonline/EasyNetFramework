@@ -66,6 +66,8 @@ DecodeResult KVDataProtocolFactory::DecodeBinHeader(ProtocolContext *context)
 DecodeResult KVDataProtocolFactory::DecodeBinBody(ProtocolContext *context)
 {
 	KVData *kv_data = (KVData*)context->protocol;
+	context->info = (char*)"KVDataProtocol";
+
 	return kv_data->UnPack()?DECODE_SUCC:DECODE_ERROR;
 }
 
@@ -88,6 +90,7 @@ void KVDataProtocolFactory::DeleteProtocol(void *protocol, int32_t protocol_type
 //对协议进行编码
 bool KVDataProtocolFactory::EncodeProtocol(ProtocolContext *send_context)
 {
+	send_context->info = (char*)"KVDataProtocol";
 	return EncodeProtocol(send_context->protocol, send_context->protocol_type, send_context->buffer, send_context->buffer_size);
 }
 

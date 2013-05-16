@@ -17,10 +17,9 @@ using std::map;
 namespace easynet
 {
 
-typedef map<int32_t, void*> FDMap;
-
 class EventServerEpoll:public IEventServer
 {
+typedef map<int32_t, void*> FDMap;
 public:
 	EventServerEpoll(uint32_t max_events);
 	~EventServerEpoll();

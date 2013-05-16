@@ -12,6 +12,7 @@
 
 #include "Socket.h"
 #include "TransHandler.h"
+#include "IAppInterface.h"
 
 namespace easynet
 {
@@ -118,7 +119,7 @@ bool TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 	}
 
 	//检查数据类型:二进制协议/文本协议
-	if(context->data_type == DTYPE_INVALID)
+	if(context->data_type == DTYPE_ALL)
 	{
 		assert(context->cur_data_size < context->data_header_size);
 
@@ -149,8 +150,6 @@ bool TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 			return true;
 		}
 
-		if(context->data_type == DTYPE_INVALID)
-			assert(0);
 		else if(context->data_type==DTYPE_BIN)
 		{
 			assert(context->header_size>0);
