@@ -12,3 +12,7 @@ install:
 uninstall:
 	@if [ -d "${INCLUDE_DIR}" ];then	rm ${INCLUDE_DIR} -rf;fi
 	(cd src/common; $(MAKE) uninstall)
+
+push:
+	git commit -m".." -a
+	git push origin master

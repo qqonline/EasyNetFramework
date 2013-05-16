@@ -274,6 +274,8 @@ bool TransHandler::onEventWrite(int32_t fd, uint64_t now_time)
 		if(context->time_out>0 && context->expire_time<now_time)
 		{
 			m_AppInterface->OnSendTimeout(fd, context);
+			if(it != m_SendFdMap.end())
+				m_SendFdMap.erase(it);
 			continue;
 		}
 		//需要解码
@@ -313,6 +315,7 @@ bool TransHandler::onEventWrite(int32_t fd, uint64_t now_time)
 			continue;
 		}
 
+		//只发送了一半数据,等待下次可写事件
 		LOG_INFO(logger, "send data partly. context="<<context
 					<<" data_type="<<context->data_type
 					<<" protocol_type="<<context->protocol_type
@@ -321,6 +324,13 @@ bool TransHandler::onEventWrite(int32_t fd, uint64_t now_time)
 					<<" fd="<<fd);
 		if(it == m_SendFdMap.end())    //保存为正在发送的数据
 			m_SendFdMap.insert(std::make_pair(fd, context));
+
+		//添加可写事件到EventServer
+		IEventServer *event_server = m_AppInterface->GetEventServer();
+		assert(event_server != NULL);
+		int32_t timeout = m_AppInterface->GetIdleTimeout();
+		if(!event_server->AddEvent(fd, ET_WRITE, this, timeout))
+			LOG_ERROR(logger, "add write event to event server failed. fd="<<fd);
 		break;
 	}
 	return true;

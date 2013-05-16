@@ -99,10 +99,11 @@ bool IAppInterface::AcceptNewConnect(int32_t fd)
 	return true;
 }
 
-bool IAppInterface::SendProtocol(int32_t fd, ProtocolContext *context)
+bool IAppInterface::SendProtocol(int32_t fd, ProtocolContext *context, int32_t send_timeout/*=-1*/)
 {
 	if(fd<0 || context==NULL)
 		return false;
+	context->time_out = send_timeout;
 	if(context->time_out > 0)
 	{
 		uint64_t now;

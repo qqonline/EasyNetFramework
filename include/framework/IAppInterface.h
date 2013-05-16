@@ -24,6 +24,11 @@ namespace easynet
 typedef list<ProtocolContext*> ProtocolList;
 typedef map<int32_t, ProtocolList> SendMap;
 
+//默认使用:
+//    EventServer     : EventServerEpoll
+//    ProtocolFactory : KVDataProtocolFactory
+//    TransHandler    : TransHandler
+//    ListenHandler   : ListenHandler
 class IAppInterface
 {
 public:
@@ -34,10 +39,11 @@ public:
 	//  @param port     : 需要监听的端口
 	//  @param ip       : 需要监听的本地ip(如果没有指定本地的网卡地址,使用默认的)
 	//  @param back_log : accept的队列大小
-	virtual bool Listen(int32_t port, const char *ip=NULL, uint32_t back_log);
+	virtual bool Listen(int32_t port, const char *ip=NULL, uint32_t back_log=128);
 
 	//发送协议(添加到发送队列中等待发送),成功返回true,失败返回false.
-	virtual bool SendProtocol(int32_t fd, ProtocolContext *context);
+	// @param send_timeout : 发送的超时时间.在该时间内如果没有发送完成,将产生超时事件,OnSendTimeout接口被调用.默认-1表示不进行超时检查
+	virtual bool SendProtocol(int32_t fd, ProtocolContext *context, int32_t send_timeout=-1);
 
 	//从队列中获取一个待发送的协议
 	virtual ProtocolContext* GetSendProtocol(int32_t fd);
