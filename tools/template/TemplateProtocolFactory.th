@@ -4,35 +4,44 @@
  *  Created on: CreateDate
  *      Author: AuthorName
  */
-#ifndef _TemplateProtocolFactory_H_
-#define _TemplateProtocolFactory_H_
+#ifndef _TEMPLATEPROTOCOLFACTORY_H_
+#define _TEMPLATEPROTOCOLFACTORY_H_
+
 #include "IProtocolFactory.h"
 using namespace easynet;
+
+//支持协议类型:
+<<TP>>AT
+//  文本协议
+<<TP>>END
+<<TP>>AB
+//  二进制协议
+<<TP>>END
 class TemplateProtocolFactory:public IProtocolFactory
 {
 //////////////////////////////////////////////////////////////////
 //////////////////////   派生类实现的接口   //////////////////////
 //////////////////////////////////////////////////////////////////
 public:
-	||TP||A
+<<TP>>A
 	//检测是二进制还是文本数据
 	//成功的话,设置data_type(DTYPE_BIN时必须设置header_size; DTYPE_TEXT时必须设置body_size,表示文本协议数据可能的最大长度)
 	DecodeResult DecodeDataType(ProtocolContext *context);
-	||TP||END
+<<TP>>END
 
-	||TP||AB
+<<TP>>AB
 	//解码二进制协议头数据
 	//返回DECODE_SUCC时,buffer,buffer_size,body_size等需要进行设置.
 	DecodeResult DecodeBinHeader(ProtocolContext *context);
 
 	//解码二进制协议体数据
-	;DecodeResult DecodeBinBody(ProtocolContext *context);
-	||TP||END
+	DecodeResult DecodeBinBody(ProtocolContext *context);
+<<TP>>END
 
-	||TP||AT
+<<TP>>AT
 	//解码文本协议体数据
 	DecodeResult DecodeTextBody(ProtocolContext *context);
-	||TP||END
+<<TP>>END
 
 	//对协议进行编码
 	bool EncodeProtocol(ProtocolContext *send_context);
@@ -51,25 +60,17 @@ protected:
 	//  data_type=DTYPE_BIN时,header_size必需设置;
 	void InitRecvDefine(ProtocolDefine *protocol_def);
 
-	||TP||AB
+<<TP>>AB
 	//创建protocol_type类型的protocol.一般在解码协议体成功或者创建send context的时候调用
 	//buffer是大小为buffer_size字节的可用缓冲区,如果创建的protocol需要时可以使用该buffer.否则忽略
 	//主要用于二进制数据的协议
-	virtual void* NewProtocol(int32_t protocol_type, char *buffer, uint32_t buffer_size)
-	{
-		assert(0);
-		return NULL;
-	}
+	void* NewProtocol(int32_t protocol_type, char *buffer, uint32_t buffer_size);
 
 	//销毁protocol_type类型的protocol
-	virtual void DeleteProtocol(void *protocol, int32_t protocol_type)
-	{
-		assert(0);
-		return ;
-	}
-	||TP||END
+	void DeleteProtocol(void *protocol, int32_t protocol_type);
+<<TP>>END
 };
 
-#endif //_TemplateProtocolFactory_H_
+#endif //_TEMPLATEPROTOCOLFACTORY_H_
 
 
