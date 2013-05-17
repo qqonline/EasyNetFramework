@@ -9,9 +9,18 @@
 
 void TemplateProtocolFactory::InitRecvDefine(ProtocolDefine *protocol_def)
 {
-	//Add Your codes Here
-	//
-
+<<TP>>A
+	protocol_def->data_type = DTYPE_ALL;
+	protocol_def->data_header_size = /*** set data_header_size ***/;
+<<TP>>END
+<<TP>>B
+	protocol_def->data_type = DTYPE_BIN;
+	protocol_def->header_size = /*** set header_size ***/;
+<<TP>>END
+<<TP>>T
+	protocol_def->data_type = DTYPE_TEXT;
+	protocol_def->body_size = /*** set body_size (may be max size)***/
+<<TP>>END
 }
 
 <<TP>>A

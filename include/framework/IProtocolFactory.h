@@ -36,7 +36,7 @@ public:
 
 public:
 	DataType  data_type;
-	uint32_t  data_header_size;  //用于区分二进制/文本协议的数据头长度,当data_type为DTYPE_INVALID有效
+	uint32_t  data_header_size;  //用于区分二进制/文本协议的数据头长度,当data_type为DTYPE_ALL有效
 	uint32_t  header_size;       //协议头长度,当data_type=DTYPE_BIN有效
 	uint32_t  body_size;         //协议体长度.当data_type=DTYPE_BIN时为固定长度,data_type=DTYPE_TEXT时为可能的最大长度
 };
