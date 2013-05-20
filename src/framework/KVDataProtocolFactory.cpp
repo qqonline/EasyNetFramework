@@ -23,6 +23,11 @@ void KVDataProtocolFactory::InitRecvDefine(ProtocolDefine *protocol_def)
 	return ;
 }
 
+ProtocolContext* KVDataProtocolFactory::NewSendContext(uint32_t max_size)
+{
+	return IProtocolFactory::NewSendContext(DTYPE_BIN, max_size, 0);
+}
+
 DecodeResult KVDataProtocolFactory::DecodeBinHeader(ProtocolContext *context)
 {
 	char *buffer = context->buffer;

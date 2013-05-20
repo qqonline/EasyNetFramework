@@ -12,7 +12,7 @@ SONAME=libeasynet.so
 
 lib:
 	(cd src/common;$(MAKE) all)
-	(cd src/framework;$(MAKE) all)
+	#(cd src/framework;$(MAKE) all)
 	ar -cr ${TMPLIBDIR}/${LIBNAME} ${OBJDIR}/*.o
 	g++ -fPIC -shared ${OBJDIR}/*.o -o ${TMPLIBDIR}/${SONAME}
 
@@ -22,11 +22,13 @@ install:
 	cp include/framework/* ${INCLUDE_DIR}
 	cp ${TMPLIBDIR}/${LIBNAME} ${LIBDIR}
 	cp ${TMPLIBDIR}/${SONAME} ${LIBDIR}
- 
+	cp tools/template ${INCLUDE_DIR} -r
+	cp tools/easynet.sh /usr/bin/easynet
 uninstall:
 	if [ -d "${INCLUDE_DIR}" ];then rm ${INCLUDE_DIR} -rf;fi
 	if [ -f "${LIBDIR}/${LIBNAME}" ];then rm ${LIBDIR}/${LIBNAME} -f;fi
 	if [ -f "${LIBDIR}/${SONAME}" ];then rm ${LIBDIR}/${SONAME} -f;fi
+	if [ -f "/usr/bin/easynet" ];then rm /usr/bin/easynet -f;fi
 clean:
 	rm ${OBJDIR}/* ${TMPLIBDIR}/* 
 push:

@@ -9,7 +9,7 @@
 #include <stdint.h>
 #include <assert.h>
 
-#include "MemoryPool.h"
+#include "IMemory.h"
 
 namespace easynet
 {
@@ -17,29 +17,11 @@ namespace easynet
 //协议数据的类型
 typedef enum _query_type
 {
+	DTYPE_UNKNOW,   //未知协议格式
 	DTYPE_ALL,       //文本和二进制
 	DTYPE_TEXT,      //文本数据
 	DTYPE_BIN        //二进制数据
 }DataType;
-
-//定义数据类型及对应的参数
-class ProtocolDefine
-{
-public:
-	ProtocolDefine()
-		:data_type(DTYPE_ALL)
-		,data_header_size(0)
-		,header_size(0)
-		,body_size(0)
-	{
-	}
-
-public:
-	DataType  data_type;
-	uint32_t  data_header_size;  //用于区分二进制/文本协议的数据头长度,当data_type为DTYPE_ALL有效
-	uint32_t  header_size;       //协议头长度,当data_type=DTYPE_BIN有效
-	uint32_t  body_size;         //协议体长度.当data_type=DTYPE_BIN时为固定长度,data_type=DTYPE_TEXT时为可能的最大长度
-};
 
 //二进制协议接口
 class IProtocol
@@ -63,34 +45,37 @@ public:
 };
 
 class IProtocolFactory;
-class ProtocolContext: public ProtocolDefine, public IProtocol
+class ProtocolContext: public IProtocol
 {
 public:
 	//  @param protocol_factory : 创造本对象的协议工厂
-	ProtocolContext(IProtocolFactory *protocol_factory)
-		:buffer(NULL)
+	ProtocolContext(IMemory *mem)
+		:type(DTYPE_UNKNOW)
+		,expect_size(0)
+		,cur_size(0)
+		,buffer(NULL)
 		,buffer_size(0)
-		,cur_data_size(0)
-		,fd(-1)
 		,time_out(-1)
 		,expire_time(-1)
-		,m_ProtocolFactory(protocol_factory)
+		,fd(-1)
+		,memory(mem)
 	{
 	}
 
-	//基类的接口
-	void Destroy();
-
+	void Destroy(){memory->Free((void*)this, sizeof(ProtocolContext));}
 public:
+	DataType  type;               //数据类型
+	uint32_t  expect_size;        //期望的总数据长度
+	uint32_t  cur_size;           //当前的数据长度
+
 	char      *buffer;           //存放数据的缓冲区
 	uint32_t  buffer_size;       //缓冲区的大小
-	uint32_t  cur_data_size;     //当前接收到/已发送的数据大小
 
 	int32_t   time_out;          //接收/发送的超时时间(单位:毫秒),应用层设置
 	uint64_t  expire_time;       //接收/发送的超时时间点(单位:毫秒),框架设置
 	uint32_t  fd;                //接收/发送的socket fd(暂时没有使用)
-private:
-	IProtocolFactory *m_ProtocolFactory;
+
+	IMemory   *memory;
 };
 
 typedef enum _decode_result
@@ -105,26 +90,25 @@ typedef enum _decode_result
 class IProtocolFactory
 {
 public:
-	IProtocolFactory():m_MemPool(NULL){}
-	virtual ~IProtocolFactory();
+	IProtocolFactory(IMemory *memory);
+	virtual ~IProtocolFactory(){}
 
 	//创建接收协议的context
-	virtual ProtocolContext* NewRecvContext();
+	ProtocolContext* NewRecvContext();
 
-	//创建发送协议的context
-	//  @param max_data_size : 需要发送的数据可能的最大值
+	//创建文本协议的context
+	ProtocolContext* NewSendContextText(uint32_t max_size);
+
+	//创建二进制协议的context
 	//  @param protocol_type : 需要发送的协议类型
-	//  @param data_type     : 需要发送的数据类型,只能是DTYPE_TEXT或者DTYPE_BIN
-	//                           a) 为DTYPE_TEXT时,只分配了max_data_size字节的buffer给应用层写入文本数据,
-	//                              应用层需要设置body_size为实际写入的数据大小并且不能超过max_data_size;
-	//                           b) 为DTYPE_BIN时,除了生成buffer缓冲区外,还创建了protocol_type类的协议protocol;
-	virtual ProtocolContext* NewSendContext(DataType data_type, uint32_t max_data_size, int32_t protocol_type);
+	//  @param max_size : 需要发送的数据可能的最大值
+	ProtocolContext* NewSendContextBin(uint32_t protocol_type, uint32_t max_size);
 
 	//删除接收/发送协议的context
-	virtual void DeleteContext(ProtocolContext *context);
+	void DeleteContext(ProtocolContext *context);
 
 protected:
-	MemPool *m_MemPool;
+	IMemory  *m_Memory;
 
 	//重新分配数据缓冲区的内存
 	//  @param context  : 缓冲区buffer需要重新分配的context
@@ -135,8 +119,19 @@ protected:
 //////////////////////   派生类实现的接口   //////////////////////
 //////////////////////////////////////////////////////////////////
 public:
-	//检测是二进制还是文本数据
-	//成功的话,设置data_type(DTYPE_BIN时必须设置header_size; DTYPE_TEXT时必须设置body_size,表示文本协议数据可能的最大长度)
+	//初始化RecvContext,设置data_type为:
+	//  (1) DTYPE_INVALID: 表明支持二进制和文本格式,但数据所属格式位置,需解码数据格式. header_size必须设置为区分二进制和文本数据的长度.
+	//  (2) DTYPE_BIN    : 表明只支持二进制格式,需设置header_size为二进制协议头长度.
+	//  (3) DTYPE_TEXT   : 表明只支持文本格式,需设置body_size为文本格式可能的最大数据长度.
+	virtual void InitDecodeParameter(DataType &type, uint32_t &expect_size)=0;
+
+	//初始化二进制SendContext的头部长度和最大的协议体长度
+	virtual uint32_t GetBinHeaderSize()=0;
+
+	//同时支持文本和二进制数据时必须实现,用于检测是二进制还是文本数据格式.
+	//成功的话,设置data_type及相关参数:
+	//  (1) data_type=DTYPE_BIN时必须设置header_size表明二进制协议头长度;
+	//  (2) data_type=DTYPE_TEXT时必须设置body_size,表示文本协议数据可能的最大长度
 	virtual DecodeResult DecodeDataType(ProtocolContext *context)
 	{
 		assert(0);
@@ -166,11 +161,7 @@ public:
 	}
 
 	//对协议进行编码
-	virtual bool EncodeProtocol(ProtocolContext *send_context)
-	{
-		assert(0);
-		return true;
-	}
+	virtual bool EncodeProtocol(ProtocolContext *send_context)=0;
 
 	//对协议进行编码
 	//编码数据放到大小为buffer_size字节的buffer中.成功返回true,失败返回false
@@ -183,12 +174,8 @@ public:
 	}
 
 protected:
-	//定义协议参数,控制接收协议的类型.
-	//初始化待接收协议的解码信息.
-	//  data_type=DTYPE_INVALID时,data_header_size必需设置;
-	//  data_type=DTYPE_TEXT时,body_size必需设置为文本协议数据可能的最大长度;
-	//  data_type=DTYPE_BIN时,header_size必需设置;
-	virtual void InitRecvDefine(ProtocolDefine *protocol_def)=0;
+
+	virtual void ProtocolFactoryDefine(ProtocolDefine *protocol_def)=0;
 
 	//创建protocol_type类型的protocol.一般在解码协议体成功或者创建send context的时候调用
 	//buffer是大小为buffer_size字节的可用缓冲区,如果创建的protocol需要时可以使用该buffer.否则忽略

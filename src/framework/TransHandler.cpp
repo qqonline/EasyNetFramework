@@ -121,11 +121,11 @@ bool TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 	//检查数据类型:二进制协议/文本协议
 	if(context->data_type == DTYPE_ALL)
 	{
-		assert(context->cur_data_size < context->data_header_size);
+		assert(context->cur_data_size < context->header_size);
 
 		char *buffer         = context->buffer+context->cur_data_size;
 		uint32_t buffer_size = context->buffer_size-context->cur_data_size;
-		uint32_t need_size   = context->data_header_size-context->cur_data_size;
+		uint32_t need_size   = context->header_size-context->cur_data_size;
 		int32_t recv_size    = ReadData(fd, buffer, buffer_size, need_size);
 		if(recv_size== -1)
 		{
@@ -146,13 +146,12 @@ bool TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 		}
 		else if(result == DECODE_DATA)
 		{
-			LOG_DEBUG(logger, "wait for more temp_header data. temp_header_size="<<context->data_header_size<<" cur_size="<<context->cur_data_size<<" fd="<<fd);
+			LOG_DEBUG(logger, "wait for more temp_header data. temp_header_size="<<context->header_size<<" cur_size="<<context->cur_data_size<<" fd="<<fd);
 			return true;
 		}
 
 		else if(context->data_type==DTYPE_BIN)
 		{
-			assert(context->header_size>0);
 			context->body_size = 0;
 		}
 		else

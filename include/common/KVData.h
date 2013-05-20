@@ -13,7 +13,7 @@ using std::map;
 #include <string>
 using std::string;
 
-#include "Logger.h"
+#include "IMemory.h"
 
 namespace easynet
 {
@@ -25,41 +25,25 @@ typedef map<uint16_t, void*> PosMap;
 class KVData
 {
 public:
+	//使用
 	KVData();
-	//使用外部buffer. buffer_size必须不小于4
-	KVData(void *buffer, uint32_t buffer_size);
+	KVData(IMemory *memory);
 	~KVData();
 
 	//返回当前数据大小
 	uint32_t Size(){return m_Size;}
 
-	//使用外部buffer. buffer_size必须不小于4
-	//data_size=0并且init为true时进行初始,false时不进行初始(不对buffer进行任何处理)
-	bool AttachBuffer(void *buffer, uint32_t buffer_size, uint32_t data_size=0, bool init=true);
-	bool DetachBuffer(void *&buffer, uint32_t &buffer_size, uint32_t &data_size);
-
 	bool Set(uint16_t key, int8_t val);
-	bool Set(uint16_t key, uint8_t val);
 	bool Set(uint16_t key, int16_t val);
-	bool Set(uint16_t key, uint16_t val);
 	bool Set(uint16_t key, int32_t val);
-	bool Set(uint16_t key, uint32_t val);
 	bool Set(uint16_t key, int64_t val);
-	bool Set(uint16_t key, uint64_t val);
 	bool Set(uint16_t key, const void *bytes, uint32_t size);
-	bool Set(uint16_t key, const string &str);
+	bool Set(uint16_t key, const char *c_str); //c风格的字符串(包括'\0')
 
 	bool UnPack();
-	bool Get(uint16_t key, int8_t *val);
-	bool Get(uint16_t key, uint8_t *val);
-	bool Get(uint16_t key, int16_t *val);
-	bool Get(uint16_t key, uint16_t *val);
-	bool Get(uint16_t key, int32_t *val);
-	bool Get(uint16_t key, uint32_t *val);
-	bool Get(uint16_t key, int64_t *val);
-	bool Get(uint16_t key, uint64_t *val);
+	bool Get(uint16_t key, int32_t *val);    //8,16,32都用本方法返回
+	bool Get(uint16_t key, int64_t *val);    //64位的用本方法返回
 	bool Get(uint16_t key, void **bytes, uint32_t *size);
-	bool Get(uint16_t key, string &str);
 
 private:
 	uint32_t   m_Size;
@@ -68,11 +52,11 @@ private:
 	PosMap     m_PosMap;
 	bool       m_UseInternalBuffer;
 
+	void _InitMagicNum();
 	bool _Set(uint16_t key, uint16_t type, void *bytes, uint32_t size);
-	bool _Get(uint16_t key, uint16_t type, void **bytes, uint32_t *size=NULL);
-	bool _ExpandCapacity(uint32_t need_size);
-private:
-	DECL_LOGGER(logger);
+
+	DefaultMemory m_DefaultMemory;
+	IMemory *m_Memory;
 };
 
 }//namespace

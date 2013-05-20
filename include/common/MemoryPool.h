@@ -8,17 +8,20 @@
 #define _COMMON_MEMORY_POOL_H_
 
 #include <stdint.h>
+#include <pthread.h>
+#include <IMemory.h>
 
 namespace easynet
 {
 
+//线程安全
 class MemSlab
 {
 public:
 	// @param elem_size : 元素大小.不小于4个字节
 	// @param slab_n    : 每个块包含的元素个数
 	// @param block_n   : 最大多块数.-1时表示不限制
-	MemSlab(uint32_t elem_size, uint32_t slab_n=100, int32_t block_n=-1);
+	MemSlab(bool thread_safe, uint32_t elem_size, uint32_t slab_n=100, int32_t block_n=-1);
 	~MemSlab();
 
 	uint32_t ElementSize(){return m_ElemSize;}
@@ -35,6 +38,9 @@ private:
 	int32_t  m_BlockNum;  //最大的块数
 	uint32_t m_CurBlock;    //当前空闲块下标
 	uint32_t m_CurIndex;    //当前空闲块中可用的元素下标
+
+	bool m_ThreadSafe;
+	pthread_mutex_t m_Mutex;
 };
 
 typedef struct _mem_info
@@ -57,23 +63,22 @@ typedef struct _mem_info
  *    每个区间最大的block个数   : 不限制
  *比如需要大小50字节的内存块,则将在元素大小为64的内存块中分配.
  */
-class MemPool
+class MemPool:IMemory
 {
 public:
-	MemPool();
+	MemPool(bool thread_safe);
 
 	// @param n             : size_array和slab_n_array,block_n_array的大小
 	// @param size_array    : 指示每个MemSlab的元素大小的数组
 	// @param slab_n_array  : 指示每个MemSlab中的块包含的元素个数(NULL时使用默认值)
 	// @param block_n_array : 指示每个MemSlab中最多的块数(NULL或者元素值为-1时表示没有限制)
-	MemPool(uint32_t n, uint32_t *size_array, uint32_t *slab_n_array=NULL, int32_t *block_n_array=NULL);
+	MemPool(bool thread_safe, uint32_t n, uint32_t *size_array, uint32_t *slab_n_array=NULL, int32_t *block_n_array=NULL);
 
 	~MemPool();
 
-	//获取大小为size的内存
 	void* Alloc(uint32_t size);
-	//回收内存
-	bool Free(void *data, uint32_t size);
+	void Free(void *mem, uint32_t size);
+	void* ReAlloc(void *mem, uint32_t size, uint32_t new_size);
 private:
 	uint32_t m_ClassNum;
 	uint32_t *m_SizeArray;
@@ -81,7 +86,7 @@ private:
 	int32_t  *m_BlockNumArray;
 
 	MemSlab  **m_MemSlabArray;
-	void InitMemSlab();
+	void InitMemSlab(bool thread_safe);
 };
 
 }//namespace
