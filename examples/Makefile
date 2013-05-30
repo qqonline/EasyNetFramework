@@ -1,4 +1,4 @@
-INCLUDE=-I/usr/include/EasyNetFramework/common
+INCLUDE=-I/usr/include/easynet -I./
 LIB=-leasynet -lpthread -llog4cplus
 LIB_EXT=-llog4cplus
 FLAGS=-g

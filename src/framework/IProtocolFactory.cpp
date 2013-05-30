@@ -15,8 +15,29 @@
 namespace easynet
 {
 
-//最小的接收缓冲区大小
-#define MIN_BUFFER_SIZE 128
+void ProtocolContext::Destroy()
+{
+	m_Factory->DeleteContext(this);
+}
+
+ProtocolContext::ProtocolContext(IProtocolFactory *factory, IMemory *mem)
+		:type(DTYPE_UNKNOW)
+		,expect_size(0)
+		,bytebuffer(NULL)
+		,time_out(-1)
+		,expire_time(-1)
+		,fd(-1)
+		,m_Memory(mem)
+		,m_Factory(factory)
+{
+	assert(mem != NULL);
+	bytebuffer = ByteBuffer::Create(1024, mem);
+}
+
+ProtocolContext::~ProtocolContext()
+{
+	bytebuffer->Destroy();
+}
 
 IProtocolFactory::IProtocolFactory(IMemory *memory)
 	:m_Memory(memory)
@@ -29,31 +50,10 @@ ProtocolContext* IProtocolFactory::NewRecvContext()
 	void *mem_block = m_Memory->Alloc(sizeof(ProtocolContext));
 	if(mem_block == NULL)
 		return NULL;
-	ProtocolContext *context = new(mem_block) ProtocolContext(this);
-	InitDecodeParameter(context);
-
-	//分配缓冲区
-	if(context->data_type == DTYPE_INVALID)    //支持两种格式
-		context->buffer_size = context->header_size;
-	if(context->data_type == DTYPE_TEXT)
-		context->buffer_size = context->body_size;
-	else if(context->data_type == DTYPE_BIN)
-		context->buffer_size = context->header_size;
-	else
-	{
-		m_Memory->Free((void*)context, sizeof(ProtocolContext));
-		return NULL;
-	}
-
-	if(context->buffer_size < MIN_BUFFER_SIZE)
-		context->buffer_size = MIN_BUFFER_SIZE;
-	context->buffer = (char*)m_Memory->Alloc(context->buffer_size);
-	if(context->buffer == NULL)
-	{
-		m_Memory->Free((void*)context, sizeof(ProtocolContext));
-		return NULL;
-	}
-
+	ProtocolContext *context = new(mem_block) ProtocolContext(this, m_Memory);
+	InitDecodeParameter(context->type,context->expect_size);
+	if(context->expect_size > context->bytebuffer->m_Capacity)
+		context->bytebuffer->Enlarge(context->expect_size);
 	return context;
 }
 
@@ -63,18 +63,11 @@ ProtocolContext* IProtocolFactory::NewSendContextText(uint32_t max_size)
 	void *mem_block = m_Memory->Alloc(sizeof(ProtocolContext));
 	if(mem_block == NULL)
 		return NULL;
-	ProtocolContext *context = new(mem_block) ProtocolContext(this);
+	ProtocolContext *context = new(mem_block) ProtocolContext(this, m_Memory);
 
-	context->data_type     = DTYPE_TEXT;
-	context->protocol_type = -1;
-	context->buffer_size   = max_size;
-	context->buffer        = (char*)m_Memory->Alloc(context->buffer_size);
-	if(context->buffer == NULL)
-	{
-		m_Memory->Free((void*)context, sizeof(ProtocolContext));
-		return NULL;
-	}
-
+	context->type = DTYPE_TEXT;
+	if(max_size > context->bytebuffer->m_Capacity)
+		context->bytebuffer->Enlarge(max_size);
 	return context;
 }
 
@@ -83,27 +76,18 @@ ProtocolContext* IProtocolFactory::NewSendContextBin(uint32_t protocol_type, uin
 	void *mem_block = m_Memory->Alloc(sizeof(ProtocolContext));
 	if(mem_block == NULL)
 		return NULL;
-	ProtocolContext *context = new(mem_block) ProtocolContext(this);
+	ProtocolContext *context = new(mem_block) ProtocolContext(this, m_Memory);
 
-	context->data_type     = DTYPE_BIN;
-	context->header_size   = GetBinHeaderSize();
+	context->type = DTYPE_BIN;
+	uint32_t header_size = GetBinHeaderSize();
+	if(header_size > context->bytebuffer->m_Capacity)
+		context->bytebuffer->Enlarge(header_size);
+	context->bytebuffer->m_Size = header_size;
+
 	context->protocol_type = protocol_type;
-	context->buffer_size   = context->header_size+max_size;
-	context->buffer        = (char*)m_Memory->Alloc(context->buffer_size);
-	if(context->buffer == NULL)
-	{
-		m_Memory->Free((void*)context, sizeof(ProtocolContext));
-		return NULL;
-	}
-
 	//二进制协议,创建具体的协议实例
-	context->protocol = NewProtocol(context->protocol_type, context->buffer+context->header_size, context->body_size);
-	if(context->protocol == NULL)
-	{
-		m_Memory->Free(context->buffer, context->buffer_size);
-		m_Memory->Free((void*)context, sizeof(ProtocolContext));
-		context = NULL;
-	}
+	context->protocol = NewProtocol(context->protocol_type, context->bytebuffer);
+	assert(context->protocol != NULL);
 
 	return context;
 }
@@ -112,26 +96,10 @@ void IProtocolFactory::DeleteContext(ProtocolContext *context)
 {
 	if(context == NULL)
 		return ;
-
 	if(context->protocol != NULL)
-		DeleteProtocol(context->protocol, context->protocol_type);
-	if(context->buffer != NULL)
-		m_Memory->Free((void*)context->buffer, context->buffer_size);
+		DeleteProtocol(context->protocol_type, context->protocol);
+	context->~ProtocolContext();
 	m_Memory->Free((void*)context, sizeof(ProtocolContext));
-}
-
-bool IProtocolFactory::ReAllocBuffer(ProtocolContext *context, uint32_t new_size)
-{
-	if(context->buffer_size >= new_size)
-		return true;
-
-	void *new_buffer = m_Memory->ReAlloc(context->buffer, context->buffer_size, new_size);
-	if(new_buffer == NULL)
-		return false;
-	//设置新的buffer
-	context->buffer = (char*)new_buffer;
-	context->buffer_size = new_size;
-	return true;
 }
 
 }//namespace

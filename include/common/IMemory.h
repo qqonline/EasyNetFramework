@@ -28,7 +28,7 @@ public:
 	virtual void* ReAlloc(void *mem, uint32_t size, uint32_t new_size)=0;
 };
 
-class DefaultMemory:public IMemory
+class SystemMemory:public IMemory
 {
 public:
 	void* Alloc(uint32_t size)
@@ -46,6 +46,8 @@ public:
 		return realloc(mem, new_size);
 	}
 };
+
+extern SystemMemory gSystemMemory;
 
 }//namespace
 #endif //_COMMON_IMEMORY_H_

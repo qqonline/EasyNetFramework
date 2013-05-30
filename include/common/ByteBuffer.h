@@ -1,120 +1,34 @@
 /*
  * ByteBuffer.h
  *
- *  Created on: 2013-3-14
+ *  Created on: May 6, 2013
  *      Author: LiuYongJin
  */
+#ifndef _COMMON_BYTEBUFFER_H_TMP
+#define _COMMON_BYTEBUFFER_H_TMP
 
-#ifndef _COMMON_BYTEBUFFER_H_
-#define _COMMON_BYTEBUFFER_H_
-
-#include <assert.h>
-#include <stdlib.h>
-#include <stdint.h>
+#include "IMemory.h"
 
 namespace easynet
 {
 
-#define BF_INIT_CAPACITY 1024      //初始化大小1k
-
 class ByteBuffer
 {
 public:
-	ByteBuffer(uint32_t init_capacity=BF_INIT_CAPACITY);
+	ByteBuffer(uint32_t capacity=1024, IMemory *memory=NULL);
 	~ByteBuffer();
 
-	//获取整个buffer
-	char* GetBuffer(){return m_base;}
-	//获取总数据大小
-	uint32_t GetSize(){return m_size;}
+	//容量扩大size个字节,成功返回true,失败返回false(没有内存)
+	bool Enlarge(uint32_t size=1024);
 
-	//从有效数据后面获取一个大小为size的buffer用于添加数据
-	char* GetAppendBuffer(uint32_t size);
-	//设置添加到buffer中的大小
-	void SetAppendSize(uint32_t size);
+	char *m_Buffer;
+	uint32_t m_Capacity; //buffer的容量
+	uint32_t m_Size;     //buffer中数据大小
 
-	//返回可获取的数据大小
-	uint32_t GetFetchSize();
-	//获取有效数据的buffer用于获取数据,返回有效数据的size;没有数据返回NULL,size设置为0
-	char* GetFetchBuffer(uint32_t *size=NULL);
-	//设置从buffer中取出的数据大小;
-	void SetFetchSize(uint32_t size);
-
-	void Clear();
-public:
-	//添加大小为size的bytes数组到buffer后面
-	bool AppendBytes(char *bytes, uint32_t size);
-	//添加字符串(不包含'\0')到buffer后面
-	bool AppendStr(char *str);
-	//添加32位整数i到buffer后面
-	bool AppendInt32(int32_t i);
-	//添加64位整数到buffer后面
-	bool AppendInt64(int64_t i);
-
-	//严格从buffer读出size字节到buf中.数据不足size字节返回false.
-	bool FetchBytes(char *buf, uint32_t size);
-	//严格从buffer读出32位整数.数据不足size字节返回false.
-	bool FetchInt32(int32_t *i);
-	//严格从buffer读取64位整数.数据不足size字节返回false.
-	bool FetchInt64(int64_t *i);
 private:
-	char *m_base;
-	uint32_t m_capacity;
-	uint32_t m_size;
-	uint32_t m_fetch_pos;
+	static SystemMemory m_SysMemory;
+	IMemory *m_Memory;   //对象的内存分配器
 };
 
-inline
-void ByteBuffer::SetAppendSize(uint32_t size)
-{
-	assert(m_size+size <= m_capacity);
-	m_size += size;
-}
-
-inline
-void ByteBuffer::SetFetchSize(uint32_t size)
-{
-	assert(m_fetch_pos+size <= m_size);
-	m_fetch_pos += size;
-}
-
-inline
-bool ByteBuffer::AppendStr(char *str)
-{
-	return str==NULL?true:AppendBytes(str, strlen(str));
-}
-
-inline
-bool ByteBuffer::AppendInt32(int32_t i)
-{
-	return AppendBytes((char*)&i, sizeof(i));
-}
-
-inline
-bool ByteBuffer::AppendInt64(int64_t i)
-{
-	return AppendBytes((char*)&i, sizeof(i));
-}
-
-inline
-uint32_t ByteBuffer::GetFetchSize()
-{
-	return m_fetch_pos<m_size?m_size-m_fetch_pos:0;
-}
-
-bool ByteBuffer::FetchInt32(int32_t *i)
-{
-	return i==NULL?false:FetchBytes((char*)i, sizeof(int32_t));
-}
-
-bool ByteBuffer::FetchInt64(int64_t *i)
-{
-	return i==NULL?false:FetchBytes((char*)i, sizeof(int64_t));
-}
-
-
 }//namespace
-
-#endif //_COMMON_BYTEBUFFER_H_
-
-
+#endif //_COMMON_BYTEBUFFER_H_TMP

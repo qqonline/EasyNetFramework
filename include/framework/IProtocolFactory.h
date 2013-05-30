@@ -17,10 +17,10 @@ namespace easynet
 //协议数据的类型
 typedef enum _query_type
 {
-	DTYPE_UNKNOW,   //未知协议格式
-	DTYPE_ALL,       //文本和二进制
+	DTYPE_UNKNOW,    //未知协议格式
 	DTYPE_TEXT,      //文本数据
-	DTYPE_BIN        //二进制数据
+	DTYPE_BIN,       //二进制数据
+	DTYPE_BIN_TEXT   //文本和二进制
 }DataType;
 
 //二进制协议接口
@@ -47,35 +47,22 @@ public:
 class IProtocolFactory;
 class ProtocolContext: public IProtocol
 {
+	friend class IProtocolFactory;
 public:
-	//  @param protocol_factory : 创造本对象的协议工厂
-	ProtocolContext(IMemory *mem)
-		:type(DTYPE_UNKNOW)
-		,expect_size(0)
-		,cur_size(0)
-		,buffer(NULL)
-		,buffer_size(0)
-		,time_out(-1)
-		,expire_time(-1)
-		,fd(-1)
-		,memory(mem)
-	{
-	}
-
-	void Destroy(){memory->Free((void*)this, sizeof(ProtocolContext));}
+	void Destroy();
 public:
-	DataType  type;               //数据类型
-	uint32_t  expect_size;        //期望的总数据长度
-	uint32_t  cur_size;           //当前的数据长度
-
-	char      *buffer;           //存放数据的缓冲区
-	uint32_t  buffer_size;       //缓冲区的大小
-
-	int32_t   time_out;          //接收/发送的超时时间(单位:毫秒),应用层设置
-	uint64_t  expire_time;       //接收/发送的超时时间点(单位:毫秒),框架设置
-	uint32_t  fd;                //接收/发送的socket fd(暂时没有使用)
-
-	IMemory   *memory;
+	DataType   type;               //数据类型
+	uint32_t   expect_size;        //期望的总数据长度
+	ByteBuffer *bytebuffer;        //缓冲区
+	int32_t    time_out;           //接收/发送的超时时间(单位:毫秒),应用层设置
+	uint64_t   expire_time;        //接收/发送的超时时间点(单位:毫秒),框架设置
+	uint32_t   fd;                 //接收/发送的socket fd(暂时没有使用)
+private:
+	ProtocolContext(IProtocolFactory *factory, IMemory *mem);
+	~ProtocolContext();
+private:
+	IMemory   *m_Memory;
+	IProtocolFactory *m_Factory;
 };
 
 typedef enum _decode_result
@@ -109,11 +96,6 @@ public:
 
 protected:
 	IMemory  *m_Memory;
-
-	//重新分配数据缓冲区的内存
-	//  @param context  : 缓冲区buffer需要重新分配的context
-	//  @param new_size : 新的缓冲区大小
-	virtual bool ReAllocBuffer(ProtocolContext *context, uint32_t new_size);
 
 //////////////////////////////////////////////////////////////////
 //////////////////////   派生类实现的接口   //////////////////////
@@ -174,33 +156,23 @@ public:
 	}
 
 protected:
-
-	virtual void ProtocolFactoryDefine(ProtocolDefine *protocol_def)=0;
-
 	//创建protocol_type类型的protocol.一般在解码协议体成功或者创建send context的时候调用
 	//buffer是大小为buffer_size字节的可用缓冲区,如果创建的protocol需要时可以使用该buffer.否则忽略
 	//主要用于二进制数据的协议
-	virtual void* NewProtocol(int32_t protocol_type, char *buffer, uint32_t buffer_size)
+	virtual void* NewProtocol(int32_t protocol_type, ByteBuffer *byte_buffer)
 	{
 		assert(0);
 		return NULL;
 	}
 
 	//销毁protocol_type类型的protocol
-	virtual void DeleteProtocol(void *protocol, int32_t protocol_type)
+	virtual void DeleteProtocol(int32_t protocol_type, void *protocol)
 	{
 		assert(0);
 		return ;
 	}
 
 };
-
-
-inline
-void ProtocolContext::Destroy()
-{
-	m_ProtocolFactory->DeleteContext(this);
-}
 
 }//namespace
 #endif //_FRAMEWORK_IPROTOCOL_FACTORY_H_
