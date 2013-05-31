@@ -209,7 +209,7 @@ IEventServer* IAppInterface::GetEventServer()
 IProtocolFactory* IAppInterface::GetProtocolFactory()
 {
 	if(m_ProtocolFactory)
-		m_ProtocolFactory = new KVDataProtocolFactory;
+		m_ProtocolFactory = new KVDataProtocolFactory(GetMemory());
 	return m_ProtocolFactory;
 }
 
