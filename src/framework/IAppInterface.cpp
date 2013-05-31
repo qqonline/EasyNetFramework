@@ -171,6 +171,32 @@ ProtocolContext* IAppInterface::GetSendProtocol(int32_t fd)
 	return context;
 }
 
+
+//创建协议上下文
+ProtocolContext* IAppInterface::NewProtocolContext()
+{
+	IMemory *memory = GetMemory();
+	void *buf = memory->Alloc(sizeof(ByteBuffer));
+	void *mem = memory->Alloc(sizeof(ProtocolContext));
+	assert(mem!=NULL && buf!=NULL);
+
+	ByteBuffer *bytebuffer = new(buf) ByteBuffer(1024, memory);
+	ProtocolContext *context = new(mem) ProtocolContext;
+	context->bytebuffer = bytebuffer;
+	return context;
+}
+
+//删除协议上下文
+void IAppInterface::DeleteProtocolContext(ProtocolContext *context)
+{
+	IMemory *memory = GetMemory();
+	assert(context!=NULL && context->bytebuffer!=NULL);
+	ByteBuffer *bytebuffer = context->bytebuffer;
+	bytebuffer->~ByteBuffer();
+	memory->Free((void*)bytebuffer, sizeof(ByteBuffer));
+	memory->Free((void*)context, sizeof(ProtocolContext));
+}
+
 //获取EventServer的实例
 IEventServer* IAppInterface::GetEventServer()
 {
@@ -201,6 +227,11 @@ IEventHandler* IAppInterface::GetListenHander()
 	if(m_ListenHandler == NULL)
 		m_ListenHandler = new ListenHandler(this);
 	return m_ListenHandler;
+}
+
+IMemory* IAppInterface::GetMemory()
+{
+	return &m_SysMemory;
 }
 
 }//namespace

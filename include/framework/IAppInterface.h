@@ -17,6 +17,7 @@ using std::map;
 #include "TransHandler.h"
 #include "ListenHandler.h"
 #include "Logger.h"
+#include "IMemory.h"
 
 namespace easynet
 {
@@ -47,19 +48,13 @@ public:
 
 	//从队列中获取一个待发送的协议
 	virtual ProtocolContext* GetSendProtocol(int32_t fd);
-private:
-	SendMap       m_SendMap;        //待发送协议的队列map
 
-	IEventServer      *m_EventServer;
-	IProtocolFactory  *m_ProtocolFactory;
-	TransHandler      *m_TransHandler;
-	ListenHandler     *m_ListenHandler;
-private:
-	DECL_LOGGER(logger);
-//////////////////////////////////////////////////////////////////
-//////////////////////////   接口方法   //////////////////////////
-//////////////////////////////////////////////////////////////////
-public:
+	//创建协议上下文
+	virtual ProtocolContext* NewProtocolContext();
+
+	//删除协议上下文
+	virtual void DeleteProtocolContext(ProtocolContext *context);
+
 	//接收一个新的连接,添加到EventServer中,开始接收/发送数据
 	virtual bool AcceptNewConnect(int32_t fd);
 
@@ -75,6 +70,23 @@ public:
 	//服务监听handler
 	virtual IEventHandler* GetListenHander();
 
+	//内存分配器
+	virtual IMemory* GetMemory();
+
+private:
+	SendMap           m_SendMap;        //待发送协议的队列map
+	SystemMemory      m_SysMemory;
+
+	IEventServer      *m_EventServer;
+	IProtocolFactory  *m_ProtocolFactory;
+	TransHandler      *m_TransHandler;
+	ListenHandler     *m_ListenHandler;
+private:
+	DECL_LOGGER(logger);
+//////////////////////////////////////////////////////////////////
+//////////////////////////   接口方法   //////////////////////////
+//////////////////////////////////////////////////////////////////
+public:
 	//启动App实例
 	virtual bool Start()=0;
 
@@ -104,7 +116,6 @@ public:
 
 	//获取连接空闲超时时间(单位毫秒).当连接在该时间内无任何读写事件发生的话,将发生超时事件.
 	virtual int32_t GetIdleTimeout()=0;
-
 };
 
 }//namespace

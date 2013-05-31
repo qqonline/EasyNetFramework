@@ -37,7 +37,7 @@ if(buffer->m_Size+len > buffer->m_Capacity) \
 }\
 }while(0)
 
-void KVData::SetValue(uint16_t key, int32_t value, ByteBuffer *buffer, bool net_trans/*=true*/)
+void KVData::SetValue(uint16_t key, int32_t value, ByteBuffer *buffer, bool net_trans)
 {
 	assert(buffer != NULL);
 	uint32_t len = sizeof(uint16_t)+sizeof(uint32_t);
@@ -58,7 +58,7 @@ void KVData::SetValue(uint16_t key, int32_t value, ByteBuffer *buffer, bool net_
 	buffer->m_Size += len;
 }
 
-void KVData::SetValue(uint16_t key, int64_t value, ByteBuffer *buffer, bool net_trans/*=true*/)
+void KVData::SetValue(uint16_t key, int64_t value, ByteBuffer *buffer, bool net_trans)
 {
 	assert(buffer != NULL);
 	uint32_t len = sizeof(uint16_t)+sizeof(int64_t);
@@ -79,7 +79,7 @@ void KVData::SetValue(uint16_t key, int64_t value, ByteBuffer *buffer, bool net_
 	buffer->m_Size += len;
 }
 
-void KVData::SetValue(uint16_t key, const string &str, ByteBuffer *buffer, bool net_trans/*=true*/)
+void KVData::SetValue(uint16_t key, const string &str, ByteBuffer *buffer, bool net_trans)
 {
 	assert(buffer != NULL);
 	uint32_t size = str.size();
@@ -104,7 +104,7 @@ void KVData::SetValue(uint16_t key, const string &str, ByteBuffer *buffer, bool 
 	buffer->m_Size += len;
 }
 
-void KVData::SetValue(uint16_t key, const char *c_str, ByteBuffer *buffer, bool net_trans/*=true*/)
+void KVData::SetValue(uint16_t key, const char *c_str, ByteBuffer *buffer, bool net_trans)
 {
 	assert(buffer!=NULL && c_str!=NULL);
 	uint32_t size = strlen(c_str)+1;
@@ -129,7 +129,7 @@ void KVData::SetValue(uint16_t key, const char *c_str, ByteBuffer *buffer, bool 
 	buffer->m_Size += len;
 }
 
-void KVData::SetValue(uint16_t key, const char *data, uint32_t size, ByteBuffer *buffer, bool net_trans/*=true*/)
+void KVData::SetValue(uint16_t key, const char *data, uint32_t size, ByteBuffer *buffer, bool net_trans)
 {
 	assert(buffer!=NULL && data!=NULL);
 	uint32_t len = sizeof(uint16_t)+sizeof(uint32_t)+size;
@@ -153,7 +153,7 @@ void KVData::SetValue(uint16_t key, const char *data, uint32_t size, ByteBuffer 
 	buffer->m_Size += len;
 }
 
-char* KVData::GetWriteBuffer(uint16_t key, uint32_t max_size, ByteBuffer *buffer, bool net_trans/*=true*/)
+char* KVData::GetWriteBuffer(uint16_t key, uint32_t max_size, ByteBuffer *buffer, bool net_trans)
 {
 	assert(buffer != NULL);
 	uint32_t len = sizeof(uint16_t)+sizeof(uint32_t)+max_size;
@@ -168,7 +168,7 @@ char* KVData::GetWriteBuffer(uint16_t key, uint32_t max_size, ByteBuffer *buffer
 	return ptr;
 }
 
-void KVData::SetWriteLength(uint16_t key, uint32_t size, ByteBuffer *buffer, bool net_trans/*=true*/)
+void KVData::SetWriteLength(uint16_t key, uint32_t size, ByteBuffer *buffer, bool net_trans)
 {
 	assert(buffer != NULL);
 	uint32_t len = sizeof(uint16_t)+sizeof(uint32_t)+size;
@@ -191,7 +191,7 @@ void KVData::SetWriteLength(uint16_t key, uint32_t size, ByteBuffer *buffer, boo
 	buffer->m_Size += len;
 }
 
-bool KVData::UnPack(KVItemMap &item_map, const char *buffer, uint32_t size, bool net_trans/*=true*/)
+bool KVData::UnPack(KVItemMap &item_map, const char *buffer, uint32_t size, bool net_trans)
 {
 	assert(buffer != NULL);
 	item_map.clear();

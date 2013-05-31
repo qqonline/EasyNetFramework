@@ -12,7 +12,7 @@ SONAME=libeasynet.so
 
 lib:
 	(cd src/common;$(MAKE) all)
-	#(cd src/framework;$(MAKE) all)
+	(cd src/framework;$(MAKE) all)
 	ar -cr ${TMPLIBDIR}/${LIBNAME} ${OBJDIR}/*.o
 	g++ -fPIC -shared ${OBJDIR}/*.o -o ${TMPLIBDIR}/${SONAME}
 
