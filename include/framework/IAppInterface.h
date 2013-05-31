@@ -25,11 +25,12 @@ namespace easynet
 typedef list<ProtocolContext*> ProtocolList;
 typedef map<int32_t, ProtocolList> SendMap;
 
-//默认使用:
+//默认使用以下组件实例:
 //    EventServer     : EventServerEpoll
 //    ProtocolFactory : KVDataProtocolFactory
 //    TransHandler    : TransHandler
 //    ListenHandler   : ListenHandler
+//    IMemory         : SystemMemory
 class IAppInterface
 {
 public:
@@ -64,13 +65,13 @@ public:
 	//获取ProtocolFactory的实例
 	virtual IProtocolFactory* GetProtocolFactory();
 
-	//获取传输handler
+	//获取传输handler实例
 	virtual IEventHandler* GetTransHandler();
 
-	//服务监听handler
+	//获取服务监听handler实例
 	virtual IEventHandler* GetListenHander();
 
-	//内存分配器
+	//内存分配器实例
 	virtual IMemory* GetMemory();
 
 private:
@@ -93,7 +94,8 @@ public:
 	//处理收到的请求协议
 	//  @param fd             : 收到协议的socket fd
 	//  @param context        : 接收到的协议上下文
-	//  @param detach_context : 被设置为trues时,由应用层控制context的生存期,应用层需要在适当的时候使用IProtocolFactory销毁context.
+	//  @param detach_context : 被设置为trues时,由应用层控制context的生存期
+	//                          应用层需要在适当的时候调用DeleteProtocolContext释放context实例;
 	virtual bool OnReceiveProtocol(int32_t fd, ProtocolContext *context, bool &detach_context)=0;
 
 	//处理发送协议的事件.协议数据完全发送到socket的缓冲区后调本接口

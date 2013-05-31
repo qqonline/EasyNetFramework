@@ -328,13 +328,13 @@ bool EventServerEpoll::DispatchEvents()
 		}
 	}
 
-	uint32_t now1 = now;
+	uint64_t now1 = now;
 	if(event_count > 0)
 		GetCurTime(now1);
 	if(now1-now > 500)   //超过500ms
 		LOG_WARN(logger, "deal with IO events="<<event_count<<" cost_time="<<now1-now);
 	else
-		LOG_DEBUG(logger, "deal with IO events="<<event_count<<" cost_time="<<now1-now);
+		LOG_TRACE(logger, "deal with IO events="<<event_count<<" cost_time="<<now1-now);
 	now = now1;
 
 	//处理超时事件
@@ -370,7 +370,7 @@ bool EventServerEpoll::DispatchEvents()
 	if(now1-now > 500)   //超过500ms
 		LOG_WARN(logger, "deal with timeout events="<<event_count<<" cost_time="<<now1-now);
 	else
-		LOG_DEBUG(logger, "deal with timeout events="<<event_count<<" cost_time="<<now1-now);
+		LOG_TRACE(logger, "deal with timeout events="<<event_count<<" cost_time="<<now1-now);
 
 	return true;
 }

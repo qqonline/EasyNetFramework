@@ -31,8 +31,6 @@ bool TransHandler::OnTimeout(int32_t fd, uint64_t now_time)
 	{
 		m_RecvFdMap.erase(it);
 		context = it->second;
-		if(context->protocol != NULL)
-			protocol_factory->DeleteProtocol(context->protocol_type, context->protocol);
 		m_AppInterface->DeleteProtocolContext(context);
 	}
 
@@ -65,8 +63,6 @@ bool TransHandler::OnEventError(int32_t fd, uint64_t now_time)
 	{
 		m_RecvFdMap.erase(it);
 		context = it->second;
-		if(context->protocol != NULL)
-			protocol_factory->DeleteProtocol(context->protocol_type, context->protocol);
 		m_AppInterface->DeleteProtocolContext(context);
 	}
 
@@ -220,11 +216,7 @@ bool TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 	bool detach_context = false;
 	bool hand_result = m_AppInterface->OnReceiveProtocol(fd, context, detach_context);
 	if(!hand_result || !detach_context)
-	{
-		if(context->protocol != NULL)
-			protocol_factory->DeleteProtocol(context->protocol_type, context->protocol);
 		m_AppInterface->DeleteProtocolContext(context);
-	}
 	return hand_result;
 }
 

@@ -60,12 +60,11 @@ bool IAppInterface::Listen(int32_t port, const char *ip/*=NULL*/, uint32_t back_
 		return false;
 	}
 
-	int32_t timeout = GetIdleTimeout();
 	IEventServer *event_server = GetEventServer();
-	IEventHandler *event_handler = GetTransHandler();
+	IEventHandler *event_handler = GetListenHander();
 	assert(event_server != NULL);
 	assert(event_handler != NULL);
-	if(!event_server->AddEvent(fd, ET_PER_RD, event_handler, timeout))
+	if(!event_server->AddEvent(fd, ET_PER_RD, event_handler, -1))
 	{
 		LOG_ERROR(logger, "add perist read event to event_server failed. fd="<<fd);
 		Socket::Close(fd);
@@ -189,6 +188,10 @@ ProtocolContext* IAppInterface::NewProtocolContext()
 //删除协议上下文
 void IAppInterface::DeleteProtocolContext(ProtocolContext *context)
 {
+	//释放protocol实例
+	IProtocolFactory *factory = GetProtocolFactory();
+	factory->DeleteProtocol(context->protocol_type, context->protocol);
+
 	IMemory *memory = GetMemory();
 	assert(context!=NULL && context->bytebuffer!=NULL);
 	ByteBuffer *bytebuffer = context->bytebuffer;

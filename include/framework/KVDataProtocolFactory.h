@@ -10,6 +10,7 @@
 
 #include "IProtocolFactory.h"
 #include "Logger.h"
+#include "KVData.h"
 
 namespace easynet
 {

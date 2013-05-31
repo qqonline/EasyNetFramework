@@ -7,7 +7,6 @@
 
 #include <fcntl.h>
 #include <stdio.h>
-#include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <netdb.h>
@@ -103,10 +102,10 @@ int32_t Socket::CreateListenSocket(uint32_t port, const char *ip, bool block, bo
 	if(bind(fd, (struct sockaddr*)&addr, sizeof(addr)) == -1)
 	{
 		close(fd);
-		return false;
+		return -1;
 	}
 
-	return true;
+	return fd;
 }
 
 int32_t Socket::Connect(uint32_t port, const char *ip, bool block/*=true*/, int32_t wait_ms/*=-1*/)

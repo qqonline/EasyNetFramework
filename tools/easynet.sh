@@ -1,10 +1,14 @@
 #!/bin/bash
 TEMPLATEDIR=/usr/include/easynet/template
 
+DATE=`date +"%Y-%m-%d"`
+AUTHOR=`whoami`
+
 Usage()
 {
 	echo -e "easynet -a ClassName [-m]\n"
-	echo "  -a : Create Application Instance. -m : optional. gen server main"
+	echo "  -a : Create Application Instance."
+	echo "  -m : optional. gen server main framework."
 }
 
 function GenAppInstance()
@@ -23,7 +27,8 @@ function GenAppInstance()
 	sed -i "s/TemplateAppInterface/$ClassName/g" $Filename
 	local UP_ClassName=$(echo $ClassName|tr '[a-z]' '[A-Z]')
 	sed -i "s/TEMPLATEAPPINTERFACE/${UP_ClassName}/g" $Filename
-
+	sed -i "s/_#CreateDate#_/${DATE}/g" $Filename
+	sed -i "s/_#AuthorName#_/${AUTHOR}/g" $Filename
 }
 
 function GenAppMain()
@@ -32,6 +37,8 @@ function GenAppMain()
 	
 	cp ${TEMPLATEDIR}/TemplateAppInterfaceMain.tpp ${ClassName}Main.cpp
 	sed -i "s/TemplateAppInterface/$ClassName/g" ${ClassName}Main.cpp
+	sed -i "s/_#CreateDate#_/${DATE}/g" ${ClassName}Main.cpp
+	sed -i "s/_#AuthorName#_/${AUTHOR}/g" ${ClassName}Main.cpp
 }
 
 if [ $# -lt 2 ];then

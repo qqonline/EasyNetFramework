@@ -1,8 +1,8 @@
 /*
  * TemplateAppInterfaceMain.cpp
  *
- *  Created on: CreateDate
- *      Author: AuthorName
+ *  Created on: _#CreateDate#_
+ *      Author: _#AuthorName#_
  */
 
 #include "TemplateAppInterface.h"

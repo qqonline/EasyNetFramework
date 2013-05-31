@@ -9,7 +9,6 @@
 #include <assert.h>
 
 #include "KVDataProtocolFactory.h"
-#include "KVData.h"
 
 namespace easynet
 {
