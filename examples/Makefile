@@ -15,6 +15,7 @@ KVData_example:KVData_example.cpp
 	
 ConfigReader_example:ConfigReader_example.cpp
 	g++ $^ ${INCLUDE} ${LIB} ${LIB_EXT} ${FLAGS} -o $@
-
+ListenHandler_example:ListenHandler_example.cpp
+	g++ $^ ${INCLUDE} ${LIB} ${LIB_EXT} ${FLAGS} -o $@
 clean:
 	rm ${EXEC}

@@ -48,11 +48,11 @@ public:
 	//socket读写空闲发生超时事件后调用本接口
 	bool OnSocketTimeout(int32_t fd);
 
-	//获取数据接收的超时时间.从接收到协议的第一个字节开始,在该时间内如果没有收到完整的数据包将发生接收超时事件.
-	int32_t GetRecvTimeout();
+	//获取数据接收的超时时间(单位毫秒).从接收到协议的第一个字节开始,在该时间内如果没有收到完整的数据包将发生接收超时事件.
+	int32_t GetRecvTimeoutMS();
 
 	//获取连接空闲超时时间(单位毫秒).当连接在该时间内无任何读写事件发生的话,将发生超时事件.
-	int32_t GetIdleTimeout();
+	int32_t GetIdleTimeoutMS();
 private:
 	DECL_LOGGER(logger);
 };

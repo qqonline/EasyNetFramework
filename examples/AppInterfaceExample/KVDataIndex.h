@@ -13,6 +13,9 @@ const uint16_t Index_ProtocolType     = 0;
 const uint16_t Index_ClientID         = 1;
 const uint16_t Index_ClientString     = 2;
 
+const uint16_t Index_ServerID         = 1;
+const uint16_t Index_ServerString     = 2;
+
 #endif //_KVDATA_INDEX_H_
 
 

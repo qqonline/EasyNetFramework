@@ -29,6 +29,9 @@ typedef uint16_t EventType;
 #define ET_IS_READ(x)       (((x)&ET_READ) != 0)      //是否设置读
 #define ET_IS_WRITE(x)      (((x)&ET_WRITE) != 0)     //是否设置写
 #define ET_IS_PERSIST(x)    (((x)&ET_PERSIST) != 0)   //是否设置持续
+
+static const char* EventInfoString[4]={"ET_EMPTY", "ET_READ", "ET_WRITE", "ET_RDWT"};
+#define EventStr(x) EventInfoString[(x&ET_RDWT)]
 /////////////////////////////////////////////////////////////////////////////////////////
 
 class IEventHandler
@@ -36,15 +39,15 @@ class IEventHandler
 public:
 	virtual ~IEventHandler(){}
 	//时钟超时
-	virtual bool OnTimeout(uint64_t now_time)=0;
+	virtual bool OnTimeout(uint64_t nowtime_ms)=0;
 	//io超时
-	virtual bool OnTimeout(int32_t fd, uint64_t now_time)=0;
+	virtual bool OnTimeout(int32_t fd, uint64_t nowtime_ms)=0;
 	//可读事件
-	virtual bool OnEventRead(int32_t fd, uint64_t now_time)=0;
+	virtual bool OnEventRead(int32_t fd, uint64_t nowtime_ms)=0;
 	//可写事件
-	virtual bool onEventWrite(int32_t fd, uint64_t now_time)=0;
+	virtual bool onEventWrite(int32_t fd, uint64_t nowtime_ms)=0;
 	//错误事件
-	virtual bool OnEventError(int32_t fd, uint64_t now_time)=0;
+	virtual bool OnEventError(int32_t fd, uint64_t nowtime_ms)=0;
 };
 
 /** 事件监听server
@@ -58,22 +61,22 @@ public:
 	virtual ~IEventServer(){}
 
 	/**添加定时器:
-	 * @param handler : 定时器事件的处理接口;
-	 * @param timeout : 定时器超时的时间.单位秒;
-	 * @param persist : true持续性定时器,每隔tiemout触发一次超时事件;false一次性定时器;
-	 * @return        : true成功;false失败;
+	 * @param handler    : 定时器事件的处理接口;
+	 * @param timeout_ms : 定时器超时的时间.单位毫秒;
+	 * @param persist    : true持续性定时器,每隔tiemout触发一次超时事件;false一次性定时器;
+	 * @return           : true成功;false失败;
 	 */
-	virtual bool AddTimer(IEventHandler *handler, uint32_t timeout, bool persist)=0;
+	virtual bool AddTimer(IEventHandler *handler, uint32_t timeout_ms, bool persist)=0;
 
 	/**添加事件:
-	 * @param fd      : socket描述符;
-	 * @param type    : 待监听的事件.定义见<事件类型>;
-	 * @param handler : fd事件的处理接口;
-	 * @param timeout : fd容许的读写空闲时间,超过该时间没有发生读写事件将产生超时事件.
-	 *                  小于0表示永不超时.单位秒;
-	 * @return        : true成功;false失败;
+	 * @param fd         : socket描述符;
+	 * @param type       : 待监听的事件.定义见<事件类型>;
+	 * @param handler    : fd事件的处理接口;
+	 * @param timeout_ms : fd容许的读写空闲时间,超过该时间没有发生读写事件将产生超时事件.
+	 *                     小于0表示永不超时.单位毫秒;
+	 * @return           : true成功;false失败;
 	*/
-	virtual bool AddEvent(int32_t fd, EventType type, IEventHandler *handler, int32_t timeout)=0;
+	virtual bool AddEvent(int32_t fd, EventType type, IEventHandler *handler, int32_t timeout_ms)=0;
 
 	/**删除事件:
 	 * @param fd      : socket描述符;

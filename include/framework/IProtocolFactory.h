@@ -31,12 +31,17 @@ class ProtocolContext
 public:
 	ProtocolContext()
 	{
+		bytebuffer = NULL;
+
 		type = DTYPE_INVALID;
 		header_size = 0;
 		body_size = 0;
-		bytebuffer = NULL;
+		protocol_type = 0;
+		protocol = NULL;
+
 		send_size = 0;
-		time_out = -1;
+
+		timeout_ms = -1;
 		expire_time = 0;
 		fd = 0;
 	}
@@ -53,7 +58,7 @@ public:
 	uint32_t   send_size;          //已发送数据大小  (发送数据时使用)
 	string     Info;               //提示信息        (发送数据时使用)
 
-	int32_t    time_out;           //接收/发送的超时时间(单位:毫秒),应用层设置
+	int32_t    timeout_ms;         //接收/发送的超时时间(单位:毫秒),应用层设置
 	uint64_t   expire_time;        //接收/发送的超时时间点(单位:毫秒),框架设置
 	uint32_t   fd;                 //接收/发送的socket fd(暂时没有使用)
 };

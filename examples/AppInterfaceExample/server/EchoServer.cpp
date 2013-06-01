@@ -48,8 +48,33 @@ bool EchoServer::OnReceiveProtocol(int32_t fd, ProtocolContext *context, bool &d
 		string client_string="error info";
 		kvdata->GetValue(Index_ClientID, client_id);
 		kvdata->GetValue(Index_ClientString, client_string);
-
 		LOG_INFO(logger, "receive client info:client_id="<<client_id<<" client_string="<<client_string);
+
+		IProtocolFactory* protocol_factory = GetProtocolFactory();
+		assert(protocol_factory != NULL);
+		ProtocolContext *send_context = NewProtocolContext();
+		ByteBuffer *bytebuffer = send_context->bytebuffer;
+
+		uint32_t header_size = protocol_factory->HeaderSize();
+		//预留协议头
+		bytebuffer->m_Size = header_size;
+
+		//协议体数据
+		int32_t protocol_server = 1;
+		int32_t server_id = 1001;
+		const char* server_string = "I'am a server";
+
+		KVData kvdata;
+		kvdata.AttachWriteBuffer(bytebuffer, true);
+		kvdata.SetValue(Index_ProtocolType, protocol_server);
+		kvdata.SetValue(Index_ServerID, server_id);
+		kvdata.SetValue(Index_ServerString, server_string);
+
+		uint32_t body_size = bytebuffer->m_Size-header_size;
+		protocol_factory->EncodeHeader(bytebuffer->m_Buffer, body_size);
+
+		send_context->Info = "ServerInfo";
+		SendProtocol(fd, send_context, 300000);
 	}
 	else
 	{
@@ -62,24 +87,24 @@ bool EchoServer::OnReceiveProtocol(int32_t fd, ProtocolContext *context, bool &d
 void EchoServer::OnSendSucc(int32_t fd, ProtocolContext *context)
 {
 	//Add Your Code Here
-	LOG_DEBUG(logger, "send protocol succ on fd="<<fd);
-	
+	LOG_DEBUG(logger, "send protocol succ on fd="<<fd<<", info='"<<context->Info<<"'");
+	DeleteProtocolContext(context);
 	return ;
 }
 
 void EchoServer::OnSendError(int32_t fd, ProtocolContext *context)
 {
 	//Add Your Code Here
-	LOG_ERROR(logger, "send protocol failed on fd="<<fd);
-	
+	LOG_ERROR(logger, "send protocol failed on fd="<<fd<<", info='"<<context->Info<<"'");
+	DeleteProtocolContext(context);
 	return ;
 }
 
 void EchoServer::OnSendTimeout(int32_t fd, ProtocolContext *context)
 {
 	//Add Your Code Here
-	LOG_WARN(logger, "send protocol timeout on fd="<<fd);
-	
+	LOG_WARN(logger, "send protocol timeout on fd="<<fd<<", info='"<<context->Info<<"'");
+	DeleteProtocolContext(context);
 	return ;
 }
 
@@ -100,12 +125,12 @@ bool EchoServer::OnSocketTimeout(int32_t fd)
 }
 
 
-int32_t EchoServer::GetRecvTimeout()
+int32_t EchoServer::GetRecvTimeoutMS()
 {
 	return -1;
 }
 
-int32_t EchoServer::GetIdleTimeout()
+int32_t EchoServer::GetIdleTimeoutMS()
 {
-	return 3000;
+	return 300000;
 }

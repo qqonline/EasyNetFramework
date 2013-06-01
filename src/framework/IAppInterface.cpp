@@ -31,6 +31,7 @@ IAppInterface::IAppInterface()
 	:m_EventServer(NULL)
 	,m_ProtocolFactory(NULL)
 	,m_TransHandler(NULL)
+	,m_ListenHandler(NULL)
 {}
 
 IAppInterface::~IAppInterface()
@@ -50,12 +51,12 @@ bool IAppInterface::Listen(int32_t port, const char *ip/*=NULL*/, uint32_t back_
 	int32_t fd = Socket::CreateListenSocket(port, ip, false);
 	if(fd == -1)
 	{
-		LOG_ERROR(logger, "create listen socket failed. port="<<port<<" errno="<<errno<<"("<<strerror(errno)<<")");
+		LOG_ERROR(logger, "create listen socket failed. port="<<port<<", errno="<<errno<<"("<<strerror(errno)<<").");
 		return false;
 	}
 	if(Socket::Listen(fd, back_log) == false)
 	{
-		LOG_ERROR(logger, "listen failed. fd="<<fd<<" errno="<<errno<<"("<<strerror(errno)<<")");
+		LOG_ERROR(logger, "listen failed. fd="<<fd<<", errno="<<errno<<"("<<strerror(errno)<<").");
 		Socket::Close(fd);
 		return false;
 	}
@@ -76,7 +77,7 @@ bool IAppInterface::Listen(int32_t port, const char *ip/*=NULL*/, uint32_t back_
 bool IAppInterface::AcceptNewConnect(int32_t fd)
 {
 	const char *peer_ip = "_unknow ip_";
-	int16_t peer_port = -1;
+	uint16_t peer_port = 0;
 	struct sockaddr_in peer_addr;
 	int socket_len = sizeof(peer_addr);
 
@@ -86,8 +87,8 @@ bool IAppInterface::AcceptNewConnect(int32_t fd)
 		peer_port = ntohs(peer_addr.sin_port);
 	}
 
-	LOG_DEBUG(logger, "accept new connect. fd="<<fd<<" peer_ip="<<peer_ip<<" peer_port="<<peer_port);
-	int32_t time_out = GetIdleTimeout();
+	LOG_DEBUG(logger, "accept new connect. new_fd="<<fd<<", peer_ip="<<peer_ip<<", peer_port="<<peer_port);
+	int32_t time_out = GetIdleTimeoutMS();
 	IEventServer *event_server = GetEventServer();
 	IEventHandler* event_handler = GetTransHandler();
 	assert(event_handler != NULL);
@@ -100,16 +101,16 @@ bool IAppInterface::AcceptNewConnect(int32_t fd)
 	return true;
 }
 
-bool IAppInterface::SendProtocol(int32_t fd, ProtocolContext *context, int32_t send_timeout/*=-1*/)
+bool IAppInterface::SendProtocol(int32_t fd, ProtocolContext *context, int32_t send_timeout_ms/*=-1*/)
 {
 	if(fd<0 || context==NULL)
 		return false;
-	context->time_out = send_timeout;
-	if(context->time_out > 0)
+	context->timeout_ms = send_timeout_ms;
+	if(context->timeout_ms > 0)
 	{
 		uint64_t now;
 		GetCurTime(now);
-		context->expire_time = now+context->time_out;
+		context->expire_time = now+context->timeout_ms;
 	}
 
 	SendMap::iterator it = m_SendMap.find(fd);
@@ -119,7 +120,7 @@ bool IAppInterface::SendProtocol(int32_t fd, ProtocolContext *context, int32_t s
 		std::pair<SendMap::iterator, bool> result = m_SendMap.insert(std::make_pair(fd, temp_list));
 		if(result.second == false)
 		{
-			LOG_ERROR(logger, "add protocol to list failed. fd="<<fd<<" context="<<context);
+			LOG_ERROR(logger, "add protocol to list failed. fd="<<fd<<", context="<<context);
 			return false;
 		}
 		it = result.first;
@@ -138,14 +139,14 @@ bool IAppInterface::SendProtocol(int32_t fd, ProtocolContext *context, int32_t s
 	protocol_list->push_back(context);    //直接添加到队列尾
 
 	//添加可写事件监控
-	int32_t time_out = GetIdleTimeout();
+	int32_t timeout_ms = GetIdleTimeoutMS();
 	IEventServer *event_server = GetEventServer();
 	IEventHandler* event_handler = GetTransHandler();
 	assert(event_server != NULL);
 	assert(event_handler != NULL);
-	if(!event_server->AddEvent(fd, ET_WRITE, event_handler, time_out))
+	if(!event_server->AddEvent(fd, ET_WRITE, event_handler, timeout_ms))
 	{
-		LOG_ERROR(logger, "add write event to event_server failed when send protocol. fd="<<fd<<" context="<<context);
+		LOG_ERROR(logger, "add write event to event_server failed when send protocol. fd="<<fd<<", context="<<context);
 		return false;
 	}
 	return true;
@@ -190,7 +191,8 @@ void IAppInterface::DeleteProtocolContext(ProtocolContext *context)
 {
 	//释放protocol实例
 	IProtocolFactory *factory = GetProtocolFactory();
-	factory->DeleteProtocol(context->protocol_type, context->protocol);
+	if(context->protocol != NULL)
+		factory->DeleteProtocol(context->protocol_type, context->protocol);
 
 	IMemory *memory = GetMemory();
 	assert(context!=NULL && context->bytebuffer!=NULL);
@@ -211,7 +213,7 @@ IEventServer* IAppInterface::GetEventServer()
 //获取ProtocolFactory的实例
 IProtocolFactory* IAppInterface::GetProtocolFactory()
 {
-	if(m_ProtocolFactory)
+	if(m_ProtocolFactory == NULL)
 		m_ProtocolFactory = new KVDataProtocolFactory(GetMemory());
 	return m_ProtocolFactory;
 }

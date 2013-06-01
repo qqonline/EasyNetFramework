@@ -44,7 +44,7 @@ bool Thread::start()
 	pthread_attr_destroy(&attr);
 	if(result != 0)
 	{
-		LOG_ERROR(logger, "create thread error. errno="<<errno<<"["<<strerror(errno)<<"]");
+		LOG_ERROR(logger, "create thread error. errno="<<errno<<"("<<strerror(errno)<<").");
 	}
 	else
 	{
