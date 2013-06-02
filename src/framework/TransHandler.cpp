@@ -24,8 +24,8 @@ void TransHandler::OnEventError(int32_t fd, uint64_t nowtime_ms, ErrorCode code)
 		LOG_ERROR(logger, "socket error. fd="<<fd);
 	else if(code == CODE_TIMEOUT)
 		LOG_ERROR(logger, "socket timeout. fd="<<fd);
-	//else
-	//	LOG_INFO(logger, "peer close socket gracefully. fd="<<fd);
+	else
+		LOG_DEBUG(logger, "peer close socket gracefully. fd="<<fd);
 
 	ProtocolContext *context;
 	FDMap::iterator it = m_RecvFdMap.find(fd);
@@ -271,7 +271,6 @@ int32_t TransHandler::ReadData(int32_t fd, char *buffer, uint32_t buffer_size, u
 	int32_t recv_size = Socket::Recv(fd, buffer, need_size);
 	if(recv_size == 0)
 	{
-		LOG_DEBUG(logger, "peer close socket gracefully. fd="<<fd);
 		recv_size = -2;
 	}
 	else if(recv_size < 0)

@@ -88,13 +88,8 @@ bool EventServerEpoll::AddTimer(IEventHandler *handler, uint32_t timeout_ms, boo
 {
 	assert(handler != NULL);
 	EventInfo *event_info = new EventInfo;
-	if(event_info == NULL)
-	{
-		LOG_ERROR(logger, "out of memory.");
-		return false;
-	}
-
 	EventType type = persist?ET_PERSIST:ET_EMPTY;
+
 	SetEventInfo(event_info, -1, type, handler, timeout_ms);
 	SetTimerInfo(event_info, timeout_ms);
 	if(m_TimerHeap.Insert((HeapItem*)event_info))
@@ -104,13 +99,12 @@ bool EventServerEpoll::AddTimer(IEventHandler *handler, uint32_t timeout_ms, boo
 	LOG_ERROR(logger, "add timer failed.");
 	delete event_info;
 	return false;
-
 }
 
 //添加IO事件
 bool EventServerEpoll::AddEvent(int32_t fd, EventType type, IEventHandler *handler, int32_t timeout_ms)
 {
-	if(fd<=0 || ET_IS_EMPTY(type) || handler==NULL)
+	if(fd<0 || ET_IS_EMPTY(type) || handler==NULL)
 	{
 		LOG_WARN(logger, "add_event but parameters invalid. fd="<<fd<<", type="<<type<<"("<<EventStr(type)<<").");
 		return false;
@@ -203,7 +197,7 @@ bool EventServerEpoll::AddEvent(int32_t fd, EventType type, IEventHandler *handl
 //删除IO事件
 bool EventServerEpoll::DelEvent(int32_t fd, EventType type)
 {
-	if(fd<=0 || ET_IS_EMPTY(type))
+	if(fd<0 || ET_IS_EMPTY(type))
 	{
 		LOG_DEBUG(logger, "delete event but parameters invalid. fd="<<fd<<", type="<<type);
 		return true;
@@ -270,7 +264,7 @@ bool EventServerEpoll::DispatchEvents()
 			m_TimerHeap.Pop();
 			if(event_info->fd > 0)            //删除超时fd的io事件
 			{
-				LOG_INFO(logger, "delete event because of timeout. fd="<<event_info->fd);
+				LOG_DEBUG(logger, "delete event because of timeout. fd="<<event_info->fd);
 				if(epoll_ctl(m_EpFd, EPOLL_CTL_DEL, event_info->fd, NULL) != 0)
 				{
 					LOG_ERROR(logger, "delete event failed. fd="<<event_info->fd<<", errno=%d"<<errno<<"("<<strerror(errno)<<").");
@@ -301,36 +295,37 @@ bool EventServerEpoll::DispatchEvents()
 
 		HANDLE_RESULT handle_result = HANDLE_SUCC;
 		EventType del_type = ET_EMPTY;
-		if(ep_event->events & (EPOLLERR|EPOLLRDHUP|EPOLLHUP))         //发生错误
+		if(ep_event->events & (EPOLLERR|EPOLLRDHUP|EPOLLHUP))    //发生错误
 		{
+			LOG_ERROR(logger, "error occur on fd="<<event_info->fd<<"errno="<<errno<<"("<<strerror(errno)<<").");
 			handle_result = HANDLE_ERROR;
 			del_type = ET_RDWT;
 		}
+
 		if(handle_result==HANDLE_SUCC && (ep_event->events&EPOLLIN))
 		{
 			IEventHandler *event_handler = event_info->handler;
 			handle_result = event_handler->OnEventRead(event_info->fd, now);
-			if(handle_result!=HANDLE_SUCC || !ET_IS_PERSIST(event_info->type))      //去掉非持续读事件
+			if(handle_result!=HANDLE_SUCC || !ET_IS_PERSIST(event_info->type))    //去掉非持续读事件
 				del_type |= ET_READ;
 		}
+
 		if(handle_result==HANDLE_SUCC && (ep_event->events&EPOLLOUT))
 		{
 			handle_result = event_info->handler->OnEventWrite(event_info->fd, now);
-			del_type |= ET_WRITE;                                  //直接去掉读事件
+			del_type |= ET_WRITE;    //直接去掉读事件
 		}
 
 		if(!ET_IS_EMPTY(del_type))
 		{
 			DelEvent(event_info->fd, del_type);
-			if(handle_result == HANDLE_ERROR)
+			if(handle_result != HANDLE_SUCC)
 			{
-				LOG_ERROR(logger, "io error occur. delete event from event server. fd="<<event_info->fd<<", del_type="<<del_type<<"("<<EventStr(del_type)<<").");
-				event_info->handler->OnEventError(event_info->fd, now, CODE_ERROR);
-			}
-			else if(handle_result == HANDLE_PEER_CLOSE)
-			{
-				LOG_INFO(logger, "peer close socket gracefully. delete event from event server. fd="<<event_info->fd<<", del_type="<<del_type<<"("<<EventStr(del_type)<<").");
-				event_info->handler->OnEventError(event_info->fd, now, CODE_PEER_CLOSE);
+				LOG_DEBUG(logger, "io error occur. delete event from event server. fd="<<event_info->fd<<", del_type="<<del_type<<"("<<EventStr(del_type)<<").");
+				if(handle_result == HANDLE_PEER_CLOSE)
+					event_info->handler->OnEventError(event_info->fd, now, CODE_PEER_CLOSE);
+				else
+					event_info->handler->OnEventError(event_info->fd, now, CODE_ERROR);
 			}
 		}
 	}
@@ -357,7 +352,7 @@ bool EventServerEpoll::DispatchEvents()
 			m_FDMap.erase(event_info->fd);
 			m_ObjectPool.Recycle((void*)event_info);
 		}
-		else                       //时钟超时
+		else    //时钟超时
 		{
 			event_info->handler->OnTimeout(now);
 			if(ET_IS_PERSIST(event_info->type))
