@@ -74,6 +74,12 @@ bool IAppInterface::Listen(int32_t port, const char *ip/*=NULL*/, uint32_t back_
 	return true;
 }
 
+void IAppInterface::OnListenError(int32_t fd)
+{
+	LOG_ERROR(logger, "close listen socket. fd="<<fd);
+	Socket::Close(fd);
+}
+
 bool IAppInterface::AcceptNewConnect(int32_t fd)
 {
 	const char *peer_ip = "_unknow ip_";
@@ -88,12 +94,12 @@ bool IAppInterface::AcceptNewConnect(int32_t fd)
 	}
 
 	LOG_DEBUG(logger, "accept new connect. new_fd="<<fd<<", peer_ip="<<peer_ip<<", peer_port="<<peer_port);
-	int32_t time_out = GetIdleTimeoutMS();
+	int32_t timeout_ms = GetIdleTimeoutMS();
 	IEventServer *event_server = GetEventServer();
 	IEventHandler* event_handler = GetTransHandler();
 	assert(event_handler != NULL);
 	assert(event_server != NULL);
-	if(!event_server->AddEvent(fd, ET_PER_RD, event_handler, time_out))
+	if(!event_server->AddEvent(fd, ET_PER_RD, event_handler, timeout_ms))
 	{
 		LOG_ERROR(logger, "add persist read event to event_server failed when send protocol. fd="<<fd);
 		return false;

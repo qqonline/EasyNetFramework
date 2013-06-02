@@ -43,10 +43,7 @@ public:
 	void OnSendTimeout(int32_t fd, ProtocolContext *context);
 
 	//socket发生错误调用本接口
-	bool OnSocketError(int32_t fd);
-
-	//socket读写空闲发生超时事件后调用本接口
-	bool OnSocketTimeout(int32_t fd);
+	void OnSocketFinished(int32_t fd);
 
 	//获取数据接收的超时时间(单位毫秒).从接收到协议的第一个字节开始,在该时间内如果没有收到完整的数据包将发生接收超时事件.
 	int32_t GetRecvTimeoutMS();

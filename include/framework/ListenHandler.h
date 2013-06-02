@@ -28,37 +28,32 @@ public:
 //基类接口方法
 public:
 	//时钟超时
-	bool OnTimeout(uint64_t now_time)
-	{
-		return true;
-	}
-
-	//io超时protocol_factory
-	bool OnTimeout(int32_t fd, uint64_t now_time)
-	{
-		assert(0);    //不允许超时
-		return true;
-	}
-
-	//可读事件
-	bool OnEventRead(int32_t fd, uint64_t now_time);
-
-	//可写事件
-	bool onEventWrite(int32_t fd, uint64_t now_time)
-	{
-		return true;
-	}
-
+	void OnTimeout(uint64_t nowtime_ms);
 	//错误事件
-	bool OnEventError(int32_t fd, uint64_t now_time)
-	{
-		return true;
-	}
+	void OnEventError(int32_t fd, uint64_t nowtime_ms, ErrorCode code);
+	//可读事件
+	HANDLE_RESULT OnEventRead(int32_t fd, uint64_t nowtime_ms);
+	//可写事件
+	HANDLE_RESULT OnEventWrite(int32_t fd, uint64_t nowtime_ms);
 private:
 	IAppInterface *m_AppInterface;
 private:
 	DECL_LOGGER(logger);
 };
+
+inline
+void ListenHandler::OnTimeout(uint64_t nowtime_ms)
+{
+	assert(0);  //没有时钟
+}
+
+inline
+HANDLE_RESULT ListenHandler::OnEventWrite(int32_t fd, uint64_t nowtime_ms)
+{
+	assert(0);  //无写事件
+	return HANDLE_SUCC;
+}
+
 
 }//easynet
 #endif //_FRAMEWORK_LISTEN_HANDLER_H_

@@ -7,7 +7,7 @@
 
 #include "EchoServer.h"
 #include "KVData.h"
-
+#include "Socket.h"
 #include "KVDataIndex.h"
 
 IMPL_LOGGER(EchoServer, logger);
@@ -108,22 +108,13 @@ void EchoServer::OnSendTimeout(int32_t fd, ProtocolContext *context)
 	return ;
 }
 
-bool EchoServer::OnSocketError(int32_t fd)
+void EchoServer::OnSocketFinished(int32_t fd)
 {
 	//Add Your Code Here
-	LOG_ERROR(logger, "socket error on fd="<<fd);
-	
-	return true;
+	LOG_INFO(logger, "socket finished and close it. fd="<<fd);
+	Socket::Close(fd);
+	return ;
 }
-
-bool EchoServer::OnSocketTimeout(int32_t fd)
-{
-	//Add Your Code Here
-	LOG_ERROR(logger, "socket timeout on fd="<<fd);
-	
-	return true;
-}
-
 
 int32_t EchoServer::GetRecvTimeoutMS()
 {

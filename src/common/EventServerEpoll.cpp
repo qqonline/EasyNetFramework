@@ -299,33 +299,38 @@ bool EventServerEpoll::DispatchEvents()
 		EventInfo *event_info = (EventInfo*)ep_event->data.ptr;
 		LOG_DEBUG(logger, "io event occur. fd="<<event_info->fd<<", epoll_event="<<ep_event->events);
 
-		bool no_error = true;
+		HANDLE_RESULT handle_result = HANDLE_SUCC;
 		EventType del_type = ET_EMPTY;
 		if(ep_event->events & (EPOLLERR|EPOLLRDHUP|EPOLLHUP))         //发生错误
 		{
-			no_error = false;
+			handle_result = HANDLE_ERROR;
 			del_type = ET_RDWT;
 		}
-		if(no_error && (ep_event->events&EPOLLIN))
+		if(handle_result==HANDLE_SUCC && (ep_event->events&EPOLLIN))
 		{
 			IEventHandler *event_handler = event_info->handler;
-			no_error = event_handler->OnEventRead(event_info->fd, now);
-			if(!no_error || !ET_IS_PERSIST(event_info->type))      //去掉非持续读事件
+			handle_result = event_handler->OnEventRead(event_info->fd, now);
+			if(handle_result!=HANDLE_SUCC || !ET_IS_PERSIST(event_info->type))      //去掉非持续读事件
 				del_type |= ET_READ;
 		}
-		if(no_error && (ep_event->events&EPOLLOUT))
+		if(handle_result==HANDLE_SUCC && (ep_event->events&EPOLLOUT))
 		{
-			no_error = event_info->handler->onEventWrite(event_info->fd, now);
+			handle_result = event_info->handler->OnEventWrite(event_info->fd, now);
 			del_type |= ET_WRITE;                                  //直接去掉读事件
 		}
 
 		if(!ET_IS_EMPTY(del_type))
 		{
 			DelEvent(event_info->fd, del_type);
-			if(!no_error)
+			if(handle_result == HANDLE_ERROR)
 			{
 				LOG_ERROR(logger, "io error occur. delete event from event server. fd="<<event_info->fd<<", del_type="<<del_type<<"("<<EventStr(del_type)<<").");
-				event_info->handler->OnEventError(event_info->fd, now);
+				event_info->handler->OnEventError(event_info->fd, now, CODE_ERROR);
+			}
+			else if(handle_result == HANDLE_PEER_CLOSE)
+			{
+				LOG_INFO(logger, "peer close socket gracefully. delete event from event server. fd="<<event_info->fd<<", del_type="<<del_type<<"("<<EventStr(del_type)<<").");
+				event_info->handler->OnEventError(event_info->fd, now, CODE_PEER_CLOSE);
 			}
 		}
 	}
@@ -348,14 +353,14 @@ bool EventServerEpoll::DispatchEvents()
 
 		if(event_info->fd >= 0)    //io超时
 		{
-			event_info->handler->OnTimeout(event_info->fd, now);
+			event_info->handler->OnEventError(event_info->fd, now, CODE_TIMEOUT);
 			m_FDMap.erase(event_info->fd);
 			m_ObjectPool.Recycle((void*)event_info);
 		}
 		else                       //时钟超时
 		{
-			bool no_error = event_info->handler->OnTimeout(now);
-			if(no_error && ET_IS_PERSIST(event_info->type))
+			event_info->handler->OnTimeout(now);
+			if(ET_IS_PERSIST(event_info->type))
 			{
 				event_info->heap_item.index = -1;
 				event_info->expire_time = event_info->timeout_ms+now;

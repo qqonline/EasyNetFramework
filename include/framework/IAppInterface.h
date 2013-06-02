@@ -43,6 +43,9 @@ public:
 	//  @param back_log : accept的队列大小
 	virtual bool Listen(int32_t port, const char *ip=NULL, uint32_t back_log=128);
 
+	//监听的socket错误
+	virtual void OnListenError(int32_t fd);
+
 	//发送协议(添加到发送队列中等待发送),成功返回true,失败返回false.
 	//  @param send_timeout : 发送的超时时间(单位毫秒).在该时间内如果没有发送完成,将产生超时事件,OnSendTimeout接口被调用.默认-1表示不进行超时检查
 	virtual bool SendProtocol(int32_t fd, ProtocolContext *context, int32_t send_timeout_ms=-1);
@@ -107,11 +110,8 @@ public:
 	//协议数据超时未完全发送到socket后调用本接口
 	virtual void OnSendTimeout(int32_t fd, ProtocolContext *context)=0;
 
-	//socket发生错误调用本接口
-	virtual bool OnSocketError(int32_t fd)=0;
-
-	//socket读写空闲发生超时事件后调用本接口
-	virtual bool OnSocketTimeout(int32_t fd)=0;
+	//socket结束调用本接口
+	virtual void OnSocketFinished(int32_t fd)=0;
 
 	//获取数据接收的超时时间(单位毫秒).从接收到协议的第一个字节开始,在该时间内如果没有收到完整的数据包将发生接收超时事件.
 	virtual int32_t GetRecvTimeoutMS()=0;

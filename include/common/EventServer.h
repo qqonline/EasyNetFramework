@@ -34,20 +34,32 @@ static const char* EventInfoString[4]={"ET_EMPTY", "ET_READ", "ET_WRITE", "ET_RD
 #define EventStr(x) EventInfoString[(x&ET_RDWT)]
 /////////////////////////////////////////////////////////////////////////////////////////
 
+typedef enum _handle_result_
+{
+	HANDLE_SUCC,
+	HANDLE_ERROR,
+	HANDLE_PEER_CLOSE,
+}HANDLE_RESULT;
+
+typedef enum _error_code_
+{
+	CODE_ERROR,
+	CODE_TIMEOUT,
+	CODE_PEER_CLOSE,
+}ErrorCode;
+
 class IEventHandler
 {
 public:
 	virtual ~IEventHandler(){}
 	//时钟超时
-	virtual bool OnTimeout(uint64_t nowtime_ms)=0;
-	//io超时
-	virtual bool OnTimeout(int32_t fd, uint64_t nowtime_ms)=0;
-	//可读事件
-	virtual bool OnEventRead(int32_t fd, uint64_t nowtime_ms)=0;
-	//可写事件
-	virtual bool onEventWrite(int32_t fd, uint64_t nowtime_ms)=0;
+	virtual void OnTimeout(uint64_t nowtime_ms)=0;
 	//错误事件
-	virtual bool OnEventError(int32_t fd, uint64_t nowtime_ms)=0;
+	virtual void OnEventError(int32_t fd, uint64_t nowtime_ms, ErrorCode code)=0;
+	//可读事件
+	virtual HANDLE_RESULT OnEventRead(int32_t fd, uint64_t nowtime_ms)=0;
+	//可写事件
+	virtual HANDLE_RESULT OnEventWrite(int32_t fd, uint64_t nowtime_ms)=0;
 };
 
 /** 事件监听server

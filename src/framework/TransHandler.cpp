@@ -18,12 +18,14 @@ namespace easynet
 {
 IMPL_LOGGER(TransHandler, logger);
 
-bool TransHandler::OnTimeout(int32_t fd, uint64_t now_time)
+void TransHandler::OnEventError(int32_t fd, uint64_t nowtime_ms, ErrorCode code)
 {
-	LOG_DEBUG(logger, "on time_out. fd="<<fd);
-
-	IProtocolFactory *protocol_factory = m_AppInterface->GetProtocolFactory();
-	assert(protocol_factory != NULL);
+	if(code == CODE_ERROR)
+		LOG_ERROR(logger, "socket error. fd="<<fd);
+	else if(code == CODE_TIMEOUT)
+		LOG_ERROR(logger, "socket timeout. fd="<<fd);
+	//else
+	//	LOG_INFO(logger, "peer close socket gracefully. fd="<<fd);
 
 	ProtocolContext *context;
 	FDMap::iterator it = m_RecvFdMap.find(fd);
@@ -43,43 +45,11 @@ bool TransHandler::OnTimeout(int32_t fd, uint64_t now_time)
 	while((context = m_AppInterface->GetSendProtocol(fd)) != NULL)    //删除等待发送队列中的协议
 		m_AppInterface->OnSendError(fd, context);
 
-	m_AppInterface->OnSocketTimeout(fd);
-	return true;
-}
-
-
-//错误事件
-bool TransHandler::OnEventError(int32_t fd, uint64_t now_time)
-{
-	LOG_DEBUG(logger, "on event_error. fd="<<fd);
-
-	IProtocolFactory *protocol_factory = m_AppInterface->GetProtocolFactory();
-	assert(protocol_factory != NULL);
-
-	ProtocolContext *context;
-	FDMap::iterator it = m_RecvFdMap.find(fd);
-	if(it != m_RecvFdMap.end())    //删除正在接收的协议
-	{
-		m_RecvFdMap.erase(it);
-		context = it->second;
-		m_AppInterface->DeleteProtocolContext(context);
-	}
-
-	it = m_SendFdMap.find(fd);
-	if(it != m_SendFdMap.end())
-	{
-		m_SendFdMap.erase(it);
-		m_AppInterface->OnSendError(fd, it->second);    //删除正在发送的协议
-		while((context = m_AppInterface->GetSendProtocol(fd)) != NULL)    //删除等待发送队列中的协议
-			m_AppInterface->OnSendError(fd, it->second);
-	}
-
-	m_AppInterface->OnSocketError(fd);
-	return true;
+	m_AppInterface->OnSocketFinished(fd);
 }
 
 //可读事件
-bool TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
+HANDLE_RESULT TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 {
 	LOG_DEBUG(logger, "on event_read. fd="<<fd);
 
@@ -105,7 +75,7 @@ bool TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 		{
 			LOG_ERROR(logger, "recv new data packet but insert to map failed. fd="<<fd);
 			m_AppInterface->DeleteProtocolContext(context);
-			return false;
+			return HANDLE_ERROR;
 		}
 		it = result.first;
 
@@ -122,7 +92,7 @@ bool TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 			LOG_WARN(logger, "receive protocol data timeout. fd="<<fd<<", timeout_ms="<<context->timeout_ms);
 			m_RecvFdMap.erase(it);
 			m_AppInterface->DeleteProtocolContext(context);
-			return false;
+			return HANDLE_ERROR;
 		}
 		LOG_DEBUG(logger, "continue to receive data packet. data_type="<<context->type<<", expect_size="<<context->header_size+context->body_size<<", cur_size="<<(context->bytebuffer)->m_Size<<", fd="<<fd);
 	}
@@ -139,12 +109,15 @@ bool TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 		uint32_t buffer_size = byte_buffer->m_Capacity-byte_buffer->m_Size;
 		uint32_t need_size   = context->header_size-byte_buffer->m_Size;
 		int32_t recv_size    = ReadData(fd, buffer, buffer_size, need_size);
-		if(recv_size== -1)
+		if(recv_size < 0)
 		{
-			LOG_ERROR(logger, "read data error. expect_size="<<context->header_size<<", cur_size="<<byte_buffer->m_Size<<", fd="<<fd);
+			if(recv_size == -1)
+				LOG_ERROR(logger, "read data error. expect_size="<<context->header_size<<", cur_size="<<byte_buffer->m_Size<<", fd="<<fd);
+			else
+				LOG_DEBUG(logger, "read data error. expect_size="<<context->header_size<<", cur_size="<<byte_buffer->m_Size<<", fd="<<fd);
 			m_RecvFdMap.erase(it);
 			m_AppInterface->DeleteProtocolContext(context);
-			return false;
+			return recv_size==-1?HANDLE_ERROR:HANDLE_PEER_CLOSE;
 		}
 		byte_buffer->m_Size += recv_size;
 
@@ -154,12 +127,12 @@ bool TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 			LOG_ERROR(logger, "decode header error. expect_size="<<context->header_size<<", cur_size="<<byte_buffer->m_Size<<", fd="<<fd);
 			m_RecvFdMap.erase(it);
 			m_AppInterface->DeleteProtocolContext(context);
-			return false;
+			return HANDLE_ERROR;
 		}
 		else if(result == DECODE_DATA)
 		{
 			LOG_DEBUG(logger, "wait for more header data. expect_size="<<context->header_size<<", cur_size="<<byte_buffer->m_Size<<", fd="<<fd);
-			return true;
+			return HANDLE_SUCC;
 		}
 
 		//解码头部成功
@@ -180,12 +153,15 @@ bool TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 		uint32_t buffer_size = byte_buffer->m_Capacity-byte_buffer->m_Size;
 		uint32_t need_size   = context->header_size+context->body_size-byte_buffer->m_Size;
 		int32_t recv_size    = ReadData(fd, buffer, buffer_size, need_size);
-		if(recv_size== -1)
+		if(recv_size < 0)
 		{
-			LOG_ERROR(logger, "read body data error. data_type="<<context->type<<", header_size="<<context->header_size<<", body_size="<<context->body_size<<", cur_size="<<byte_buffer->m_Size<<", fd="<<fd);
+			if(recv_size == -1)
+				LOG_ERROR(logger, "read data error. expect_size="<<context->header_size<<", cur_size="<<byte_buffer->m_Size<<", fd="<<fd);
+			else
+				LOG_DEBUG(logger, "read data error. expect_size="<<context->header_size<<", cur_size="<<byte_buffer->m_Size<<", fd="<<fd);
 			m_RecvFdMap.erase(it);
 			m_AppInterface->DeleteProtocolContext(context);
-			return false;
+			return recv_size==-1?HANDLE_ERROR:HANDLE_PEER_CLOSE;
 		}
 		byte_buffer->m_Size += recv_size;
 	}
@@ -201,12 +177,12 @@ bool TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 		LOG_ERROR(logger, "decode body error. data_type="<<context->type<<", header_size="<<context->header_size<<", body_size="<<context->body_size<<", cur_size="<<context->bytebuffer->m_Size<<", fd="<<fd);
 		m_RecvFdMap.erase(it);
 		m_AppInterface->DeleteProtocolContext(context);
-		return false;
+		return HANDLE_ERROR;
 	}
 	else if(result == DECODE_DATA)
 	{
 		LOG_DEBUG(logger, "wait for more body data. data_type="<<context->type<<", header_size="<<context->header_size<<", body_size="<<context->body_size<<", cur_size="<<context->bytebuffer->m_Size<<", fd="<<fd);
-		return true;
+		return HANDLE_SUCC;
 	}
 
 	LOG_DEBUG(logger, "decode body succ. data_type="<<context->type<<", fd="<<fd);
@@ -216,11 +192,11 @@ bool TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 	bool hand_result = m_AppInterface->OnReceiveProtocol(fd, context, detach_context);
 	if(!hand_result || !detach_context)
 		m_AppInterface->DeleteProtocolContext(context);
-	return hand_result;
+	return hand_result==true?HANDLE_SUCC:HANDLE_ERROR;
 }
 
 //可写事件
-bool TransHandler::onEventWrite(int32_t fd, uint64_t now_time)
+HANDLE_RESULT TransHandler::OnEventWrite(int32_t fd, uint64_t now_time)
 {
 	LOG_DEBUG(logger, "on event_write. fd="<<fd);
 
@@ -257,7 +233,7 @@ bool TransHandler::onEventWrite(int32_t fd, uint64_t now_time)
 			LOG_ERROR(logger, "send data error. context="<<context<<", data_type="<<context->type<<", total_size="<<byte_buffer->m_Size<<", send_size="<<context->send_size<<", fd="<<fd);
 			if(it == m_SendFdMap.end())    //保存为正在发送的协议,由OnEventError方法处理
 				m_SendFdMap.insert(std::make_pair(fd, context));
-			return false;
+			return HANDLE_ERROR;
 		}
 
 		context->send_size += send_size;
@@ -286,7 +262,7 @@ bool TransHandler::onEventWrite(int32_t fd, uint64_t now_time)
 			LOG_ERROR(logger, "add write event to event server failed. fd="<<fd);
 		break;
 	}
-	return true;
+	return HANDLE_SUCC;
 }
 
 int32_t TransHandler::ReadData(int32_t fd, char *buffer, uint32_t buffer_size, uint32_t need_size)
@@ -296,7 +272,7 @@ int32_t TransHandler::ReadData(int32_t fd, char *buffer, uint32_t buffer_size, u
 	if(recv_size == 0)
 	{
 		LOG_DEBUG(logger, "peer close socket gracefully. fd="<<fd);
-		recv_size = -1;
+		recv_size = -2;
 	}
 	else if(recv_size < 0)
 	{
