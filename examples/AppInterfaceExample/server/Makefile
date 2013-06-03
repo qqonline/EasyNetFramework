@@ -6,7 +6,7 @@ all:EchoServer
 rebuild:clean EchoServer
 
 EchoServer:EchoServer.cpp EchoServer.h EchoServerMain.cpp
-	g++ ${INCLUDE} $^ ${LIB} -g -o $@
+	g++ ${INCLUDE} $^ ${LIB} -g -o bin/$@
 
 clean:
-	rm EchoServer
+	rm bin/EchoServer
