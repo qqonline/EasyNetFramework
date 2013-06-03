@@ -134,7 +134,7 @@ ERROR_CODE TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 		else if(result == DECODE_DATA)
 		{
 			LOG_DEBUG(logger, "wait for more header data. expect_size="<<context->header_size<<", cur_size="<<byte_buffer->m_Size<<", fd="<<fd);
-			return ECODE_SUCC;
+			return ECODE_PENDING;
 		}
 
 		//解码头部成功
@@ -184,7 +184,7 @@ ERROR_CODE TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 	else if(result == DECODE_DATA)
 	{
 		LOG_DEBUG(logger, "wait for more body data. data_type="<<context->type<<", header_size="<<context->header_size<<", body_size="<<context->body_size<<", cur_size="<<context->bytebuffer->m_Size<<", fd="<<fd);
-		return ECODE_SUCC;
+		return ECODE_PENDING;
 	}
 
 	LOG_DEBUG(logger, "decode body succ. data_type="<<context->type<<", fd="<<fd);
@@ -256,13 +256,7 @@ ERROR_CODE TransHandler::OnEventWrite(int32_t fd, uint64_t now_time)
 		if(it == m_SendFdMap.end())    //保存为正在发送的数据
 			m_SendFdMap.insert(std::make_pair(fd, context));
 
-		//添加可写事件到EventServer
-		IEventServer *event_server = m_AppInterface->GetEventServer();
-		assert(event_server != NULL);
-		int32_t timeout_ms = m_AppInterface->GetIdleTimeoutMS();
-		if(!event_server->AddEvent(fd, ET_WRITE, this, timeout_ms))
-			LOG_ERROR(logger, "add write event to event server failed. fd="<<fd);
-		break;
+		return ECODE_PENDING;
 	}
 	return ECODE_SUCC;
 }
