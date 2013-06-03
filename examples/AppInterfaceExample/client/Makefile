@@ -4,7 +4,7 @@ LIB=-leasynet -llog4cplus
 all:EchoClient
 
 EchoClient:EchoClientMain.cpp
-	g++ ${INCLUDE} ${LIB} $^ -g -o $@
+	g++ ${INCLUDE} ${LIB} $^ -g -o bin/$@
 
 clean:
-	rm EchoClient
+	rm bin/EchoClient
