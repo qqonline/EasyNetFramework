@@ -35,11 +35,11 @@ public:
 	//时钟超时
 	void OnTimeout(uint64_t now_time);
 	//错误事件
-	void OnEventError(int32_t fd, uint64_t nowtime_ms, ErrorCode code);
+	void OnEventError(int32_t fd, uint64_t nowtime_ms, ERROR_CODE code);
 	//可读事件
-	HANDLE_RESULT OnEventRead(int32_t fd, uint64_t now_time);
+	ERROR_CODE OnEventRead(int32_t fd, uint64_t now_time);
 	//可写事件
-	HANDLE_RESULT OnEventWrite(int32_t fd, uint64_t now_time);
+	ERROR_CODE OnEventWrite(int32_t fd, uint64_t now_time);
 private:
 	//接收数据
 	// @param fd          : socket fd

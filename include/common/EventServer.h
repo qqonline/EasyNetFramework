@@ -30,23 +30,21 @@ typedef uint16_t EventType;
 #define ET_IS_WRITE(x)      (((x)&ET_WRITE) != 0)     //是否设置写
 #define ET_IS_PERSIST(x)    (((x)&ET_PERSIST) != 0)   //是否设置持续
 
-static const char* EventInfoString[4]={"ET_EMPTY", "ET_READ", "ET_WRITE", "ET_RDWT"};
+static const char* EventInfoString[]={"ET_EMPTY", "ET_READ", "ET_WRITE", "ET_RDWT"};
 #define EventStr(x) EventInfoString[(x&ET_RDWT)]
 /////////////////////////////////////////////////////////////////////////////////////////
-
-typedef enum _handle_result_
-{
-	HANDLE_SUCC,
-	HANDLE_ERROR,
-	HANDLE_PEER_CLOSE,
-}HANDLE_RESULT;
-
 typedef enum _error_code_
 {
-	CODE_ERROR,
-	CODE_TIMEOUT,
-	CODE_PEER_CLOSE,
-}ErrorCode;
+	ECODE_TIMEOUT,    //超时
+	ECODE_CLOSE,      //对端关闭
+	ECODE_ERROR,      //错误
+
+	//一下两种情况是正常情况
+	ECODE_PENDING,    //读/写数据未完整
+	ECODE_SUCC,       //成功
+}ERROR_CODE;
+static const char* ErrorCodeString[]={"ECODE_TIME", "ECODE_CLOSE", "ECODE_ERROR", "ECODE_PENDING", "ECODE_SUCC"};
+#define ErrCodeStr(x) ErrorCodeString[x]
 
 class IEventHandler
 {
@@ -55,11 +53,11 @@ public:
 	//时钟超时
 	virtual void OnTimeout(uint64_t nowtime_ms)=0;
 	//错误事件
-	virtual void OnEventError(int32_t fd, uint64_t nowtime_ms, ErrorCode code)=0;
+	virtual void OnEventError(int32_t fd, uint64_t nowtime_ms, ERROR_CODE code)=0;
 	//可读事件
-	virtual HANDLE_RESULT OnEventRead(int32_t fd, uint64_t nowtime_ms)=0;
+	virtual ERROR_CODE OnEventRead(int32_t fd, uint64_t nowtime_ms)=0;
 	//可写事件
-	virtual HANDLE_RESULT OnEventWrite(int32_t fd, uint64_t nowtime_ms)=0;
+	virtual ERROR_CODE OnEventWrite(int32_t fd, uint64_t nowtime_ms)=0;
 };
 
 /** 事件监听server

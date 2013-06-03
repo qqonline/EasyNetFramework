@@ -13,13 +13,13 @@ namespace easynet
 IMPL_LOGGER(ListenHandler, logger);
 
 //io结束
-void ListenHandler::OnEventError(int32_t fd, uint64_t nowtime_ms, ErrorCode code)
+void ListenHandler::OnEventError(int32_t fd, uint64_t nowtime_ms, ERROR_CODE code)
 {
 	LOG_ERROR(logger, "listen socket finished. fd="<<fd<<" error_code="<<code);
 	m_AppInterface->OnListenError(fd);
 }
 
-HANDLE_RESULT ListenHandler::OnEventRead(int32_t fd, uint64_t nowtime_ms)
+ERROR_CODE ListenHandler::OnEventRead(int32_t fd, uint64_t nowtime_ms)
 {
 	while(true)
 	{
@@ -33,7 +33,7 @@ HANDLE_RESULT ListenHandler::OnEventRead(int32_t fd, uint64_t nowtime_ms)
 			close(new_fd);
 		}
 	}
-	return HANDLE_SUCC;
+	return ECODE_SUCC;
 }
 
 }//namespace

@@ -30,11 +30,11 @@ public:
 	//时钟超时
 	void OnTimeout(uint64_t nowtime_ms);
 	//错误事件
-	void OnEventError(int32_t fd, uint64_t nowtime_ms, ErrorCode code);
+	void OnEventError(int32_t fd, uint64_t nowtime_ms, ERROR_CODE code);
 	//可读事件
-	HANDLE_RESULT OnEventRead(int32_t fd, uint64_t nowtime_ms);
+	ERROR_CODE OnEventRead(int32_t fd, uint64_t nowtime_ms);
 	//可写事件
-	HANDLE_RESULT OnEventWrite(int32_t fd, uint64_t nowtime_ms);
+	ERROR_CODE OnEventWrite(int32_t fd, uint64_t nowtime_ms);
 private:
 	IAppInterface *m_AppInterface;
 private:
@@ -48,10 +48,10 @@ void ListenHandler::OnTimeout(uint64_t nowtime_ms)
 }
 
 inline
-HANDLE_RESULT ListenHandler::OnEventWrite(int32_t fd, uint64_t nowtime_ms)
+ERROR_CODE ListenHandler::OnEventWrite(int32_t fd, uint64_t nowtime_ms)
 {
 	assert(0);  //无写事件
-	return HANDLE_SUCC;
+	return ECODE_SUCC;
 }
 
 
