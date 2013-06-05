@@ -42,21 +42,36 @@ public:
 	//////////////////////////////////////////////////////////////////////
 	//往buffer中写入key-value值对.
 	//net_trans : true时会调用htons等函数进行转换.
+	//将数据写入buffer,并设置buffer为下一次写入的地址(需要保证buffer足够大)
+	static void SetValue(uint16_t key, int32_t value, char *&buffer, bool net_trans);
+	static void SetValue(uint16_t key, int64_t value, char *&buffer, bool net_trans);
+	static void SetValue(uint16_t key, const string &str, char *&buffer, bool net_trans);
+	static void SetValue(uint16_t key, const char *c_str, char *&buffer, bool net_trans);
+	static void SetValue(uint16_t key, const char *data, uint32_t size, char *&buffer, bool net_trans);
+
+	//GetDataBuffer和SetDataLength两个方法成对调用,用来写入数据块(当数据量比较大的时候,可减少数据的拷贝次数,提高性能).
+	//获取字符串缓冲区,调用者可以直接往缓冲区写数据
+	static char *GetWriteBuffer(uint16_t key, char *buffer, bool net_trans);
+
+	//调用者往缓冲区写入数据后,调用本方法,设置实际写入的数据大小.key和GetWriteBuffer中设置的key必须一致.
+	//  如果没调用本方法,则相当于之前调用GetDataBuffer和写入缓冲区的数据无效.
+	//  不允许调用本方法之前调用其他SetValue方法.
+	//buffer为GetWriteBuffer的参数buffer,而不是其返回的可写缓冲区.同时设置buffer为下一次写入的地址.
+	static void SetWriteLength(uint16_t key, uint32_t size, char *&buffer, bool net_trans);
+
+	//将数据写入bytebuffer,并设置bytebuffer的大小,下次从bytebuffer的数据后写入
 	static void SetValue(uint16_t key, int32_t value, ByteBuffer *buffer, bool net_trans);
 	static void SetValue(uint16_t key, int64_t value, ByteBuffer *buffer, bool net_trans);
 	static void SetValue(uint16_t key, const string &str, ByteBuffer *buffer, bool net_trans);
 	static void SetValue(uint16_t key, const char *c_str, ByteBuffer *buffer, bool net_trans);    //c风格字符串,包含'\0'
 	static void SetValue(uint16_t key, const char *data, uint32_t size, ByteBuffer *buffer, bool net_trans);
-
 	//GetDataBuffer和SetDataLength两个方法成对调用,用来写入数据块(当数据量比较大的时候,可减少数据的拷贝次数,提高性能).
 	//获取字符串缓冲区,调用者可以直接往缓冲区写数据
 	static char *GetWriteBuffer(uint16_t key, uint32_t max_size, ByteBuffer *buffer, bool net_trans);
-
 	//调用者往缓冲区写入数据后,调用本方法,设置实际写入的数据大小.key和GetWriteBuffer中设置的key必须一致.
 	//  如果没调用本方法,则相当于之前调用GetDataBuffer和写入缓冲区的数据无效.
 	//  不允许调用本方法之前调用其他SetValue方法.
 	static void SetWriteLength(uint16_t key, uint32_t size, ByteBuffer *buffer, bool net_trans);
-
 
 	//////////////////////////////////////////////////////////////////////
 	////////////////////////         解包         ////////////////////////
@@ -69,7 +84,6 @@ public:
 	static bool GetValue(KVItemMap &item_map, uint16_t key, string &str);
 	static bool GetValue(KVItemMap &item_map, uint16_t key, char *&c_str);
 	static bool GetValue(KVItemMap &item_map, uint16_t key, char *&data, uint32_t &size);
-
 
 public:
 	KVData():m_NetTrans(true),m_WriteBuffer(NULL),m_ReadBuffer(NULL),m_ReadSize(0){}

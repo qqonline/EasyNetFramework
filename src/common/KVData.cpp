@@ -37,10 +37,111 @@ if(buffer->m_Size+len > buffer->m_Capacity) \
 }\
 }while(0)
 
+
+void KVData::SetValue(uint16_t key, int32_t value, char *&buffer, bool net_trans)
+{
+	assert(buffer != NULL);
+
+	uint16_t key_type = KeyType(key, TYPE_INT32);
+	if(net_trans)
+	{
+		key_type = htons(key_type);
+		value = htonl(value);
+	}
+
+	*(uint16_t*)buffer = key_type;
+	buffer += sizeof(uint16_t);
+	*(int32_t*)buffer = value;
+	buffer += sizeof(int32_t);
+}
+
+void KVData::SetValue(uint16_t key, int64_t value, char *&buffer, bool net_trans)
+{
+	assert(buffer != NULL);
+
+	uint16_t key_type = KeyType(key, TYPE_INT64);
+	if(net_trans)
+	{
+		key_type = htons(key_type);
+		value = htonl(value);
+	}
+
+	*(uint16_t*)buffer = key_type;
+	buffer += sizeof(uint16_t);
+	*(int64_t*)buffer = value;
+	buffer += sizeof(int64_t);
+}
+
+void KVData::SetValue(uint16_t key, const string &str, char *&buffer, bool net_trans)
+{
+	SetValue(key, str.c_str(), str.size(), buffer, net_trans);
+}
+
+void KVData::SetValue(uint16_t key, const char *c_str, char *&buffer, bool net_trans)
+{
+	assert(c_str != NULL);
+	SetValue(key, c_str, strlen(c_str)+1, buffer, net_trans);
+}
+
+void KVData::SetValue(uint16_t key, const char *data, uint32_t size, char *&buffer, bool net_trans)
+{
+	assert(buffer != NULL);
+	uint16_t key_type = KeyType(key, TYPE_BYTES);
+	uint32_t temp_size = size;
+	if(net_trans)
+	{
+		key_type = htons(key_type);
+		temp_size = htonl(size);
+	}
+
+	*(uint16_t*)buffer = key_type;
+	buffer += sizeof(uint16_t);
+	*(uint32_t*)buffer = temp_size;
+	buffer += sizeof(uint32_t);
+	memcpy(buffer, data, size);
+	buffer += size;
+}
+
+char* KVData::GetWriteBuffer(uint16_t key, char *buffer, bool net_trans)
+{
+	assert(buffer != NULL);
+
+	uint16_t key_type = KeyType(key, TYPE_BYTES);
+	if(net_trans)
+		key_type = htons(key_type);
+	*(uint16_t*)buffer = key_type;
+	buffer += sizeof(uint16_t);
+	return buffer;
+}
+
+//调用者往缓冲区写入数据后,调用本方法,设置实际写入的数据大小.key和GetWriteBuffer中设置的key必须一致.
+//  如果没调用本方法,则相当于之前调用GetDataBuffer和写入缓冲区的数据无效.
+//  不允许调用本方法之前调用其他SetValue方法.
+void KVData::SetWriteLength(uint16_t key, uint32_t size, char *&buffer, bool net_trans)
+{
+	assert(buffer != NULL);
+
+	//检验是否是之前写入的头部信息
+	uint16_t key_type = *(uint16_t*)buffer;
+	if(net_trans)
+	{
+		key_type = ntohl(key_type);
+		size = htonl(size);
+	}
+	uint16_t cur_key = ToKey(key_type);
+	uint16_t cur_type = ToType(key_type);
+	assert(cur_key==key && cur_type==TYPE_BYTES);
+
+	//写入实际的长度
+	buffer += sizeof(uint16_t);
+	*(uint32_t*)buffer = size;
+	buffer += sizeof(uint32_t)+size;
+}
+
 void KVData::SetValue(uint16_t key, int32_t value, ByteBuffer *buffer, bool net_trans)
 {
 	assert(buffer != NULL);
-	uint32_t len = sizeof(uint16_t)+sizeof(uint32_t);
+	uint32_t len = sizeof(uint16_t)+sizeof(int32_t);
 	CheckBuffer(buffer, len, 128);
 
 	uint16_t key_type = KeyType(key, TYPE_INT32);
@@ -81,52 +182,13 @@ void KVData::SetValue(uint16_t key, int64_t value, ByteBuffer *buffer, bool net_
 
 void KVData::SetValue(uint16_t key, const string &str, ByteBuffer *buffer, bool net_trans)
 {
-	assert(buffer != NULL);
-	uint32_t size = str.size();
-	uint32_t len = sizeof(uint16_t)+sizeof(uint32_t)+size;
-	CheckBuffer(buffer, len, len+128);
-
-	uint16_t key_type = KeyType(key, TYPE_BYTES);
-	uint32_t temp_size = size;
-	if(net_trans)
-	{
-		key_type = htons(key_type);
-		temp_size = htonl(size);
-	}
-
-	char *ptr = buffer->m_Buffer+buffer->m_Size;
-	*(uint16_t*)ptr = key_type;
-	ptr += sizeof(uint16_t);
-	*(uint32_t*)ptr = temp_size;
-	ptr += sizeof(uint32_t);
-	memcpy(ptr, str.c_str(), size);
-
-	buffer->m_Size += len;
+	SetValue(key, str.c_str(), str.size(), buffer, net_trans);
 }
 
 void KVData::SetValue(uint16_t key, const char *c_str, ByteBuffer *buffer, bool net_trans)
 {
-	assert(buffer!=NULL && c_str!=NULL);
-	uint32_t size = strlen(c_str)+1;
-	uint32_t len = sizeof(uint16_t)+sizeof(uint32_t)+size;
-	CheckBuffer(buffer, len, len+128);
-
-	uint16_t key_type = KeyType(key, TYPE_BYTES);
-	uint32_t temp_size = size;
-	if(net_trans)
-	{
-		key_type = htons(key_type);
-		temp_size = htonl(size);
-	}
-
-	char *ptr = buffer->m_Buffer+buffer->m_Size;
-	*(uint16_t*)ptr = key_type;
-	ptr += sizeof(uint16_t);
-	*(uint32_t*)ptr = temp_size;
-	ptr += sizeof(uint32_t);
-	memcpy(ptr, c_str, size);
-
-	buffer->m_Size += len;
+	assert(c_str != NULL);
+	SetValue(key, c_str, strlen(c_str)+1, buffer, net_trans);
 }
 
 void KVData::SetValue(uint16_t key, const char *data, uint32_t size, ByteBuffer *buffer, bool net_trans)
