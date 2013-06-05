@@ -86,7 +86,7 @@ public:
 	static bool GetValue(KVItemMap &item_map, uint16_t key, char *&data, uint32_t &size);
 
 public:
-	KVData():m_NetTrans(true),m_WriteBuffer(NULL),m_ReadBuffer(NULL),m_ReadSize(0){}
+	KVData():m_NetTrans(true),m_WriteBuffer(NULL),m_WriteByteBuffer(NULL),m_ReadBuffer(NULL),m_ReadSize(0){}
 
 public:
 	//////////////////////////////////////////////////////////////////////
@@ -95,6 +95,8 @@ public:
 	//往buffer中写入key-value值对.
 	//net_trans : true时会调用htons等函数进行转换.
 	void AttachWriteBuffer(ByteBuffer *buffer, bool net_trans);
+	void AttachWriteBuffer(char *buffer, bool net_trans);
+
 	void SetValue(uint16_t key, int32_t value);
 	void SetValue(uint16_t key, int64_t value);
 	void SetValue(uint16_t key, const string &str);
@@ -125,7 +127,8 @@ public:
 	bool GetValue(uint16_t key, char *&data, uint32_t &size);
 private:
 	bool m_NetTrans;
-	ByteBuffer *m_WriteBuffer;
+	ByteBuffer *m_WriteByteBuffer;
+	char *m_WriteBuffer;
 
 	const char *m_ReadBuffer;
 	uint32_t m_ReadSize;
@@ -135,6 +138,15 @@ private:
 inline
 void KVData::AttachWriteBuffer(ByteBuffer *buffer, bool net_trans)
 {
+	m_WriteByteBuffer = buffer;
+	m_WriteBuffer = NULL;
+	m_NetTrans = net_trans;
+}
+
+inline
+void KVData::AttachWriteBuffer(char *buffer, bool net_trans)
+{
+	m_WriteByteBuffer = NULL;
 	m_WriteBuffer = buffer;
 	m_NetTrans = net_trans;
 }
@@ -142,43 +154,71 @@ void KVData::AttachWriteBuffer(ByteBuffer *buffer, bool net_trans)
 inline
 void KVData::SetValue(uint16_t key, int32_t value)
 {
-	SetValue(key, value, m_WriteBuffer, m_NetTrans);
+	assert(m_WriteBuffer!=NULL || m_WriteByteBuffer!=NULL);
+	if(m_WriteBuffer != NULL)
+		SetValue(key, value, m_WriteBuffer, m_NetTrans);
+	else
+		SetValue(key, value, m_WriteByteBuffer, m_NetTrans);
 }
 
 inline
 void KVData::SetValue(uint16_t key, int64_t value)
 {
-	SetValue(key, value, m_WriteBuffer, m_NetTrans);
+	assert(m_WriteBuffer!=NULL || m_WriteByteBuffer!=NULL);
+	if(m_WriteBuffer != NULL)
+		SetValue(key, value, m_WriteBuffer, m_NetTrans);
+	else
+		SetValue(key, value, m_WriteByteBuffer, m_NetTrans);
 }
 
 inline
 void KVData::SetValue(uint16_t key, const string &str)
 {
-	SetValue(key, str, m_WriteBuffer, m_NetTrans);
+	assert(m_WriteBuffer!=NULL || m_WriteByteBuffer!=NULL);
+	if(m_WriteBuffer != NULL)
+		SetValue(key, str, m_WriteBuffer, m_NetTrans);
+	else
+		SetValue(key, str, m_WriteByteBuffer, m_NetTrans);
 }
 
 inline
 void KVData::SetValue(uint16_t key, const char *c_str)
 {
-	SetValue(key, c_str, m_WriteBuffer, m_NetTrans);
+	assert(m_WriteBuffer!=NULL || m_WriteByteBuffer!=NULL);
+	if(m_WriteBuffer != NULL)
+		SetValue(key, c_str, m_WriteBuffer, m_NetTrans);
+	else
+		SetValue(key, c_str, m_WriteByteBuffer, m_NetTrans);
 }
 
 inline
 void KVData::SetValue(uint16_t key, const char *data, uint32_t size)
 {
-	SetValue(key, data, size, m_WriteBuffer, m_NetTrans);
+	assert(m_WriteBuffer!=NULL || m_WriteByteBuffer!=NULL);
+	if(m_WriteBuffer != NULL)
+		SetValue(key, data, size, m_WriteBuffer, m_NetTrans);
+	else
+		SetValue(key, data, size, m_WriteByteBuffer, m_NetTrans);
 }
 
 inline
 char* KVData::GetWriteBuffer(uint16_t key, uint32_t max_size)
 {
-	return GetWriteBuffer(key, max_size, m_WriteBuffer, m_NetTrans);
+	assert(m_WriteBuffer!=NULL || m_WriteByteBuffer!=NULL);
+	if(m_WriteBuffer != NULL)
+		return GetWriteBuffer(key, m_WriteBuffer, m_NetTrans);
+	else
+		return GetWriteBuffer(key, max_size, m_WriteByteBuffer, m_NetTrans);
 }
 
 inline
 void KVData::SetWriteLength(uint16_t key, uint32_t size)
 {
-	SetWriteLength(key, size, m_WriteBuffer, m_NetTrans);
+	assert(m_WriteBuffer!=NULL || m_WriteByteBuffer!=NULL);
+	if(m_WriteBuffer != NULL)
+		SetWriteLength(key, size, m_WriteBuffer, m_NetTrans);
+	else
+		SetWriteLength(key, size, m_WriteByteBuffer, m_NetTrans);
 }
 
 inline
