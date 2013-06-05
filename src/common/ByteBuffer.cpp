@@ -12,17 +12,35 @@
 namespace easynet
 {
 
-SystemMemory ByteBuffer::m_SysMemory;
-
-ByteBuffer::ByteBuffer(uint32_t capacity/*=1024*/, IMemory *memory/*=NULL*/)
-	:m_Capacity(capacity)
-	,m_Size(0)
+void ByteBuffer::Init(uint32_t capacity, IMemory *memory)
 {
-	if(memory == NULL)
-		memory = &m_SysMemory;
+	m_Size = 0;
 	m_Memory = memory;
 	m_Buffer = (char*)m_Memory->Alloc(m_Capacity);
 	assert(m_Buffer != NULL);
+}
+
+ByteBuffer::ByteBuffer()
+{
+	Init(1024, &m_SysMemory);
+}
+
+ByteBuffer::ByteBuffer(uint32_t capacity)
+{
+	assert(capacity > 0);
+	Init(capacity, &m_SysMemory);
+}
+
+ByteBuffer::ByteBuffer(IMemory *memory)
+{
+	assert(memory != NULL);
+	Init(1024, memory);
+}
+
+ByteBuffer::ByteBuffer(uint32_t capacity, IMemory *memory)
+{
+	assert(capacity>0 && memory!=NULL);
+	Init(capacity, memory);
 }
 
 ByteBuffer::~ByteBuffer()
