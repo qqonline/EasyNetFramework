@@ -15,6 +15,7 @@ namespace easynet
 void ByteBuffer::Init(uint32_t capacity, IMemory *memory)
 {
 	m_Size = 0;
+	m_Capacity = capacity;
 	m_Memory = memory;
 	m_Buffer = (char*)m_Memory->Alloc(m_Capacity);
 	assert(m_Buffer != NULL);

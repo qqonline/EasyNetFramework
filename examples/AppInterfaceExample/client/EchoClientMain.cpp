@@ -37,9 +37,9 @@ int main()
 	const char* client_string = "I'm a Client.";
 
 	kvdata.AttachWriteBuffer(&bytebuffer, true);
-	kvdata.SetValue(Index_ProtocolType, protocol_client);
-	kvdata.SetValue(Index_ClientID, client_id);
-	kvdata.SetValue(Index_ClientString, client_string);
+	kvdata.SetInt32(Index_ProtocolType, protocol_client);
+	kvdata.SetInt32(Index_ClientID, client_id);
+	kvdata.SetBytes(Index_ClientString, client_string, strlen(client_string)+1);
 
 	uint32_t body_size = bytebuffer.m_Size-protocol_factory.HeaderSize();
 	protocol_factory.EncodeHeader(bytebuffer.m_Buffer, body_size);
@@ -83,21 +83,21 @@ int main()
 	}
 
 	//解码协议体
-	kvdata.AttachReadBuffer(bytebuffer.m_Buffer+header_size, body_size, true);
-	if(kvdata.UnPack() == false)
+	if(kvdata.UnPack(bytebuffer.m_Buffer+header_size, body_size, true) == false)
 	{
 		printf("KVData unpack failed.\n");
 		return -1;
 	}
 
 	int32_t protocol_server;
-	kvdata.GetValue(Index_ProtocolType, protocol_server);
+	kvdata.GetInt32(Index_ProtocolType, protocol_server);
 	if(protocol_server == 1)
 	{
 		int32_t server_id = -1;
 		char* server_string = 0;
-		kvdata.GetValue(Index_ServerID, server_id);
-		kvdata.GetValue(Index_ServerString, server_string);
+		uint32_t size = 0;
+		kvdata.GetInt32(Index_ServerID, server_id);
+		kvdata.GetBytes(Index_ServerString, server_string, size);
 		printf("server_id=%d, server_string=%s\n", server_id, server_string);
 	}
 	else

@@ -35,7 +35,7 @@ bool EchoServer::OnReceiveProtocol(int32_t fd, ProtocolContext *context, bool &d
 	//Add Your Code Here
 	KVData *kvdata = (KVData*)context->protocol;
 	int32_t protocol_type;
-	if(!kvdata->GetValue(Index_ProtocolType, protocol_type))
+	if(!kvdata->GetInt32(Index_ProtocolType, protocol_type))
 	{
 		LOG_ERROR(logger, "receive protocol on fd="<<fd<<". get protocol_type failed");
 		return true;
@@ -46,8 +46,8 @@ bool EchoServer::OnReceiveProtocol(int32_t fd, ProtocolContext *context, bool &d
 	{
 		int32_t client_id=-1;
 		string client_string="error info";
-		kvdata->GetValue(Index_ClientID, client_id);
-		kvdata->GetValue(Index_ClientString, client_string);
+		kvdata->GetInt32(Index_ClientID, client_id);
+		kvdata->GetBytes(Index_ClientString, client_string);
 		LOG_INFO(logger, "receive client info:client_id="<<client_id<<" client_string="<<client_string);
 
 		IProtocolFactory* protocol_factory = GetProtocolFactory();
@@ -66,9 +66,9 @@ bool EchoServer::OnReceiveProtocol(int32_t fd, ProtocolContext *context, bool &d
 
 		KVData kvdata;
 		kvdata.AttachWriteBuffer(bytebuffer, true);
-		kvdata.SetValue(Index_ProtocolType, protocol_server);
-		kvdata.SetValue(Index_ServerID, server_id);
-		kvdata.SetValue(Index_ServerString, server_string);
+		kvdata.SetInt32(Index_ProtocolType, protocol_server);
+		kvdata.SetInt32(Index_ServerID, server_id);
+		kvdata.SetBytes(Index_ServerString, server_string, strlen(server_string)+1);
 
 		uint32_t body_size = bytebuffer->m_Size-header_size;
 		protocol_factory->EncodeHeader(bytebuffer->m_Buffer, body_size);
@@ -118,10 +118,10 @@ void EchoServer::OnSocketFinished(int32_t fd)
 
 int32_t EchoServer::GetRecvTimeoutMS()
 {
-	return -1;
+	return -1;    //接收不超时
 }
 
 int32_t EchoServer::GetIdleTimeoutMS()
 {
-	return 300000;
+	return 3000;  //socket没有活动,3s超时
 }

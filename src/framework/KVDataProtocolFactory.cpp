@@ -70,8 +70,7 @@ DecodeResult KVDataProtocolFactory::DecodeBinBody(ProtocolContext *context)
 
 	ByteBuffer *bytebuffer = context->bytebuffer;
 	char *buffer = bytebuffer->m_Buffer+KVDATA_HEADER_SIZE;
-	kvdata->AttachReadBuffer(buffer, context->body_size, true);
-	if(kvdata->UnPack() == false)
+	if(kvdata->UnPack(buffer, context->body_size, true) == false)
 	{
 		if(m_Memory != NULL)
 		{
