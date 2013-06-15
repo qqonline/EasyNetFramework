@@ -74,7 +74,7 @@ bool EchoServer::OnReceiveProtocol(int32_t fd, ProtocolContext *context, bool &d
 		protocol_factory->EncodeHeader(bytebuffer->m_Buffer, body_size);
 
 		send_context->Info = "ServerInfo";
-		SendProtocol(fd, send_context, 300000);
+		SendProtocol(fd, send_context, 3000);
 	}
 	else
 	{
