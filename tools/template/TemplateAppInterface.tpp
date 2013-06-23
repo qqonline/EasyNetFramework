@@ -63,18 +63,13 @@ void TemplateAppInterface::OnSendTimeout(int32_t fd, ProtocolContext *context)
 	return ;
 }
 
-bool TemplateAppInterface::OnSocketError(int32_t fd)
+void TemplateAppInterface::OnSocketFinished(int32_t fd)
 {
 	//Add Your Code Here
-	LOG_ERROR(logger, "socket error on fd="<<fd);
+	LOG_INFO(logger, "socket finished. fd="<<fd);
 	
-	return true;
-}
+	//close it?
+	//Socket::Close(fd);
 
-bool TemplateAppInterface::OnSocketTimeout(int32_t fd)
-{
-	//Add Your Code Here
-	LOG_ERROR(logger, "socket timeout on fd="<<fd);
-	
-	return true;
+	return ;
 }

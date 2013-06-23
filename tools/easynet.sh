@@ -8,7 +8,7 @@ Usage()
 {
 	echo -e "easynet -a ClassName [-m]\n"
 	echo "  -a : Create Application Instance."
-	echo "  -m : optional. gen server main framework."
+	echo "  -m : Optional. gen server main framework."
 }
 
 function GenAppInstance()
@@ -18,9 +18,19 @@ function GenAppInstance()
 	local Filename=""
 
 	if [ "$Subfix" == "h" ];then
+		if [ -f "$ClassName.h" ];then
+			echo "ERROR: target file already exists: $ClassName.h...exit"
+			exit
+		fi
+
 		cp ${TEMPLATEDIR}/TemplateAppInterface.th $ClassName.h
 		Filename=$ClassName.h
 	elif [ "$Subfix" == "cpp" ];then
+		if [ -f "$ClassName.cpp" ];then
+			echo "ERROR: target file already exists: $ClassName.cpp...exit"
+			exit
+		fi
+
 		cp ${TEMPLATEDIR}/TemplateAppInterface.tpp $ClassName.cpp
 		Filename=$ClassName.cpp
 	fi
@@ -34,7 +44,12 @@ function GenAppInstance()
 function GenAppMain()
 {
 	local ClassName=$1
-	
+
+	if [ -f "${ClassName}Main.cpp" ];then
+		echo "ERROR: target file already exists: ${ClassName}Main.cpp...exit"
+		exit
+	fi
+
 	cp ${TEMPLATEDIR}/TemplateAppInterfaceMain.tpp ${ClassName}Main.cpp
 	sed -i "s/TemplateAppInterface/$ClassName/g" ${ClassName}Main.cpp
 	sed -i "s/_#CreateDate#_/${DATE}/g" ${ClassName}Main.cpp
@@ -61,5 +76,7 @@ if [ "$1" == "-a" ];then
 		echo "Gen ApplicationMain class file: $2Main.cpp..."
 		GenAppMain $2;
 	fi
+
+	echo -e "\nCompile Using:\n\t-I/usr/include/easynet -leasynet -lpthread -llog4cplus"
 fi
 
