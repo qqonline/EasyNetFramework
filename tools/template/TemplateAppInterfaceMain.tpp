@@ -9,6 +9,8 @@
 
 int main(int argc, char *argv[])
 {
+	PropertyConfigurator::doConfigure("../config/log4cplus.conf");
+
 	TemplateAppInterface application;
 	application.Start();
 	

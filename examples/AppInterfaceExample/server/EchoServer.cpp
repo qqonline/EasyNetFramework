@@ -10,6 +10,8 @@
 #include "Socket.h"
 #include "KVDataIndex.h"
 
+#include "Timer.h"    //时钟
+
 IMPL_LOGGER(EchoServer, logger);
 
 bool EchoServer::Start()
@@ -25,9 +27,31 @@ bool EchoServer::Start()
 	LOG_INFO(logger, "listen on port=12300 succ.");
 
 	IEventServer* event_server = GetEventServer();
+
+	//添加时钟
+	Timer timer(this);
+	bool result = event_server->AddTimer(&timer, 5000, true); //持续的时钟
+	if(result == false)
+		LOG_ERROR(logger, "add timer failed.");
+
 	event_server->RunLoop();
 
 	return true;
+}
+
+int32_t EchoServer::GetSocketRecvTimeout()
+{
+	return -1;
+}
+
+int32_t EchoServer::GetSocketIdleTimeout()
+{
+	return 3000;
+}
+
+int32_t EchoServer::GetMaxConnections()
+{
+	return 1000;
 }
 
 bool EchoServer::OnReceiveProtocol(int32_t fd, ProtocolContext *context, bool &detach_context)
@@ -116,12 +140,8 @@ void EchoServer::OnSocketFinished(int32_t fd)
 	return ;
 }
 
-int32_t EchoServer::GetRecvTimeoutMS()
+void EchoServer::OnTimeout(uint64_t nowtime_ms)
 {
-	return -1;    //接收不超时
-}
-
-int32_t EchoServer::GetIdleTimeoutMS()
-{
-	return 3000;  //socket没有活动,3s超时
+	LOG_DEBUG(logger, "Timer timeout....");
+	return ;
 }

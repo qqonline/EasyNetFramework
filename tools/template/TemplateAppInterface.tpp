@@ -16,6 +16,21 @@ bool TemplateAppInterface::Start()
 	return true;
 }
 
+int32_t TemplateAppInterface::GetSocketRecvTimeout()
+{
+	return -1;
+}
+
+int32_t TemplateAppInterface::GetSocketIdleTimeout()
+{
+	return 3000;
+}
+
+int32_t TemplateAppInterface::GetMaxConnections()
+{
+	return 1000;
+}
+
 bool TemplateAppInterface::OnReceiveProtocol(int32_t fd, ProtocolContext *context, bool &detach_context)
 {
 	//Add Your Code Here
@@ -62,15 +77,4 @@ bool TemplateAppInterface::OnSocketTimeout(int32_t fd)
 	LOG_ERROR(logger, "socket timeout on fd="<<fd);
 	
 	return true;
-}
-
-
-int32_t TemplateAppInterface::GetRecvTimeoutMS()
-{
-	return -1;
-}
-
-int32_t TemplateAppInterface::GetIdleTimeoutMS()
-{
-	return 3000;
 }

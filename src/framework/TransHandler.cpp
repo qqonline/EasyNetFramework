@@ -68,7 +68,7 @@ ERROR_CODE TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 		context->type = DTYPE_INVALID;
 		context->header_size = protocol_factory->HeaderSize();
 		context->fd = fd;
-		context->timeout_ms = m_AppInterface->GetRecvTimeoutMS();
+		context->timeout_ms = m_AppInterface->GetSocketRecvTimeout();
 		if(context->timeout_ms > 0)
 			context->expire_time = now_time+context->timeout_ms;
 

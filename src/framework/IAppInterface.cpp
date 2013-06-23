@@ -27,6 +27,7 @@ IMPL_LOGGER(IAppInterface, logger);
 	now = tv.tv_sec*1000+tv.tv_usec/1000;     \
 }while(0)
 
+
 IAppInterface::IAppInterface()
 	:m_EventServer(NULL)
 	,m_ProtocolFactory(NULL)
@@ -44,6 +45,46 @@ IAppInterface::~IAppInterface()
 		delete m_TransHandler;
 	if(m_ListenHandler != NULL)
 		delete m_ListenHandler;
+}
+
+//获取EventServer的实例
+IEventServer* IAppInterface::GetEventServer()
+{
+	if(m_EventServer == NULL)
+	{
+		int32_t max_connexctions = GetMaxConnections();
+		m_EventServer = new EventServerEpoll(max_connexctions);
+	}
+	return m_EventServer;
+}
+
+//获取ProtocolFactory的实例
+IProtocolFactory* IAppInterface::GetProtocolFactory()
+{
+	if(m_ProtocolFactory == NULL)
+		m_ProtocolFactory = new KVDataProtocolFactory(GetMemory());
+	return m_ProtocolFactory;
+}
+
+//获取传输handler
+IEventHandler* IAppInterface::GetTransHandler()
+{
+	if(m_TransHandler == NULL)
+		m_TransHandler = new TransHandler(this);
+	return m_TransHandler;
+}
+
+//服务监听handler
+IEventHandler* IAppInterface::GetListenHander()
+{
+	if(m_ListenHandler == NULL)
+		m_ListenHandler = new ListenHandler(this);
+	return m_ListenHandler;
+}
+
+IMemory* IAppInterface::GetMemory()
+{
+	return &m_SysMemory;
 }
 
 bool IAppInterface::Listen(int32_t port, const char *ip/*=NULL*/, uint32_t back_log/*=128*/)
@@ -67,7 +108,7 @@ bool IAppInterface::Listen(int32_t port, const char *ip/*=NULL*/, uint32_t back_
 	assert(event_handler != NULL);
 	if(!event_server->AddEvent(fd, ET_PER_RD, event_handler, -1))
 	{
-		LOG_ERROR(logger, "add perist read event to event_server failed. fd="<<fd);
+		LOG_ERROR(logger, "add persist read event to event_server failed. fd="<<fd);
 		Socket::Close(fd);
 		return false;
 	}
@@ -94,7 +135,7 @@ bool IAppInterface::AcceptNewConnect(int32_t fd)
 	}
 
 	LOG_DEBUG(logger, "accept new connect. new_fd="<<fd<<", peer_ip="<<peer_ip<<", peer_port="<<peer_port);
-	int32_t timeout_ms = GetIdleTimeoutMS();
+	int32_t timeout_ms = GetSocketIdleTimeout();
 	IEventServer *event_server = GetEventServer();
 	IEventHandler* event_handler = GetTransHandler();
 	assert(event_handler != NULL);
@@ -105,6 +146,36 @@ bool IAppInterface::AcceptNewConnect(int32_t fd)
 		return false;
 	}
 	return true;
+}
+
+//创建协议上下文
+ProtocolContext* IAppInterface::NewProtocolContext()
+{
+	IMemory *memory = GetMemory();
+	void *buf = memory->Alloc(sizeof(ByteBuffer));
+	void *mem = memory->Alloc(sizeof(ProtocolContext));
+	assert(mem!=NULL && buf!=NULL);
+
+	ByteBuffer *bytebuffer = new(buf) ByteBuffer(1024, memory);
+	ProtocolContext *context = new(mem) ProtocolContext;
+	context->bytebuffer = bytebuffer;
+	return context;
+}
+
+//删除协议上下文
+void IAppInterface::DeleteProtocolContext(ProtocolContext *context)
+{
+	//释放protocol实例
+	IProtocolFactory *factory = GetProtocolFactory();
+	if(context->protocol != NULL)
+		factory->DeleteProtocol(context->protocol_type, context->protocol);
+
+	IMemory *memory = GetMemory();
+	assert(context!=NULL && context->bytebuffer!=NULL);
+	ByteBuffer *bytebuffer = context->bytebuffer;
+	bytebuffer->~ByteBuffer();
+	memory->Free((void*)bytebuffer, sizeof(ByteBuffer));
+	memory->Free((void*)context, sizeof(ProtocolContext));
 }
 
 bool IAppInterface::SendProtocol(int32_t fd, ProtocolContext *context, int32_t send_timeout_ms/*=-1*/)
@@ -145,7 +216,7 @@ bool IAppInterface::SendProtocol(int32_t fd, ProtocolContext *context, int32_t s
 	protocol_list->push_back(context);    //直接添加到队列尾
 
 	//添加可写事件监控
-	int32_t timeout_ms = GetIdleTimeoutMS();
+	int32_t timeout_ms = GetSocketIdleTimeout();
 	IEventServer *event_server = GetEventServer();
 	IEventHandler* event_handler = GetTransHandler();
 	assert(event_server != NULL);
@@ -175,74 +246,6 @@ ProtocolContext* IAppInterface::GetSendProtocol(int32_t fd)
 		m_SendMap.erase(it);
 
 	return context;
-}
-
-
-//创建协议上下文
-ProtocolContext* IAppInterface::NewProtocolContext()
-{
-	IMemory *memory = GetMemory();
-	void *buf = memory->Alloc(sizeof(ByteBuffer));
-	void *mem = memory->Alloc(sizeof(ProtocolContext));
-	assert(mem!=NULL && buf!=NULL);
-
-	ByteBuffer *bytebuffer = new(buf) ByteBuffer(1024, memory);
-	ProtocolContext *context = new(mem) ProtocolContext;
-	context->bytebuffer = bytebuffer;
-	return context;
-}
-
-//删除协议上下文
-void IAppInterface::DeleteProtocolContext(ProtocolContext *context)
-{
-	//释放protocol实例
-	IProtocolFactory *factory = GetProtocolFactory();
-	if(context->protocol != NULL)
-		factory->DeleteProtocol(context->protocol_type, context->protocol);
-
-	IMemory *memory = GetMemory();
-	assert(context!=NULL && context->bytebuffer!=NULL);
-	ByteBuffer *bytebuffer = context->bytebuffer;
-	bytebuffer->~ByteBuffer();
-	memory->Free((void*)bytebuffer, sizeof(ByteBuffer));
-	memory->Free((void*)context, sizeof(ProtocolContext));
-}
-
-//获取EventServer的实例
-IEventServer* IAppInterface::GetEventServer()
-{
-	if(m_EventServer == NULL)
-		m_EventServer = new EventServerEpoll(10000);
-	return m_EventServer;
-}
-
-//获取ProtocolFactory的实例
-IProtocolFactory* IAppInterface::GetProtocolFactory()
-{
-	if(m_ProtocolFactory == NULL)
-		m_ProtocolFactory = new KVDataProtocolFactory(GetMemory());
-	return m_ProtocolFactory;
-}
-
-//获取传输handler
-IEventHandler* IAppInterface::GetTransHandler()
-{
-	if(m_TransHandler == NULL)
-		m_TransHandler = new TransHandler(this);
-	return m_TransHandler;
-}
-
-//服务监听handler
-IEventHandler* IAppInterface::GetListenHander()
-{
-	if(m_ListenHandler == NULL)
-		m_ListenHandler = new ListenHandler(this);
-	return m_ListenHandler;
-}
-
-IMemory* IAppInterface::GetMemory()
-{
-	return &m_SysMemory;
 }
 
 }//namespace
