@@ -173,7 +173,7 @@ ERROR_CODE TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 	if(context->type == DTYPE_BIN)
 		result = protocol_factory->DecodeBinBody(context);
 	else if (context->type == DTYPE_TEXT)
-		result = protocol_factory->DecodeBinBody(context);
+		result = protocol_factory->DecodeTextBody(context);
 	if(result == DECODE_ERROR)
 	{
 		LOG_ERROR(logger, "decode body error. data_type="<<context->type<<", header_size="<<context->header_size<<", body_size="<<context->body_size<<", cur_size="<<context->bytebuffer->m_Size<<", fd="<<fd);
