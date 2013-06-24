@@ -23,7 +23,7 @@ void TransHandler::OnEventError(int32_t fd, uint64_t nowtime_ms, ERROR_CODE code
 	if(code == ECODE_ERROR)
 		LOG_ERROR(logger, "socket error. fd="<<fd);
 	else if(code == ECODE_TIMEOUT)
-		LOG_ERROR(logger, "socket timeout. fd="<<fd);
+		LOG_INFO(logger, "socket timeout. fd="<<fd);
 	else if(code == ECODE_CLOSE)
 		LOG_DEBUG(logger, "peer close socket gracefully. fd="<<fd);
 	else
@@ -143,7 +143,8 @@ ERROR_CODE TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 	}
 
 	//读可能剩下的二进制协议体数据
-	if(context->type==DTYPE_BIN && context->bytebuffer->m_Size<context->header_size+context->body_size)
+	//if(context->type==DTYPE_BIN && context->bytebuffer->m_Size<context->header_size+context->body_size)
+	if(context->bytebuffer->m_Size<context->header_size+context->body_size)
 	{
 		ByteBuffer *byte_buffer = context->bytebuffer;
 		if(byte_buffer->m_Capacity < context->header_size+context->body_size)

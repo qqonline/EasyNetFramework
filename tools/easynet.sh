@@ -6,10 +6,11 @@ AUTHOR=`whoami`
 
 Usage()
 {
-	echo -e "easynet -a ClassName [-m]\n"
+	echo -e "easynet -i | -p | -a ClassName [-m]\n"
+	echo "  -i : Init environment."
+	echo "  -p : Generate ProtocolFactory Class."
 	echo "  -a : Generate Application Instance Class."
 	echo "  -m : Optional. gen server main framework."
-	echo "  -p : Generate ProtocolFactory Class."
 }
 
 function GenAppInstance()
@@ -79,12 +80,6 @@ function GenProtocolFactory()
 
 
 ##########################  main  ##########################
-
-if [ $# -lt 2 ];then
-	Usage;
-	exit;
-fi
-
 if [ "$1" == "-a" ];then
 	if [ $# -lt 2 ];then
 		Usage;
@@ -105,6 +100,10 @@ if [ "$1" == "-a" ];then
 	echo "INCLUDE=-I/usr/include/easynet"> Makefile.tmp
 	echo "LIBS=-leasynet -lpthread -llog4cplus" >> Makefile.tmp
 elif [ "$1" == "-p" ];then
+	if [ $# -lt 2 ];then
+		Usage;
+		exit;	
+	fi
 	echo -e "Generate ProtocolFactory class file:\n\t$2.h ...\n\t$2.cpp ..."
 	if [ -f "$2.h" ];then
 		echo "ERROR: ProtocolFactory class file: $2.h already exists ... [exit]"
@@ -116,5 +115,27 @@ elif [ "$1" == "-p" ];then
 	GenProtocolFactory $2;
 	
 	echo "Generate ProtocolFactory ... [OK]"
+elif [ "$1" == "-i" ];then
+	echo "Init environment ..."
+	if [ ! -d "bin" ];then
+		echo "create dir ./bin ..."
+		mkdir bin
+	fi
+	
+	if [ ! -d "config" ];then
+		echo "create dir ./config ..."
+		mkdir config
+	fi 
+
+	if [ ! -d "log" ];then
+		echo "create dir ./log ..."
+		mkdir log
+	fi
+
+	if [ ! -f "config/log4cplus.conf" ];then
+		echo "copy log config to ./config/log4cplus.conf ..."
+		cp ${TEMPLATEDIR}/log4cplus.conf ./config
+	fi
+	echo "Init environment ... [OK]"
 fi
 
