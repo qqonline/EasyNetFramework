@@ -53,6 +53,20 @@ bool HttpEchoServer::OnReceiveProtocol(int32_t fd, ProtocolContext *context, boo
 {
 	//Add Your Code Here
 	LOG_INFO(logger, "receive protocol on fd="<<fd<<", content is:\n"<<context->bytebuffer->m_Buffer);
+
+	ProtocolContext *send_context = NewProtocolContext();
+	send_context->type = DTYPE_TEXT;
+
+	ByteBuffer *byte_buffer = send_context->bytebuffer;
+
+	char data[1024];
+	sprintf(data, "<html><head><title>Http Echo</title></head><body><center><h4>Welcome to EasyNet.</h4></center><br><br>Your request content is:<br><textarea cols=\"100\" rows=\"15\">%s</textarea></p></body><html>", context->bytebuffer->m_Buffer);
+	sprintf(byte_buffer->m_Buffer, "HTTP/1.1 200 OK\r\nContent-Length:%d\r\nContent-Type:text/html\r\n\r\n%s", strlen(data), data);
+
+	byte_buffer->m_Size = strlen(byte_buffer->m_Buffer);
+
+	SendProtocol(fd, send_context);
+
 	return true;
 }
 
@@ -60,7 +74,7 @@ void HttpEchoServer::OnSendSucc(int32_t fd, ProtocolContext *context)
 {
 	//Add Your Code Here
 	LOG_DEBUG(logger, "send protocol succ on fd="<<fd<<", info='"<<context->Info<<"'");
-	
+	DeleteProtocolContext(context);
 	return ;
 }
 
@@ -68,7 +82,7 @@ void HttpEchoServer::OnSendError(int32_t fd, ProtocolContext *context)
 {
 	//Add Your Code Here
 	LOG_ERROR(logger, "send protocol failed on fd="<<fd<<", info='"<<context->Info<<"'");
-	
+	DeleteProtocolContext(context);
 	return ;
 }
 
@@ -76,7 +90,7 @@ void HttpEchoServer::OnSendTimeout(int32_t fd, ProtocolContext *context)
 {
 	//Add Your Code Here
 	LOG_WARN(logger, "send protocol timeout on fd="<<fd<<", info='"<<context->Info<<"'");
-	
+	DeleteProtocolContext(context);
 	return ;
 }
 
