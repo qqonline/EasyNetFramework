@@ -21,10 +21,10 @@ public:
 	ThreadPool(uint32_t thread_num);
 	virtual ~ThreadPool();
 
-	bool start();
+	bool Start();
 protected:
 	//创建/运行线程
-	virtual Thread* create_thread()=0;
+	virtual Thread* CreateThread()=0;
 private:
 	Thread **m_threads;
 	uint32_t m_size;

@@ -31,12 +31,12 @@ ThreadPool::~ThreadPool()
 	free((void*)m_threads);
 }
 
-bool ThreadPool::start()
+bool ThreadPool::Start()
 {
 	uint32_t i;
 	for(i=0; i<m_size; ++i)
 	{
-		m_threads[m_thread_num] = create_thread();
+		m_threads[m_thread_num] = CreateThread();
 		if(m_threads[m_thread_num] == NULL)
 			LOG_ERROR(logger, "create thread failed.");
 		else

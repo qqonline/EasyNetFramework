@@ -117,7 +117,7 @@ uint32_t CondQueue::GetSize()
 {
 	uint32_t size = 0;
 	pthread_mutex_lock(&m_lock);
-	size = (m_in>m_out?m_in-m_out:m_in+m_capacity-m_out);
+	size = (m_in>=m_out?m_in-m_out:m_in+m_capacity-m_out);
 	pthread_mutex_unlock(&m_lock);
 	return size;
 }

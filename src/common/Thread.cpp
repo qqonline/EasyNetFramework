@@ -14,14 +14,14 @@ namespace easynet
 
 IMPL_LOGGER(Thread, logger);
 
-void* Thread::thread_proc(void* thread)
+void* Thread::ThreadProc(void* thread)
 {
 	assert(thread != NULL);
-	((Thread*)thread)->do_run();
+	((Thread*)thread)->DoRun();
 	return NULL;
 }
 
-bool Thread::start()
+bool Thread::Start()
 {
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
@@ -40,7 +40,7 @@ bool Thread::start()
 		pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 		LOG_DEBUG(logger, "detach thread...");
 	}
-	int result = pthread_create(&m_thread_id, &attr, thread_proc, (void*)this);
+	int result = pthread_create(&m_thread_id, &attr, ThreadProc, (void*)this);
 	pthread_attr_destroy(&attr);
 	if(result != 0)
 	{
@@ -53,7 +53,7 @@ bool Thread::start()
 	return result==0?true:false;
 }
 
-void Thread::wait_terminate()
+void Thread::WaitTerminate()
 {
 	if(m_detachable)
 		return;

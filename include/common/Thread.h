@@ -22,7 +22,7 @@ namespace easynet
 
 class Thread
 {
-static void* thread_proc(void* thread);
+static void* ThreadProc(void* thread);
 public:
 	Thread(bool detachable=true, uint32_t stack_size=0)
 		:m_detachable(detachable)
@@ -32,13 +32,13 @@ public:
 	virtual ~Thread(){}
 
 	//启动线程
-	bool start();
+	bool Start();
 	//等待线程结束
-	void wait_terminate();
+	void WaitTerminate();
 
 protected:
 	//线程实际运行接口
-	virtual void do_run()=0;
+	virtual void DoRun()=0;
 private:
 	pthread_t m_thread_id;
 	bool m_detachable;
