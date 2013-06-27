@@ -1,10 +1,10 @@
 INCLUDE=-I/usr/include/easynet -I./ -I../
 LIB=-leasynet -llog4cplus
 
-all:EchoClient
+all:bin/EchoClient
 
-EchoClient:EchoClientMain.cpp
-	g++ ${INCLUDE} ${LIB} $^ -g -o bin/$@
+bin/EchoClient:EchoClientMain.cpp
+	g++ ${INCLUDE} ${LIB} $^ -g -o $@
 
 clean:
 	rm bin/EchoClient
