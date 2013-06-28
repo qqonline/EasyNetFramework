@@ -26,29 +26,26 @@ typedef enum _data_type
 	DTYPE_BIN_TEXT   //文本和二进制
 }DataType;
 
-class ProtocolContext
+class ProtocolContext:public ByteBuffer
 {
 public:
-	ProtocolContext()
+	ProtocolContext():ByteBuffer()
 	{
-		bytebuffer = NULL;
-
-		type = DTYPE_INVALID;
-		header_size = 0;
-		body_size = 0;
-		protocol_type = 0;
-		protocol = NULL;
-
-		send_size = 0;
-
-		timeout_ms = -1;
-		expire_time = 0;
-		fd = 0;
+		Init();
 	}
-
+	ProtocolContext(uint32_t capacity):ByteBuffer(capacity)
+	{
+		Init();
+	}
+	ProtocolContext(IMemory *memory):ByteBuffer(memory)
+	{
+		Init();
+	}
+	ProtocolContext(uint32_t capacity, IMemory *memory):ByteBuffer(capacity, memory)
+	{
+		Init();
+	}
 public:
-	ByteBuffer *bytebuffer;        //缓冲区          (接收/发送数据时使用)
-
 	DataType   type;               //数据类型        (接收数据时使用)
 	uint32_t   header_size;        //头部长度        (接收数据时使用)
 	uint32_t   body_size;          //协议体长度      (接收数据时使用)
@@ -61,6 +58,21 @@ public:
 	int32_t    timeout_ms;         //接收/发送的超时时间(单位:毫秒),应用层设置
 	uint64_t   expire_time;        //接收/发送的超时时间点(单位:毫秒),框架设置
 	uint32_t   fd;                 //接收/发送的socket fd(暂时没有使用)
+private:
+	void Init()
+	{
+		type = DTYPE_INVALID;
+		header_size = 0;
+		body_size = 0;
+		protocol_type = 0;
+		protocol = NULL;
+
+		send_size = 0;
+
+		timeout_ms = -1;
+		expire_time = 0;
+		fd = 0;
+	}
 };
 
 typedef enum _decode_result

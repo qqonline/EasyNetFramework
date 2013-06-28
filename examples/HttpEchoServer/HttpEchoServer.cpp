@@ -52,15 +52,15 @@ int32_t HttpEchoServer::GetMaxConnections()
 bool HttpEchoServer::OnReceiveProtocol(int32_t fd, ProtocolContext *context, bool &detach_context)
 {
 	//Add Your Code Here
-	LOG_INFO(logger, "receive protocol on fd="<<fd<<", content is:\n"<<context->bytebuffer->m_Buffer);
+	LOG_INFO(logger, "receive protocol on fd="<<fd<<", content is:\n"<<context->m_Buffer);
 
 	ProtocolContext *send_context = NewProtocolContext();
 	send_context->type = DTYPE_TEXT;
 
-	ByteBuffer *byte_buffer = send_context->bytebuffer;
+	ByteBuffer *byte_buffer = (ByteBuffer*)send_context;
 
 	char data[1024];
-	sprintf(data, "<html><head><title>Http Echo</title></head><body><center><h4>Welcome to EasyNet.</h4></center><br><br>Your request content is:<br><textarea cols=\"100\" rows=\"15\">%s</textarea></p></body><html>", context->bytebuffer->m_Buffer);
+	sprintf(data, "<html><head><title>Http Echo</title></head><body><center><h4>Welcome to EasyNet.</h4></center><br><br>Your request content is:<br><textarea cols=\"100\" rows=\"15\">%s</textarea></p></body><html>", context->m_Buffer);
 	sprintf(byte_buffer->m_Buffer, "HTTP/1.1 200 OK\r\nContent-Length:%d\r\nContent-Type:text/html\r\n\r\n%s", strlen(data), data);
 
 	byte_buffer->m_Size = strlen(byte_buffer->m_Buffer);

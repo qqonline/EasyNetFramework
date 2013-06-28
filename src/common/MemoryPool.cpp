@@ -22,7 +22,7 @@ MemSlab::MemSlab(bool thread_safe, uint32_t elem_size, uint32_t slab_n, int32_t 
 		elem_size = 4;
 	m_ElemSize  = elem_size;
 	m_SlabNum   = slab_n;
-	m_BlockNum = block_n;
+	m_BlockNum  = block_n;
 	m_FreeList  = NULL;
 
 	m_Size      = 100;
@@ -204,7 +204,7 @@ void MemPool::Free(void *data, uint32_t size)
 
 void* MemPool::ReAlloc(void *mem, uint32_t size, uint32_t new_size)
 {
-	if(mem==NULL || new_size <= size)
+	if(mem==NULL || new_size<=size)
 		return mem;
 
 	uint32_t slab_id, new_slab_id;

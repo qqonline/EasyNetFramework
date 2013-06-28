@@ -52,7 +52,7 @@ void KVDataProtocolFactory::EncodeHeader(char *buffer, uint32_t body_size)
 
 DecodeResult KVDataProtocolFactory::DecodeBinBody(ProtocolContext *context)
 {
-	if(context->bytebuffer->m_Size < context->header_size+context->body_size)
+	if(context->m_Size < context->header_size+context->body_size)
 		return DECODE_DATA;
 
 	void *mem = NULL;
@@ -68,8 +68,7 @@ DecodeResult KVDataProtocolFactory::DecodeBinBody(ProtocolContext *context)
 	assert(mem != NULL);
 	KVData *kvdata = new(mem) KVData;
 
-	ByteBuffer *bytebuffer = context->bytebuffer;
-	char *buffer = bytebuffer->m_Buffer+KVDATA_HEADER_SIZE;
+	char *buffer = context->m_Buffer+KVDATA_HEADER_SIZE;
 	if(kvdata->UnPack(buffer, context->body_size, true) == false)
 	{
 		if(m_Memory != NULL)

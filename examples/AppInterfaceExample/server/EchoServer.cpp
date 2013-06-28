@@ -77,7 +77,7 @@ bool EchoServer::OnReceiveProtocol(int32_t fd, ProtocolContext *context, bool &d
 		IProtocolFactory* protocol_factory = GetProtocolFactory();
 		assert(protocol_factory != NULL);
 		ProtocolContext *send_context = NewProtocolContext();
-		ByteBuffer *bytebuffer = send_context->bytebuffer;
+		ByteBuffer *bytebuffer = (ByteBuffer*)send_context;
 
 		uint32_t header_size = protocol_factory->HeaderSize();
 		//预留协议头

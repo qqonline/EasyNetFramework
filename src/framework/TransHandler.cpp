@@ -63,7 +63,7 @@ ERROR_CODE TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 	if(it == m_RecvFdMap.end())
 	{
 		context = m_AppInterface->NewProtocolContext();
-		assert(context!=NULL && context->bytebuffer!=NULL);
+		assert(context!=NULL);
 
 		context->type = DTYPE_INVALID;
 		context->header_size = protocol_factory->HeaderSize();
@@ -96,77 +96,75 @@ ERROR_CODE TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 			m_AppInterface->DeleteProtocolContext(context);
 			return ECODE_ERROR;
 		}
-		LOG_DEBUG(logger, "continue to receive data packet. data_type="<<context->type<<", expect_size="<<context->header_size+context->body_size<<", cur_size="<<(context->bytebuffer)->m_Size<<", fd="<<fd);
+		LOG_DEBUG(logger, "continue to receive data packet. data_type="<<context->type<<", expect_size="<<context->header_size+context->body_size<<", cur_size="<<context->m_Size<<", fd="<<fd);
 	}
 
 	if(context->type == DTYPE_INVALID)  //协议类型未知,需要解码协议头来判断是文本协议还是二进制协议
 	{
-		ByteBuffer *byte_buffer = context->bytebuffer;
-		if(byte_buffer->m_Capacity < context->header_size)
+		if(context->m_Capacity < context->header_size)
 		{
-			bool result = byte_buffer->Enlarge(context->header_size);
+			bool result = context->Enlarge(context->header_size);
 			assert(result == true);
 		}
-		char *buffer         = byte_buffer->m_Buffer+byte_buffer->m_Size;
-		uint32_t buffer_size = byte_buffer->m_Capacity-byte_buffer->m_Size;
-		uint32_t need_size   = context->header_size-byte_buffer->m_Size;
+		char *buffer         = context->m_Buffer+context->m_Size;
+		uint32_t buffer_size = context->m_Capacity-context->m_Size;
+		uint32_t need_size   = context->header_size-context->m_Size;
 		int32_t recv_size    = ReadData(fd, buffer, buffer_size, need_size);
 		if(recv_size < 0)
 		{
 			if(recv_size == -1)
-				LOG_ERROR(logger, "read data error. expect_size="<<context->header_size<<", cur_size="<<byte_buffer->m_Size<<", fd="<<fd);
+				LOG_ERROR(logger, "read data error. expect_size="<<context->header_size<<", cur_size="<<context->m_Size<<", fd="<<fd);
 			else
-				LOG_DEBUG(logger, "read data error. expect_size="<<context->header_size<<", cur_size="<<byte_buffer->m_Size<<", fd="<<fd);
+				LOG_DEBUG(logger, "read data error. expect_size="<<context->header_size<<", cur_size="<<context->m_Size<<", fd="<<fd);
 			m_RecvFdMap.erase(it);
 			m_AppInterface->DeleteProtocolContext(context);
 			return recv_size==-1?ECODE_ERROR:ECODE_CLOSE;
 		}
-		byte_buffer->m_Size += recv_size;
+		context->m_Size += recv_size;
 
-		DecodeResult result = protocol_factory->DecodeHeader(byte_buffer->m_Buffer, context->type, context->body_size);
+		DecodeResult result = protocol_factory->DecodeHeader(context->m_Buffer, context->type, context->body_size);
 		if(result == DECODE_ERROR)
 		{
-			LOG_ERROR(logger, "decode header error. expect_size="<<context->header_size<<", cur_size="<<byte_buffer->m_Size<<", fd="<<fd);
+			LOG_ERROR(logger, "decode header error. expect_size="<<context->header_size<<", cur_size="<<context->m_Size<<", fd="<<fd);
 			m_RecvFdMap.erase(it);
 			m_AppInterface->DeleteProtocolContext(context);
 			return ECODE_ERROR;
 		}
 		else if(result == DECODE_DATA)
 		{
-			LOG_DEBUG(logger, "wait for more header data. expect_size="<<context->header_size<<", cur_size="<<byte_buffer->m_Size<<", fd="<<fd);
+			LOG_DEBUG(logger, "wait for more header data. expect_size="<<context->header_size<<", cur_size="<<context->m_Size<<", fd="<<fd);
 			return ECODE_PENDING;
 		}
 
 		//解码头部成功
 		assert(context->type != DTYPE_INVALID);
-		LOG_DEBUG(logger, "decode header succ. data_type="<<context->type<<", header_size="<<context->header_size<<", body_size="<<context->body_size<<", cur_size="<<byte_buffer->m_Size<<", fd="<<fd);
+		LOG_DEBUG(logger, "decode header succ. data_type="<<context->type<<", header_size="<<context->header_size<<", body_size="<<context->body_size<<", cur_size="<<context->m_Size<<", fd="<<fd);
 	}
 
 	//读可能剩下的二进制协议体数据
 	//if(context->type==DTYPE_BIN && context->bytebuffer->m_Size<context->header_size+context->body_size)
-	if(context->bytebuffer->m_Size<context->header_size+context->body_size)
+	if(context->m_Size<context->header_size+context->body_size)
 	{
-		ByteBuffer *byte_buffer = context->bytebuffer;
-		if(byte_buffer->m_Capacity < context->header_size+context->body_size)
+		if(context->m_Capacity < context->header_size+context->body_size)
 		{
-			bool result = byte_buffer->Enlarge(context->header_size+context->body_size);
+			bool result = context->Enlarge(context->header_size+context->body_size);
 			assert(result == true);
 		}
-		char *buffer         = byte_buffer->m_Buffer+byte_buffer->m_Size;
-		uint32_t buffer_size = byte_buffer->m_Capacity-byte_buffer->m_Size;
-		uint32_t need_size   = context->header_size+context->body_size-byte_buffer->m_Size;
+		char *buffer         = context->m_Buffer+context->m_Size;
+		uint32_t buffer_size = context->m_Capacity-context->m_Size;
+		uint32_t need_size   = context->header_size+context->body_size-context->m_Size;
 		int32_t recv_size    = ReadData(fd, buffer, buffer_size, need_size);
 		if(recv_size < 0)
 		{
 			if(recv_size == -1)
-				LOG_ERROR(logger, "read data error. expect_size="<<context->header_size<<", cur_size="<<byte_buffer->m_Size<<", fd="<<fd);
+				LOG_ERROR(logger, "read data error. expect_size="<<context->header_size<<", cur_size="<<context->m_Size<<", fd="<<fd);
 			else
-				LOG_DEBUG(logger, "read data error. expect_size="<<context->header_size<<", cur_size="<<byte_buffer->m_Size<<", fd="<<fd);
+				LOG_DEBUG(logger, "read data error. expect_size="<<context->header_size<<", cur_size="<<context->m_Size<<", fd="<<fd);
 			m_RecvFdMap.erase(it);
 			m_AppInterface->DeleteProtocolContext(context);
 			return recv_size==-1?ECODE_ERROR:ECODE_CLOSE;
 		}
-		byte_buffer->m_Size += recv_size;
+		context->m_Size += recv_size;
 	}
 
 	//解码
@@ -177,14 +175,14 @@ ERROR_CODE TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 		result = protocol_factory->DecodeTextBody(context);
 	if(result == DECODE_ERROR)
 	{
-		LOG_ERROR(logger, "decode body error. data_type="<<context->type<<", header_size="<<context->header_size<<", body_size="<<context->body_size<<", cur_size="<<context->bytebuffer->m_Size<<", fd="<<fd);
+		LOG_ERROR(logger, "decode body error. data_type="<<context->type<<", header_size="<<context->header_size<<", body_size="<<context->body_size<<", cur_size="<<context->m_Size<<", fd="<<fd);
 		m_RecvFdMap.erase(it);
 		m_AppInterface->DeleteProtocolContext(context);
 		return ECODE_ERROR;
 	}
 	else if(result == DECODE_DATA)
 	{
-		LOG_DEBUG(logger, "wait for more body data. data_type="<<context->type<<", header_size="<<context->header_size<<", body_size="<<context->body_size<<", cur_size="<<context->bytebuffer->m_Size<<", fd="<<fd);
+		LOG_DEBUG(logger, "wait for more body data. data_type="<<context->type<<", header_size="<<context->header_size<<", body_size="<<context->body_size<<", cur_size="<<context->m_Size<<", fd="<<fd);
 		return ECODE_PENDING;
 	}
 
@@ -227,22 +225,21 @@ ERROR_CODE TransHandler::OnEventWrite(int32_t fd, uint64_t now_time)
 			continue;
 		}
 		//发送数据
-		ByteBuffer *byte_buffer = context->bytebuffer;
-		char *buffer = byte_buffer->m_Buffer+context->send_size;
-		uint32_t need_size = byte_buffer->m_Size-context->send_size;
+		char *buffer = context->m_Buffer+context->send_size;
+		uint32_t need_size = context->m_Size-context->send_size;
 		int32_t send_size = Socket::Send(fd, buffer, need_size);
 		if(send_size == -1)    //socket有问题,发送失败,返回false
 		{
-			LOG_ERROR(logger, "send data error. context="<<context<<", data_type="<<context->type<<", total_size="<<byte_buffer->m_Size<<", send_size="<<context->send_size<<", fd="<<fd);
+			LOG_ERROR(logger, "send data error. context="<<context<<", data_type="<<context->type<<", total_size="<<context->m_Size<<", send_size="<<context->send_size<<", fd="<<fd);
 			if(it == m_SendFdMap.end())    //保存为正在发送的协议,由OnEventError方法处理
 				m_SendFdMap.insert(std::make_pair(fd, context));
 			return ECODE_ERROR;
 		}
 
 		context->send_size += send_size;
-		if(context->send_size >= byte_buffer->m_Size)  //发送完成
+		if(context->send_size >= context->m_Size)  //发送完成
 		{
-			LOG_DEBUG(logger, "send data finished. context="<<context<<", data_type="<<context->type<<", total_size="<<byte_buffer->m_Size<<", send_size="<<context->send_size<<", fd="<<fd);
+			LOG_DEBUG(logger, "send data finished. context="<<context<<", data_type="<<context->type<<", total_size="<<context->m_Size<<", send_size="<<context->send_size<<", fd="<<fd);
 			if(it != m_SendFdMap.end())
 			{
 				m_SendFdMap.erase(it);
@@ -253,7 +250,7 @@ ERROR_CODE TransHandler::OnEventWrite(int32_t fd, uint64_t now_time)
 		}
 
 		//只发送了一半数据,等待下次可写事件
-		LOG_INFO(logger, "send data partly. context="<<context<<", data_type="<<context->type<<", total_size="<<byte_buffer->m_Size<<", send_size="<<context->send_size<<", fd="<<fd);
+		LOG_INFO(logger, "send data partly. context="<<context<<", data_type="<<context->type<<", total_size="<<context->m_Size<<", send_size="<<context->send_size<<", fd="<<fd);
 		if(it == m_SendFdMap.end())    //保存为正在发送的数据
 			m_SendFdMap.insert(std::make_pair(fd, context));
 

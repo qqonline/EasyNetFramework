@@ -16,14 +16,14 @@ class ByteBuffer
 {
 public:
 	//默认初始化大小1k,系统内存分配器
-	ByteBuffer();
+	explicit ByteBuffer();
 	//默认使用系统内存分配器
-	ByteBuffer(uint32_t capacity);
+	explicit ByteBuffer(uint32_t capacity);
 	//默认初始化大小1k
-	ByteBuffer(IMemory *memory);
+	explicit ByteBuffer(IMemory *memory);
 	//设置capacity和memory
 	ByteBuffer(uint32_t capacity, IMemory *memory);
-	~ByteBuffer();
+	virtual ~ByteBuffer();
 
 	//容量扩大size个字节,成功返回true,失败返回false(没有内存)
 	bool Enlarge(uint32_t size=1024);
