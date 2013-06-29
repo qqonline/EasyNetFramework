@@ -47,8 +47,6 @@ public:
 	}
 };
 
-extern SystemMemory gSystemMemory;
-
 }//namespace
 #endif //_COMMON_IMEMORY_H_
 

@@ -31,13 +31,13 @@ public:
 	char *m_Buffer;
 	uint32_t m_Capacity; //buffer的容量
 	uint32_t m_Size;     //buffer中数据大小
-
 private:
 	ByteBuffer(const ByteBuffer &buffer){}
 	ByteBuffer& operator=(ByteBuffer &buffer){return *this;}
 
 	void Init(uint32_t capacity, IMemory *memory);
-	SystemMemory m_SysMemory;
+private:
+	static SystemMemory m_SysMemory;
 	IMemory *m_Memory;   //对象的内存分配器
 };
 
