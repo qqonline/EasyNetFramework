@@ -31,7 +31,7 @@ int main()
 	strcpy(temp, "XXXXXXXX");
 	kv_data.SetWriteLength(KEY_STRING_1, strlen(temp)+1);
 
-	if(!kv_data.UnPack(bytebuffer.m_Buffer, bytebuffer.m_Size, net_trans))
+	if(!kv_data.UnPack(bytebuffer.Buffer, bytebuffer.Size, net_trans))
 	{
 		printf("unpack failed.\n");
 		return -1;

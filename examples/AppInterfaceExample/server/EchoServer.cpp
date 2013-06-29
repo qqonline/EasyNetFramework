@@ -81,7 +81,7 @@ bool EchoServer::OnReceiveProtocol(int32_t fd, ProtocolContext *context, bool &d
 
 		uint32_t header_size = protocol_factory->HeaderSize();
 		//预留协议头
-		bytebuffer->m_Size = header_size;
+		bytebuffer->Size = header_size;
 
 		//协议体数据
 		int32_t protocol_server = 1;
@@ -94,8 +94,8 @@ bool EchoServer::OnReceiveProtocol(int32_t fd, ProtocolContext *context, bool &d
 		kvdata.SetInt32(Index_ServerID, server_id);
 		kvdata.SetBytes(Index_ServerString, server_string, strlen(server_string)+1);
 
-		uint32_t body_size = bytebuffer->m_Size-header_size;
-		protocol_factory->EncodeHeader(bytebuffer->m_Buffer, body_size);
+		uint32_t body_size = bytebuffer->Size-header_size;
+		protocol_factory->EncodeHeader(bytebuffer->Buffer, body_size);
 
 		send_context->Info = "ServerInfo";
 		SendProtocol(fd, send_context, 3000);

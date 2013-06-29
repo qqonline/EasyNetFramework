@@ -39,12 +39,12 @@ CondQueue::~CondQueue()
 	m_array = NULL;
 }
 
-bool CondQueue::Push(void *data, int32_t wait_ms/*=0*/)
+bool CondQueue::Push(void *elem, int32_t wait_ms/*=0*/)
 {
-	uint32_t temp;
-	assert(data != NULL);
+	assert(elem != NULL);
+
 	pthread_mutex_lock(&m_lock);
-	if((temp=(m_in+1)%m_capacity) == m_out)  //已满
+	if((m_in+1)%m_capacity == m_out)  //已满
 	{
 		if(wait_ms == 0)
 		{
@@ -55,20 +55,26 @@ bool CondQueue::Push(void *data, int32_t wait_ms/*=0*/)
 		{
 			struct timespec ts;
 			struct timeval tv;
+			uint32_t temp_us;
+
 			gettimeofday(&tv, NULL);
-			uint32_t temp = wait_ms+tv.tv_usec/1000;
-			ts.tv_sec = tv.tv_sec + temp/1000;
-			ts.tv_nsec = (temp%1000)*1000000;
+			temp_us = wait_ms*1000+tv.tv_usec;             //转成微秒
+			ts.tv_sec = tv.tv_sec + temp_us/1000000;       //转成秒
+			ts.tv_nsec = (temp_us%1000000)*1000;           //剩下的微秒转成纳秒
 			pthread_cond_timedwait(&m_nofull_cond, &m_lock, &ts);
+
+			if((m_in+1)%m_capacity == m_out)  //超时(还是满的)再判断一次
+			{
+				pthread_mutex_unlock(&m_lock);
+				return false;
+			}
 		}
 		else
-		{
 			pthread_cond_wait(&m_nofull_cond, &m_lock);
-		}
 	}
 
-	((void**)m_array)[m_in] = data;
-	m_in = temp;
+	((void**)m_array)[m_in] = elem;
+	m_in = (m_in+1)%m_capacity;
 
 	pthread_mutex_unlock(&m_lock);
 	pthread_cond_signal(&m_noempty_cond);
@@ -77,7 +83,8 @@ bool CondQueue::Push(void *data, int32_t wait_ms/*=0*/)
 
 void* CondQueue::Pop(int32_t wait_ms/*=-1*/)
 {
-	void *data = NULL;
+	void *elem = NULL;
+
 	pthread_mutex_lock(&m_lock);
 	if(m_out == m_in)    //空
 	{
@@ -90,27 +97,31 @@ void* CondQueue::Pop(int32_t wait_ms/*=-1*/)
 		{
 			struct timespec ts;
 			struct timeval tv;
+			uint32_t temp_us;
+
 			gettimeofday(&tv, NULL);
-			uint32_t temp = wait_ms+tv.tv_usec/1000;
-			ts.tv_sec = tv.tv_sec + temp/1000;
-			ts.tv_nsec = (temp%1000)*1000000;
+			temp_us = wait_ms*1000+tv.tv_usec;             //转成微秒
+			ts.tv_sec = tv.tv_sec + temp_us/1000000;       //转成秒
+			ts.tv_nsec = (temp_us%1000000)*1000;           //剩下的微秒转成纳秒
 			pthread_cond_timedwait(&m_noempty_cond, &m_lock, &ts);
+
+			if(m_out == m_in)  //超时(还是空的)再判断一次
+			{
+				pthread_mutex_unlock(&m_lock);
+				return NULL;
+			}
 		}
 		else
-		{
 			pthread_cond_wait(&m_noempty_cond, &m_lock);
-		}
 	}
 
-	if(m_out != m_in)
-	{
-		data = ((void**)m_array)[m_out];
-		m_out = (++m_out)%m_capacity;
-	}
+	elem = ((void**)m_array)[m_out];
+	m_out = (m_out+1)%m_capacity;
 
 	pthread_mutex_unlock(&m_lock);
 	pthread_cond_signal(&m_nofull_cond);
-	return data;
+
+	return elem;
 }
 
 uint32_t CondQueue::GetSize()

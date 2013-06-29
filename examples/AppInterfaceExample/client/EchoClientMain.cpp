@@ -27,10 +27,10 @@ int main()
 	KVData kvdata;
 
 	//写协议头数据
-	if(bytebuffer.m_Capacity < protocol_factory.HeaderSize())
+	if(bytebuffer.Capacity < protocol_factory.HeaderSize())
 		bytebuffer.Enlarge(protocol_factory.HeaderSize());
 	//protocol_factory.EncodeHeader(bytebuffer.m_Buffer, 0);    //body_size未知,后面再写
-	bytebuffer.m_Size = protocol_factory.HeaderSize();
+	bytebuffer.Size = protocol_factory.HeaderSize();
 
 	int32_t protocol_client = 0;
 	int32_t client_id = 0;
@@ -41,22 +41,22 @@ int main()
 	kvdata.SetInt32(Index_ClientID, client_id);
 	kvdata.SetBytes(Index_ClientString, client_string, strlen(client_string)+1);
 
-	uint32_t body_size = bytebuffer.m_Size-protocol_factory.HeaderSize();
-	protocol_factory.EncodeHeader(bytebuffer.m_Buffer, body_size);
+	uint32_t body_size = bytebuffer.Size-protocol_factory.HeaderSize();
+	protocol_factory.EncodeHeader(bytebuffer.Buffer, body_size);
 
-	if(Socket::SendAll(fd, bytebuffer.m_Buffer, bytebuffer.m_Size) == -1)
+	if(Socket::SendAll(fd, bytebuffer.Buffer, bytebuffer.Size) == -1)
 	{
 		printf("send data failed.\n");
 		return -1;
 	}
 
 	//清空数据
-	bytebuffer.m_Size = 0;
+	bytebuffer.Size = 0;
 	//接收协议头数据
 	uint32_t header_size = protocol_factory.HeaderSize();
-	if(bytebuffer.m_Capacity < header_size)
+	if(bytebuffer.Capacity < header_size)
 		bytebuffer.Enlarge(header_size);
-	uint32_t recv_size = Socket::RecvAll(fd, bytebuffer.m_Buffer, header_size);
+	uint32_t recv_size = Socket::RecvAll(fd, bytebuffer.Buffer, header_size);
 	if(recv_size != header_size)
 	{
 		printf("receive header failed. header_size=%d, recv_size=%d\n",header_size, recv_size);
@@ -66,16 +66,16 @@ int main()
 	//解码协议头
 	DataType type = DTYPE_INVALID;
 	body_size = 0;
-	if(protocol_factory.DecodeHeader(bytebuffer.m_Buffer, type, body_size) == DECODE_ERROR)
+	if(protocol_factory.DecodeHeader(bytebuffer.Buffer, type, body_size) == DECODE_ERROR)
 	{
 		printf("decode header failed.\n");
 		return -1;
 	}
 
 	//接送协议体
-	if(bytebuffer.m_Capacity < header_size+body_size)
+	if(bytebuffer.Capacity < header_size+body_size)
 		bytebuffer.Enlarge(body_size);
-	recv_size = Socket::RecvAll(fd, bytebuffer.m_Buffer+header_size, body_size);
+	recv_size = Socket::RecvAll(fd, bytebuffer.Buffer+header_size, body_size);
 	if(recv_size != body_size)
 	{
 		printf("receive body failed. body_size=%d, recv_size=%d\n", body_size, recv_size);
@@ -83,7 +83,7 @@ int main()
 	}
 
 	//解码协议体
-	if(kvdata.UnPack(bytebuffer.m_Buffer+header_size, body_size, true) == false)
+	if(kvdata.UnPack(bytebuffer.Buffer+header_size, body_size, true) == false)
 	{
 		printf("KVData unpack failed.\n");
 		return -1;

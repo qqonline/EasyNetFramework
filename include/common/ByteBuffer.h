@@ -15,22 +15,33 @@ namespace easynet
 class ByteBuffer
 {
 public:
-	//默认初始化大小1k,系统内存分配器
+	//构造函数
+	// 默认初始化大小1k,系统内存分配器(多线程安全)
 	explicit ByteBuffer();
-	//默认使用系统内存分配器
+
+	//构造函数
+	// @param capacity : 初始化内存的大小
+	// 默认使用系统内存分配器(多线程安全)
 	explicit ByteBuffer(uint32_t capacity);
-	//默认初始化大小1k
+
+	//构造函数
+	// @param memory   : 分配内存时使用的分配器
+	// 默认初始化内存大小1k
 	explicit ByteBuffer(IMemory *memory);
-	//设置capacity和memory
+
+	//构造函数
+	// @param capacity : 初始化内存的大小
+	// @param memory   : 分配内存是使用的分配器
 	ByteBuffer(uint32_t capacity, IMemory *memory);
+
 	virtual ~ByteBuffer();
 
 	//容量扩大size个字节,成功返回true,失败返回false(没有内存)
 	bool Enlarge(uint32_t size=1024);
 
-	char *m_Buffer;
-	uint32_t m_Capacity; //buffer的容量
-	uint32_t m_Size;     //buffer中数据大小
+	char *Buffer;      //数据缓冲区
+	uint32_t Capacity; //缓冲区的容量
+	uint32_t Size;     //缓冲区数据大小
 private:
 	ByteBuffer(const ByteBuffer &buffer){}
 	ByteBuffer& operator=(ByteBuffer &buffer){return *this;}

@@ -30,7 +30,7 @@ namespace easynet
 
 
 #define CheckBuffer(buffer, len, esize) do{ \
-if(buffer->m_Size+len > buffer->m_Capacity) \
+if(buffer->Size+len > buffer->Capacity) \
 { \
 	bool ret = buffer->Enlarge(esize); \
 	assert(ret == true); \
@@ -145,12 +145,12 @@ void KVData::SetInt32(uint16_t key, int32_t value, ByteBuffer *buffer, bool net_
 		value = htonl(value);
 	}
 
-	char *ptr = buffer->m_Buffer+buffer->m_Size;
+	char *ptr = buffer->Buffer+buffer->Size;
 	*(uint16_t*)ptr = key_type;
 	ptr += sizeof(uint16_t);
 	*(int32_t*)ptr = value;
 
-	buffer->m_Size += len;
+	buffer->Size += len;
 }
 
 void KVData::SetInt64(uint16_t key, int64_t value, ByteBuffer *buffer, bool net_trans)
@@ -166,12 +166,12 @@ void KVData::SetInt64(uint16_t key, int64_t value, ByteBuffer *buffer, bool net_
 		value = htonll(value);
 	}
 
-	char *ptr = buffer->m_Buffer+buffer->m_Size;
+	char *ptr = buffer->Buffer+buffer->Size;
 	*(uint16_t*)ptr = key_type;
 	ptr += sizeof(uint16_t);
 	*(int64_t*)ptr = value;
 
-	buffer->m_Size += len;
+	buffer->Size += len;
 }
 
 void KVData::SetBytes(uint16_t key, const string &str, ByteBuffer *buffer, bool net_trans)
@@ -193,14 +193,14 @@ void KVData::SetBytes(uint16_t key, const char *data, uint32_t size, ByteBuffer 
 		temp_size = htonl(size);
 	}
 
-	char *ptr = buffer->m_Buffer+buffer->m_Size;
+	char *ptr = buffer->Buffer+buffer->Size;
 	*(uint16_t*)ptr = key_type;
 	ptr += sizeof(uint16_t);
 	*(uint32_t*)ptr = temp_size;
 	ptr += sizeof(uint32_t);
 	memcpy(ptr, data, size);
 
-	buffer->m_Size += len;
+	buffer->Size += len;
 }
 
 char* KVData::GetWriteBuffer(uint16_t key, uint32_t max_size, ByteBuffer *buffer, bool net_trans)
@@ -212,7 +212,7 @@ char* KVData::GetWriteBuffer(uint16_t key, uint32_t max_size, ByteBuffer *buffer
 	uint16_t key_type = KeyType(key, TYPE_BYTES);
 	if(net_trans)
 		key_type = htons(key_type);
-	char *ptr = buffer->m_Buffer+buffer->m_Size;
+	char *ptr = buffer->Buffer+buffer->Size;
 	*(uint16_t*)ptr = key_type;
 	ptr += sizeof(uint16_t)+sizeof(uint32_t);
 	return ptr;
@@ -224,7 +224,7 @@ void KVData::SetWriteLength(uint16_t key, uint32_t size, ByteBuffer *buffer, boo
 	uint32_t len = sizeof(uint16_t)+sizeof(uint32_t)+size;
 
 	//检验是否是之前写入的头部信息
-	char *ptr = buffer->m_Buffer+buffer->m_Size;
+	char *ptr = buffer->Buffer+buffer->Size;
 	uint16_t key_type = *(uint16_t*)ptr;
 	if(net_trans)
 	{
@@ -233,12 +233,12 @@ void KVData::SetWriteLength(uint16_t key, uint32_t size, ByteBuffer *buffer, boo
 	}
 	uint16_t cur_key = ToKey(key_type);
 	uint16_t cur_type = ToType(key_type);
-	assert(cur_key==key && cur_type==TYPE_BYTES && buffer->m_Size+len<=buffer->m_Capacity);
+	assert(cur_key==key && cur_type==TYPE_BYTES && buffer->Size+len<=buffer->Capacity);
 
 	//写入实际的长度
 	ptr += sizeof(uint16_t);
 	*(uint32_t*)ptr = size;
-	buffer->m_Size += len;
+	buffer->Size += len;
 }
 
 bool KVData::UnPack(KVItemMap &item_map, const char *buffer, uint32_t size, bool net_trans)

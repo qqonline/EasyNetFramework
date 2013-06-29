@@ -18,21 +18,21 @@ namespace easynet
 class CondQueue
 {
 public:
-	// @param capacity   : 队列最大任务数
+	// @param capacity   : 队列保存的元素个数
 	CondQueue(uint32_t capacity);
 	virtual ~CondQueue();
 
 	uint32_t GetSize();
 	uint32_t GetCapacity();
 
-	/** 添加data到队列,成功返回true;失败返回false(队列满);
-	 * @param data    : 需要保存的数据
+	/** 添加元素到队列,成功返回true;失败返回false(队列满);
+	 * @param elem    : 需要保存的数据
 	 * @param wait_ms : push到队列等待的时间,单位毫秒.小于0一直等到push到队列中;0无法push时立即返回;大于0等待的时间;
 	 * @return        : true数据成功push到队列;false数据push失败;
 	 */
-	bool Push(void *data, int32_t wait_ms=0);
+	bool Push(void *elem, int32_t wait_ms=0);
 
-	/** 从队列获取一个data,(等待wait_ms)队列空返回NULL;
+	/** 从队列获取一个元素,(等待wait_ms)队列空返回NULL;
 	 * @param wait_ms : 从队列pop数据等待的时间,单位毫秒.小于0一直等到队列中有数据;0无数据时立即返回;大于0等待的时间;
 	 * @return        : 返回pop的数据,无数据时返回NULL;
 	 */
