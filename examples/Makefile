@@ -3,7 +3,7 @@ LIB=-leasynet -lpthread -llog4cplus
 LIB_EXT=-llog4cplus
 FLAGS=-g
 
-EXEC=Heap_example KVData_example ConfigReader_example CondQueue_example
+EXEC=Heap_example KVData_example ConfigReader_example CondQueue_example ListenHandler_example
 
 all:${EXEC}
 
