@@ -33,10 +33,11 @@ public:
 	bool Push(void *elem, int32_t wait_ms=0);
 
 	/** 从队列获取一个元素,(等待wait_ms)队列空返回NULL;
+	 * @param elem    : 待返回的数据
 	 * @param wait_ms : 从队列pop数据等待的时间,单位毫秒.小于0一直等到队列中有数据;0无数据时立即返回;大于0等待的时间;
-	 * @return        : 返回pop的数据,无数据时返回NULL;
+	 * @return        : true成功返回数据;false队列空,获取数据失败
 	 */
-	void* Pop(int32_t wait_ms=-1);
+	bool Pop(void *&elem, int32_t wait_ms=-1);
 private:
 	uint32_t         m_capacity;
 	pthread_mutex_t  m_lock;

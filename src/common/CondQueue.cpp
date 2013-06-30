@@ -81,17 +81,15 @@ bool CondQueue::Push(void *elem, int32_t wait_ms/*=0*/)
 	return true;
 }
 
-void* CondQueue::Pop(int32_t wait_ms/*=-1*/)
+bool CondQueue::Pop(void *&elem, int32_t wait_ms/*=-1*/)
 {
-	void *elem = NULL;
-
 	pthread_mutex_lock(&m_lock);
 	if(m_out == m_in)    //空
 	{
 		if(wait_ms == 0)    //立刻返回
 		{
 			pthread_mutex_unlock(&m_lock);
-			return NULL;
+			return false;
 		}
 		if(wait_ms > 0)
 		{
@@ -108,7 +106,7 @@ void* CondQueue::Pop(int32_t wait_ms/*=-1*/)
 			if(m_out == m_in)  //超时(还是空的)再判断一次
 			{
 				pthread_mutex_unlock(&m_lock);
-				return NULL;
+				return false;
 			}
 		}
 		else
@@ -121,7 +119,7 @@ void* CondQueue::Pop(int32_t wait_ms/*=-1*/)
 	pthread_mutex_unlock(&m_lock);
 	pthread_cond_signal(&m_nofull_cond);
 
-	return elem;
+	return true;
 }
 
 uint32_t CondQueue::GetSize()
