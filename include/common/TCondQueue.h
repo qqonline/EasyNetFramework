@@ -10,7 +10,10 @@
 
 #include <stdint.h>
 #include <pthread.h>
+#include <stdlib.h>
 #include <assert.h>
+#include <time.h>
+#include <sys/time.h>
 
 #include <bits/stl_iterator_base_types.h>
 #include <bits/stl_construct.h>
@@ -80,7 +83,9 @@ TCondQueue<T>::~TCondQueue()
 	pthread_cond_destroy(&m_nofull_cond);
 
 	if(m_out < m_in)
+	{
 		std::_Destroy(&m_array[m_out], &m_array[m_in]);
+	}
 	else if(m_out > m_in)
 	{
 		if(m_in > 0)
@@ -169,6 +174,7 @@ bool TCondQueue<T>::Pop(T &elem, int32_t wait_ms/*=-1*/)
 	}
 
 	elem = m_array[m_out];
+	std::_Destroy(&m_array[m_out]);
 	m_out = (m_out+1)%m_capacity;
 
 	pthread_mutex_unlock(&m_lock);

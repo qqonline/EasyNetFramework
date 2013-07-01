@@ -44,7 +44,7 @@ DecodeResult HttpReqProtocolFactory::DecodeBinBody(ProtocolContext *context)
 DecodeResult HttpReqProtocolFactory::DecodeTextBody(ProtocolContext *context)
 {
 	////Add Your Code Here
-	char *data = context->m_Buffer+context->m_Size;
+	char *data = context->Buffer+context->Size;
 
 	data -= 4;
 	if(strncmp(data, "\r\n\r\n", 4) != 0)

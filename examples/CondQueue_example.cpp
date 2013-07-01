@@ -5,10 +5,19 @@
  *      Author: tim
  */
 
+#include <stdio.h>
+
 #include "CondQueue.h"
+#include "TCondQueue.h"
 using namespace easynet;
 
-#include <stdio.h>
+
+class B
+{
+public:
+	B(){}
+	~B(){printf("~B()\n");}
+};
 
 int main()
 {
@@ -27,5 +36,33 @@ int main()
 	{
 		printf("element=%d\n",(int)elem);
 	}
+
+	TCondQueue<int> tcond_queue(100);
+	int i;
+	ret = tcond_queue.Pop(i, 1000);
+	if(ret == false)
+	{
+		printf("TCondQueue: no element.\n");
+	}
+
+	for(i=10;i<50;++i)
+		tcond_queue.Push(i, -1);
+	int count = 0;
+	while(tcond_queue.Pop(i, 1000))
+	{
+		printf("TCondQueue: element=%d  ", i);
+		++count;
+		if(count % 5 == 0)
+			printf("\n");
+	}
+
+	TCondQueue<B> tcond_queue1(100);
+	B b;
+	for(i=10;i<20;++i)
+		tcond_queue1.Push(b, -1);
+	tcond_queue1.Pop(b, -1);
+	tcond_queue1.Pop(b, -1);
+	printf(".....\n");
+
 	return 0;
 }
