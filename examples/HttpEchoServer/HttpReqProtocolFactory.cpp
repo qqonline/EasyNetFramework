@@ -50,49 +50,19 @@ DecodeResult HttpReqProtocolFactory::DecodeTextBody(ProtocolContext *context)
 	if(strncmp(data, "\r\n\r\n", 4) != 0)
 		return DECODE_DATA;
 
-	HttpRequest req;
-	if(ParseRequest(req, context->Buffer, context->Size) == false)
+	HttpRequest *req = m_Memory->Alloc(sizeof(req));
+	assert(req != NULL);
+
+	if(HttpParser::ParseRequest(*req, context->Buffer, context->Size) == false)
 		return DECODE_ERROR;
+	context->protocol = (void*)req;
 	return DECODE_SUCC;
 }
 
 void HttpReqProtocolFactory::DeleteProtocol(uint32_t protocol_type, void *protocol)
 {
 	////Add Your Code Here
-
+	m_Memory->Free(protocol, sizeof(HttpRequest));
 	return ;
 }
 
-
-bool HttpReqProtocolFactory::ParseRequest(HttpRequest &request, char *buffer, uint32_t size)
-{
-	if(strncasecmp(buffer, "GET ", 4) == 0)
-	{
-		request.req_type = REQ_TYPE_GET;
-		request.url = buffer+4;
-	}
-	else if(strncasecmp(buffer, "HEAD ", 5) == 0)
-	{
-		request.req_type = REQ_TYPE_HEAD;
-		request.url = buffer+5;
-	}
-	else
-		return false;
-
-	request.version = request.url;
-	while(*request.version!=' ' && *request.version!='\r' && *request.version!='\n')
-		++request.version;
-	if(request.version[0]==' ')
-	{
-		request.url_len = request.version-request.url;
-		++request.version;
-	}
-	else
-		return false;
-
-	request.version_len = 0;
-	while(*request.version!='\r' && *request.version!='\n')
-		++request.version_len;
-
-	return true;
-}

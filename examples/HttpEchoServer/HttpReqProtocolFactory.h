@@ -10,30 +10,14 @@
 
 #include "IProtocolFactory.h"
 #include "IMemory.h"
+#include "HttpParser.h"
 
 using namespace easynet;
-
-typedef enum _http_req_type
-{
-	REQ_TYPE_UNKNOW,
-	REQ_TYPE_GET,
-	REQ_TYPE_HEAD
-}HttpReqType;
-
-class HttpRequest
-{
-public:
-	HttpReqType req_type;
-	char *url;
-	uint32_t url_len;
-	char *version;
-	uint32_t version_len;
-};
 
 class HttpReqProtocolFactory:public IProtocolFactory
 {
 public:
-	HttpReqProtocolFactory(IMemory *memory);
+	HttpReqProtocolFactory(IMemory *memory):m_Memory(memory){}
 
 ////////////////////////////////////
 ////       实现基类接口         ////
@@ -57,7 +41,7 @@ public:
 	//删除DecodeBinBody或DecodeTextBody时创建的protocol实例
 	void DeleteProtocol(uint32_t protocol_type, void *protocol);
 private:
-	bool ParseRequest(HttpRequest &request, char *buffer, uint32_t size);
+	IMemory *m_Memory;
 };
 
 #endif //_HTTPREQPROTOCOLFACTORY_H_

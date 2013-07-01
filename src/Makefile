@@ -11,8 +11,8 @@ LIBNAME=libeasynet.a
 SONAME=libeasynet.so
 
 libs:
-	(cd common/common;$(MAKE) all)
-	(cd framework/framework;$(MAKE) all)
+	(cd common/impl;$(MAKE) all)
+	(cd framework/impl;$(MAKE) all)
 	ar -cr ${TMPLIBDIR}/${LIBNAME} ${OBJDIR}/*.o
 	g++ -fPIC -shared ${OBJDIR}/*.o -o ${TMPLIBDIR}/${SONAME}
 
