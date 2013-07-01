@@ -6,11 +6,13 @@ AUTHOR=`whoami`
 
 Usage()
 {
+	echo
 	echo -e "easynet -i | -p | -a ClassName [-m]\n"
 	echo "  -i : Init environment."
 	echo "  -p : Generate ProtocolFactory Class."
 	echo "  -a : Generate Application Instance Class."
 	echo "  -m : Optional. gen server main framework."
+	echo 
 }
 
 function GenAppInstance()
@@ -80,6 +82,12 @@ function GenProtocolFactory()
 
 
 ##########################  main  ##########################
+if [ $# -lt 2 ];then
+        Usage;
+        exit;
+fi
+
+
 if [ "$1" == "-a" ];then
 	if [ $# -lt 2 ];then
 		Usage;

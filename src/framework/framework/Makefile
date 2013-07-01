@@ -1,7 +1,7 @@
 #FLAGS  : 由父makefile传入
 
-INCLUDE=-I../../include/common -I../../include/framework
-OBJDIR=../objects
+INCLUDE=-I../../common -I../
+OBJDIR=../../objects
 SRCS=$(wildcard *.cpp)
 OBJS=$(patsubst %.cpp, $(OBJDIR)/%.o, $(SRCS))
 

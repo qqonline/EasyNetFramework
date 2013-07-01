@@ -4,22 +4,22 @@ LIBDIR=/usr/lib
 FLAGS=-g
 export FLAGS
 
-OBJDIR=src/objects
-TMPLIBDIR=src/lib
+OBJDIR=objects
+TMPLIBDIR=lib
 
 LIBNAME=libeasynet.a
 SONAME=libeasynet.so
 
-lib:
-	(cd src/common;$(MAKE) all)
-	(cd src/framework;$(MAKE) all)
+libs:
+	(cd common/common;$(MAKE) all)
+	(cd framework/framework;$(MAKE) all)
 	ar -cr ${TMPLIBDIR}/${LIBNAME} ${OBJDIR}/*.o
 	g++ -fPIC -shared ${OBJDIR}/*.o -o ${TMPLIBDIR}/${SONAME}
 
 install:
 	if [ ! -d "${INCLUDE_DIR}" ];then mkdir ${INCLUDE_DIR} -p;fi
-	cp include/common/* ${INCLUDE_DIR}
-	cp include/framework/* ${INCLUDE_DIR}
+	cp common/*.h ${INCLUDE_DIR}
+	cp framework/*.h ${INCLUDE_DIR}
 	cp ${TMPLIBDIR}/${LIBNAME} ${LIBDIR}
 	cp ${TMPLIBDIR}/${SONAME} ${LIBDIR}
 	cp tools/template ${INCLUDE_DIR} -r
