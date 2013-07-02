@@ -50,12 +50,13 @@ DecodeResult HttpReqProtocolFactory::DecodeTextBody(ProtocolContext *context)
 	if(strncmp(data, "\r\n\r\n", 4) != 0)
 		return DECODE_DATA;
 
-	HttpRequest *req = m_Memory->Alloc(sizeof(req));
+	HttpRequest *req = (HttpRequest*)m_Memory->Alloc(sizeof(HttpRequest));
 	assert(req != NULL);
 
 	if(HttpParser::ParseRequest(*req, context->Buffer, context->Size) == false)
 		return DECODE_ERROR;
 	context->protocol = (void*)req;
+
 	return DECODE_SUCC;
 }
 

@@ -64,4 +64,11 @@ bool ByteBuffer::Enlarge(uint32_t size/*=1024*/)
 	return true;
 }
 
+void ByteBuffer::CheckSize(uint32_t size)
+{
+	if(Capacity-Size < size)
+		if(!Enlarge(size))
+			assert(0);
+}
+
 }

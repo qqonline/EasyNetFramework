@@ -36,6 +36,9 @@ public:
 
 	virtual ~ByteBuffer();
 
+	//保证buffer当前的剩余空间不小于size字节(不够的话调用Enlarge扩展)
+	void CheckSize(uint32_t size);
+
 	//容量扩大size个字节,成功返回true,失败返回false(没有内存)
 	bool Enlarge(uint32_t size=1024);
 
