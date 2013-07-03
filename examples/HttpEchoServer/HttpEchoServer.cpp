@@ -10,11 +10,16 @@
 #include "Socket.h"
 #include "HttpReqProtocolFactory.h"
 
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <errno.h>
+#include <string.h>
+
 IMPL_LOGGER(HttpEchoServer, logger);
 
 HttpEchoServer::HttpEchoServer()
 {
-	m_ProtocolFactory = (IProtocolFactory*)new HttpReqProtocolFactory;
+	m_ProtocolFactory = (IProtocolFactory*)new HttpReqProtocolFactory(GetMemory());
 }
 
 bool HttpEchoServer::Start()
@@ -56,14 +61,72 @@ bool HttpEchoServer::OnReceiveProtocol(int32_t fd, ProtocolContext *context, boo
 
 	ProtocolContext *send_context = NewProtocolContext();
 	send_context->type = DTYPE_TEXT;
-
 	ByteBuffer *byte_buffer = (ByteBuffer*)send_context;
 
-	char data[1024];
-	sprintf(data, "<html><head><title>Http Echo</title></head><body><center><h4>Welcome to EasyNet.</h4></center><br><br>Your request content is:<br><textarea cols=\"100\" rows=\"15\">%s</textarea></p></body><html>", context->Buffer);
-	sprintf(byte_buffer->Buffer, "HTTP/1.1 200 OK\r\nContent-Length:%d\r\nContent-Type:text/html\r\n\r\n%s", strlen(data), data);
+	HttpRequest *req = (HttpRequest*)context->protocol;
+	char c = req->url[req->url_len];
+	req->url[req->url_len] = '\0';
 
-	byte_buffer->Size = strlen(byte_buffer->Buffer);
+	//handle request
+	char data[1024];
+	if(strcmp(req->url, "/") == 0)
+	{
+		req->url[req->url_len] = c;
+		sprintf(data, "<html><head><title>Http Echo</title></head><body><center><h4>Welcome to EasyNet.</h4></center><br><br>Your request content is:<br><textarea cols=\"100\" rows=\"15\">%s</textarea></p></body><html>", context->Buffer);
+		sprintf(byte_buffer->Buffer, "HTTP/1.1 200 OK\r\nContent-Length:%d\r\nContent-Type:text/html\r\n\r\n%s", strlen(data), data);
+		byte_buffer->Size = strlen(byte_buffer->Buffer);
+	}
+	else
+	{
+		char path[256];
+		sprintf(path, "./html/%s", req->url);
+
+		struct stat stat_buf;
+		if(stat(path, &stat_buf) == -1)
+		{
+			sprintf(byte_buffer->Buffer, "HTTP/1.1 404 Not Found\r\n");
+			byte_buffer->Size = strlen(byte_buffer->Buffer);
+
+			sprintf(path, "./html/404.html");
+			if(stat(path, &stat_buf) == 0)
+			{
+				FILE *fp = fopen(path, "rb");
+				sprintf(byte_buffer->Buffer+byte_buffer->Size, "Content-Length:%d\r\nContent-Type:text/html\r\n\r\n", stat_buf.st_size);
+				byte_buffer->Size = strlen(byte_buffer->Buffer);
+
+				byte_buffer->CheckSize(stat_buf.st_size);
+
+				char *temp = byte_buffer->Buffer+byte_buffer->Size;
+				uint32_t read_size = fread(temp, 1, stat_buf.st_size, fp);
+				byte_buffer->Size += read_size;
+			}
+		}
+		else
+		{
+			if(S_ISREG(stat_buf.st_mode))
+			{
+				FILE *fp = fopen(path, "rb");
+				if(fp == NULL)
+				{
+					LOG_ERROR(logger, "open file=%s"<<path<<" failed. errno="<<errno<<"("<<strerror(errno)<<")");
+					sprintf(byte_buffer->Buffer, "HTTP/1.1 500 Internal Server error\r\n");
+					byte_buffer->Size = strlen(byte_buffer->Buffer);
+				}
+				else
+				{
+					sprintf(byte_buffer->Buffer, "HTTP/1.1 200 OK\r\nContent-Length:%d\r\nContent-Type:text/html\r\n\r\n", stat_buf.st_size);
+					byte_buffer->Size = strlen(byte_buffer->Buffer);
+					byte_buffer->CheckSize(stat_buf.st_size);
+
+					char *temp = byte_buffer->Buffer+byte_buffer->Size;
+					uint32_t read_size = fread(temp, 1, stat_buf.st_size, fp);
+					byte_buffer->Size += read_size;
+				}
+			}
+		}
+	}
+
+	req->url[req->url_len] = c;
 
 	SendProtocol(fd, send_context);
 
@@ -107,3 +170,4 @@ IProtocolFactory* HttpEchoServer::GetProtocolFactory()
 {
 	return m_ProtocolFactory;
 }
+

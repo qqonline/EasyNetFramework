@@ -24,8 +24,10 @@ void TransHandler::OnEventError(int32_t fd, uint64_t nowtime_ms, ERROR_CODE code
 		LOG_ERROR(logger, "socket error. fd="<<fd);
 	else if(code == ECODE_TIMEOUT)
 		LOG_INFO(logger, "socket timeout. fd="<<fd);
-	else if(code == ECODE_CLOSE)
+	else if(code == ECODE_PEER_CLOSE)
 		LOG_DEBUG(logger, "peer close socket gracefully. fd="<<fd);
+	else if(code == ECODE_ACTIVE_CLOSE)
+		LOG_DEBUG(logger, "active close socket gracefully. fd="<<fd);
 	else
 		LOG_WARN(logger, "other error code. ecode="<<code<<",fd=<<fd");
 
@@ -118,7 +120,7 @@ ERROR_CODE TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 				LOG_DEBUG(logger, "read data error. expect_size="<<context->header_size<<", cur_size="<<context->Size<<", fd="<<fd);
 			m_RecvFdMap.erase(it);
 			m_AppInterface->DeleteProtocolContext(context);
-			return recv_size==-1?ECODE_ERROR:ECODE_CLOSE;
+			return recv_size==-1?ECODE_ERROR:ECODE_PEER_CLOSE;
 		}
 		context->Size += recv_size;
 
@@ -162,7 +164,7 @@ ERROR_CODE TransHandler::OnEventRead(int32_t fd, uint64_t now_time)
 				LOG_DEBUG(logger, "read data error. expect_size="<<context->header_size<<", cur_size="<<context->Size<<", fd="<<fd);
 			m_RecvFdMap.erase(it);
 			m_AppInterface->DeleteProtocolContext(context);
-			return recv_size==-1?ECODE_ERROR:ECODE_CLOSE;
+			return recv_size==-1?ECODE_ERROR:ECODE_PEER_CLOSE;
 		}
 		context->Size += recv_size;
 	}

@@ -9,6 +9,7 @@
 #define _HTTP_PARSER_H_
 
 #include <string.h>
+#include <stdint.h>
 
 typedef enum _http_req_type
 {
@@ -61,7 +62,7 @@ bool HttpParser::ParseRequest(HttpRequest &request, char *buffer, uint32_t size)
 		return false;
 
 	request.version_len = 0;
-	while(*request.version!='\r' && *request.version!='\n')
+	while(request.version[request.version_len]!='\r' && request.version[request.version_len]!='\n')
 		++request.version_len;
 
 	return true;

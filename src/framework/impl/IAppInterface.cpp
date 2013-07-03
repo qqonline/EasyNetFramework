@@ -242,4 +242,22 @@ ProtocolContext* IAppInterface::GetSendProtocol(int32_t fd)
 	return context;
 }
 
+bool IAppInterface::NotifySocketFinish(int32_t fd)
+{
+	//从EventServer中删除所有关于fd的事件
+	IEventServer *event_server = GetEventServer();
+	assert(event_server != NULL);
+	if(event_server->DelEvent(fd, ET_RDWT) == false)
+	{
+		LOG_ERROR(logger, "delete all event from event server failed when notify socket finish. fd="<<fd);
+		return false;
+	}
+
+	//相应调用事件相应函数
+	IEventHandler *trans_handler = GetTransHandler();
+	assert(trans_handler != NULL);
+	trans_handler->OnEventError(fd, 0, ECODE_ACTIVE_CLOSE);
+	return true;
+}
+
 }//namespace

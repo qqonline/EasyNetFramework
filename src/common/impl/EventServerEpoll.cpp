@@ -165,8 +165,55 @@ bool EventServerEpoll::AddEvent(int32_t fd, EventType type, IEventHandler *handl
 		return true;
 	}
 
-	//修改事件
 	EventInfo *event_info = (EventInfo *)it->second;
+	//修改时钟
+	if(event_info->timeout_ms<0 && timeout_ms>=0)  //永不超时变为超时时钟
+	{
+		//添加时钟
+		int32_t old_timeout = event_info->timeout_ms;
+		SetTimerInfo(event_info, timeout_ms);
+		if(!m_TimerHeap.Insert((HeapItem*)event_info))
+		{
+			LOG_ERROR(logger, "change timer(add) failed. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
+			//只是打印添加时钟失败的log而不删除事件
+			//m_FDMap.erase(fd);
+			//m_ObjectPool.Recycle((void*)event_info);
+			//return false;
+		}
+		else
+		{
+			LOG_DEBUG(logger, "change timer(add) succ. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
+		}
+	}
+	else if(event_info->timeout_ms>=0 && event_info->timeout_ms!=timeout_ms)    //超时时间不一样
+	{
+		int32_t old_timeout = event_info->timeout_ms;
+		if(!m_TimerHeap.Remove((HeapItem*)event_info))    //先删除
+		{
+			LOG_ERROR(logger, "change timer(delete) failed. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<timeout_ms);
+		}
+		else
+		{
+			SetTimerInfo(event_info, timeout_ms);
+			if(timeout_ms >= 0)   //timeout_ms>=0 保留时钟
+			{
+				if(!m_TimerHeap.Insert((HeapItem*)event_info))  //再插入
+				{
+					LOG_ERROR(logger, "change timer(add after) failed. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
+				}
+				else
+				{
+					LOG_DEBUG(logger, "change timer(add after) succ. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
+				}
+			}
+			else  //timeout_ms<0不超时
+			{
+				LOG_DEBUG(logger, "change timer(delete) succ. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
+			}
+		}
+	}
+
+	//修改事件
 	EventType old_type = event_info->type&ET_RDWT;
 	EventType new_type = (event_info->type|type)&ET_RDWT;
 	if(new_type == old_type)         //已经存在
@@ -308,7 +355,7 @@ bool EventServerEpoll::DispatchEvents()
 		{
 			IEventHandler *event_handler = event_info->handler;
 			error_code = event_handler->OnEventRead(event_info->fd, now);
-			if(error_code==ECODE_ERROR || error_code==ECODE_CLOSE)
+			if(error_code==ECODE_ERROR || error_code==ECODE_PEER_CLOSE)
 				no_error = false;
 			if(!no_error || (error_code!=ECODE_PENDING && !ET_IS_PERSIST(event_info->type)))    //去掉非持续读事件,pending不去掉
 				del_type |= ET_READ;
@@ -317,7 +364,7 @@ bool EventServerEpoll::DispatchEvents()
 		if(no_error && (ep_event->events&EPOLLOUT))
 		{
 			error_code = event_info->handler->OnEventWrite(event_info->fd, now);
-			if(error_code==ECODE_ERROR || error_code==ECODE_CLOSE)
+			if(error_code==ECODE_ERROR || error_code==ECODE_PEER_CLOSE)
 				no_error = false;
 			if(!no_error || error_code!=ECODE_PENDING)    //pending不去掉
 				del_type |= ET_WRITE;    //直接去掉读事件
