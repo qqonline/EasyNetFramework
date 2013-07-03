@@ -87,6 +87,8 @@ public:
 	//  @return   : 需要被发送的协议上下文,返回NULL时表示无数据需要发送
 	virtual ProtocolContext* GetSendProtocol(int32_t fd);
 
+	//通知框架结束socket fd
+	virtual bool NotifySocketFinish(int32_t fd);
 private:
 	typedef list<ProtocolContext*> ProtocolList;
 	typedef map<int32_t, ProtocolList> SendMap;

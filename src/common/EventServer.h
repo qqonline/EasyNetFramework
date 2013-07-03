@@ -35,15 +35,15 @@ static const char* EventInfoString[]={"ET_EMPTY", "ET_READ", "ET_WRITE", "ET_RDW
 /////////////////////////////////////////////////////////////////////////////////////////
 typedef enum _error_code_
 {
-	ECODE_TIMEOUT,    //超时
-	ECODE_CLOSE,      //对端关闭
-	ECODE_ERROR,      //错误
-
+	ECODE_TIMEOUT=0,    //超时
+	ECODE_PEER_CLOSE,   //对端关闭
+	ECODE_ACTIVE_CLOSE, //主动关闭
+	ECODE_ERROR,        //错误
 	//一下两种情况是正常情况
-	ECODE_PENDING,    //读/写数据未完整
-	ECODE_SUCC,       //成功
+	ECODE_PENDING,      //读/写数据未完整
+	ECODE_SUCC,         //成功
 }ERROR_CODE;
-static const char* ErrorCodeString[]={"ECODE_TIME", "ECODE_CLOSE", "ECODE_ERROR", "ECODE_PENDING", "ECODE_SUCC"};
+static const char* ErrorCodeString[]={"ECODE_TIME", "ECODE_PEER_CLOSE", "ECODE_ACTIVE_CLOSE", "ECODE_ERROR", "ECODE_PENDING", "ECODE_SUCC"};
 #define ErrCodeStr(x) ErrorCodeString[x]
 
 class IEventHandler

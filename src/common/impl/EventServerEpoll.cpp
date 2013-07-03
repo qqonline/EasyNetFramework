@@ -308,7 +308,7 @@ bool EventServerEpoll::DispatchEvents()
 		{
 			IEventHandler *event_handler = event_info->handler;
 			error_code = event_handler->OnEventRead(event_info->fd, now);
-			if(error_code==ECODE_ERROR || error_code==ECODE_CLOSE)
+			if(error_code==ECODE_ERROR || error_code==ECODE_PEER_CLOSE)
 				no_error = false;
 			if(!no_error || (error_code!=ECODE_PENDING && !ET_IS_PERSIST(event_info->type)))    //去掉非持续读事件,pending不去掉
 				del_type |= ET_READ;
@@ -317,7 +317,7 @@ bool EventServerEpoll::DispatchEvents()
 		if(no_error && (ep_event->events&EPOLLOUT))
 		{
 			error_code = event_info->handler->OnEventWrite(event_info->fd, now);
-			if(error_code==ECODE_ERROR || error_code==ECODE_CLOSE)
+			if(error_code==ECODE_ERROR || error_code==ECODE_PEER_CLOSE)
 				no_error = false;
 			if(!no_error || error_code!=ECODE_PENDING)    //pending不去掉
 				del_type |= ET_WRITE;    //直接去掉读事件
