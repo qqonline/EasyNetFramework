@@ -6,9 +6,10 @@
  */
 
 #include <stdio.h>
-
+#include <semaphore.h>
 #include "CondQueue.h"
 #include "TCondQueue.h"
+#include "Thread.h"
 using namespace easynet;
 
 
@@ -19,8 +20,61 @@ public:
 	~B(){printf("~B()\n");}
 };
 
+
+
+//////////////////////
+class ThreadA:public Thread
+{
+public:
+	ThreadA(CondQueue *queue):m_Queue(queue)
+	{
+		sem_init(&m_sem, 0, 0);
+	}
+	void Set()
+	{
+		sem_post(&m_sem);
+	}
+protected:
+	void DoRun()
+	{
+		while(true)
+		{
+			m_Queue->Push((void*)this, -1);
+		}
+	}
+private:
+	CondQueue *m_Queue;
+	sem_t m_sem;
+};
+
+void test_thread()
+{
+	CondQueue condqueue(4);
+
+	ThreadA a(&condqueue),b(&condqueue),c(&condqueue),d(&condqueue);
+	condqueue.Push((void*)&a, -1);
+	condqueue.Push((void*)&b, -1);
+	condqueue.Push((void*)&c, -1);
+	condqueue.Push((void*)&d, -1);
+
+	a.Start();
+	b.Start();
+	c.Start();
+	d.Start();
+
+	while(true)
+	{
+		ThreadA *thread;
+		void *temp;
+		condqueue.Pop(temp);
+		((ThreadA *)temp)->Set();
+	}
+}
+
 int main()
 {
+//#define A
+#ifdef A
 	CondQueue cond_queue(10);
 	void *elem = NULL;
 	bool ret = cond_queue.Pop(elem, 3000);
@@ -63,6 +117,8 @@ int main()
 	tcond_queue1.Pop(b, -1);
 	tcond_queue1.Pop(b, -1);
 	printf(".....\n");
-
+#else
+	test_thread();
+#endif
 	return 0;
 }

@@ -114,6 +114,7 @@ bool CondQueue::Pop(void *&elem, int32_t wait_ms/*=-1*/)
 	}
 
 	elem = ((void**)m_array)[m_out];
+	((void**)m_array)[m_out] = NULL;
 	m_out = (m_out+1)%m_capacity;
 
 	pthread_mutex_unlock(&m_lock);
