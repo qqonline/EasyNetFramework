@@ -6,6 +6,7 @@
  */
 
 #include <stdio.h>
+#include <unistd.h>
 #include <semaphore.h>
 #include "CondQueue.h"
 #include "TCondQueue.h"
@@ -26,7 +27,7 @@ public:
 class ThreadA:public Thread
 {
 public:
-	ThreadA(CondQueue *queue):m_Queue(queue)
+	ThreadA(int index, CondQueue *queue):m_Index(index),m_Queue(queue)
 	{
 		sem_init(&m_sem, 0, 0);
 	}
@@ -34,15 +35,21 @@ public:
 	{
 		sem_post(&m_sem);
 	}
+	int GetIndex(){return m_Index;}
 protected:
 	void DoRun()
 	{
 		while(true)
 		{
+			sem_wait(&m_sem);
+			printf("#Thread=%d run\n", m_Index);
+			sleep(1);
 			m_Queue->Push((void*)this, -1);
+			printf("#Thread=%d push\n", m_Index);
 		}
 	}
 private:
+	int m_Index;
 	CondQueue *m_Queue;
 	sem_t m_sem;
 };
@@ -51,7 +58,10 @@ void test_thread()
 {
 	CondQueue condqueue(4);
 
-	ThreadA a(&condqueue),b(&condqueue),c(&condqueue),d(&condqueue);
+	ThreadA a(1, &condqueue);
+	ThreadA b(2, &condqueue);
+	ThreadA c(3, &condqueue);
+	ThreadA d(4, &condqueue);
 	condqueue.Push((void*)&a, -1);
 	condqueue.Push((void*)&b, -1);
 	condqueue.Push((void*)&c, -1);
@@ -67,7 +77,10 @@ void test_thread()
 		ThreadA *thread;
 		void *temp;
 		condqueue.Pop(temp);
-		((ThreadA *)temp)->Set();
+
+		thread = (ThreadA *)temp;
+		printf("***pop Thread=%d\n", thread->GetIndex());
+		thread->Set();
 	}
 }
 
