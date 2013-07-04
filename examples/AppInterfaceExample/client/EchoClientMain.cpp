@@ -4,7 +4,7 @@
  *  Created on: 2013-5-18
  *      Author: tim
  */
-
+#include <stdio.h>
 #include "Socket.h"
 #include "KVDataProtocolFactory.h"
 using namespace easynet;

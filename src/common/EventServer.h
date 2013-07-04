@@ -78,22 +78,31 @@ public:
 	 */
 	virtual bool AddTimer(IEventHandler *handler, uint32_t timeout_ms, bool persist)=0;
 
-	/**添加事件:
+	/**设置事件:
 	 * @param fd         : socket描述符;
 	 * @param type       : 待监听的事件.定义见<事件类型>;
 	 * @param handler    : fd事件的处理接口;
 	 * @param timeout_ms : fd容许的读写空闲时间,超过该时间没有发生读写事件将产生超时事件.
 	 *                     小于0表示永不超时.单位毫秒;
+	 *                     当event server中不存在fd时有效,否则被忽略.
 	 * @return           : true成功;false失败;
+	 *
 	*/
-	virtual bool AddEvent(int32_t fd, EventType type, IEventHandler *handler, int32_t timeout_ms)=0;
+	virtual bool SetEvent(int32_t fd, EventType type, IEventHandler *handler, int32_t timeout_ms)=0;
 
 	/**删除事件:
 	 * @param fd      : socket描述符;
 	 * @param type    : type待删除的事件.定义见<事件类型>
 	 * @return        : true成功;false失败;
 	*/
-	virtual bool DelEvent(int32_t fd, EventType type)=0;
+	virtual bool DeleteEvent(int32_t fd, EventType type)=0;
+
+	/**重新设置fd的空闲超时时间
+	 * @param fd         : socket描述符
+	 * @param timeout_ms : fd的空闲超时时间;小于0表示永不超时.单位毫秒;
+	 * @return           : true成功;false失败;
+	 */
+	virtual bool SetTimeout(int32_t fd, int32_t timeout_ms)=0;
 
 	/** 分派事件
 	 * @return        : true成功;false失败

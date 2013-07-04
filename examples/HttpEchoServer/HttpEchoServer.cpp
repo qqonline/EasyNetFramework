@@ -146,7 +146,7 @@ void HttpEchoServer::OnSendSucc(int32_t fd, ProtocolContext *context)
 	{
 		IEventServer *event_server = GetEventServer();
 		IEventHandler *trans_handler = GetTransHandler();
-		event_server->AddEvent(fd, ET_READ, trans_handler, -1);
+		event_server->SetTimeout(fd, 20000);
 	}
 	DeleteProtocolContext(context);
 	return ;

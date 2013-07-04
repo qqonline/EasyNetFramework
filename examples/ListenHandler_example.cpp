@@ -18,7 +18,7 @@ int main()
 	Socket::Listen(fd);
 	listen_handler->OnEventRead(fd, 1234L);
 
-	event_server->AddEvent(fd, ET_PER_RD, listen_handler, -1);
+	event_server->SetEvent(fd, ET_PER_RD, listen_handler, -1);
 	event_server->RunLoop();
 
 	return 0;

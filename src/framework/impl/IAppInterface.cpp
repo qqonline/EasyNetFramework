@@ -106,7 +106,7 @@ bool IAppInterface::Listen(int32_t port, const char *ip/*=NULL*/, uint32_t back_
 	IEventHandler *event_handler = GetListenHander();
 	assert(event_server != NULL);
 	assert(event_handler != NULL);
-	if(!event_server->AddEvent(fd, ET_PER_RD, event_handler, -1))
+	if(!event_server->SetEvent(fd, ET_PER_RD, event_handler, -1))
 	{
 		LOG_ERROR(logger, "add persist read event to event_server failed. fd="<<fd);
 		Socket::Close(fd);
@@ -140,7 +140,7 @@ bool IAppInterface::AcceptNewConnect(int32_t fd)
 	IEventHandler* event_handler = GetTransHandler();
 	assert(event_handler != NULL);
 	assert(event_server != NULL);
-	if(!event_server->AddEvent(fd, ET_PER_RD, event_handler, timeout_ms))
+	if(!event_server->SetEvent(fd, ET_PER_RD, event_handler, timeout_ms))
 	{
 		LOG_ERROR(logger, "add persist read event to event_server failed when send protocol. fd="<<fd);
 		return false;
@@ -215,7 +215,7 @@ bool IAppInterface::SendProtocol(int32_t fd, ProtocolContext *context, int32_t s
 	IEventHandler* event_handler = GetTransHandler();
 	assert(event_server != NULL);
 	assert(event_handler != NULL);
-	if(!event_server->AddEvent(fd, ET_WRITE, event_handler, timeout_ms))
+	if(!event_server->SetEvent(fd, ET_WRITE, event_handler, timeout_ms))
 	{
 		LOG_ERROR(logger, "add write event to event_server failed when send protocol. fd="<<fd<<", context="<<context);
 		return false;
@@ -248,7 +248,7 @@ bool IAppInterface::NotifySocketFinish(int32_t fd)
 	//从EventServer中删除所有关于fd的事件
 	IEventServer *event_server = GetEventServer();
 	assert(event_server != NULL);
-	if(event_server->DelEvent(fd, ET_RDWT) == false)
+	if(event_server->DeleteEvent(fd, ET_RDWT) == false)
 	{
 		LOG_ERROR(logger, "delete all event from event server failed when notify socket finish. fd="<<fd);
 		return false;

@@ -102,8 +102,8 @@ bool EventServerEpoll::AddTimer(IEventHandler *handler, uint32_t timeout_ms, boo
 	return false;
 }
 
-//添加IO事件
-bool EventServerEpoll::AddEvent(int32_t fd, EventType type, IEventHandler *handler, int32_t timeout_ms)
+//设置IO事件
+bool EventServerEpoll::SetEvent(int32_t fd, EventType type, IEventHandler *handler, int32_t timeout_ms)
 {
 	if(fd<0 || ET_IS_EMPTY(type) || handler==NULL)
 	{
@@ -166,56 +166,8 @@ bool EventServerEpoll::AddEvent(int32_t fd, EventType type, IEventHandler *handl
 		return true;
 	}
 
-	//已经存在
+	//已经存在,修改事件
 	EventInfo *event_info = (EventInfo *)it->second;
-	//修改时钟
-	if(event_info->timeout_ms<0 && timeout_ms>=0)  //永不超时变为超时时钟
-	{
-		//添加时钟
-		int32_t old_timeout = event_info->timeout_ms;
-		SetTimerInfo(event_info, timeout_ms);
-		if(!m_TimerHeap.Insert((HeapItem*)event_info))
-		{
-			LOG_WARN(logger, "change timer(add) failed. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
-			//只是打印添加时钟失败的log而不删除事件
-			//m_FDMap.erase(fd);
-			//m_ObjectPool.Recycle((void*)event_info);
-			//return false;
-		}
-		else
-		{
-			LOG_DEBUG(logger, "change timer(add) succ. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
-		}
-	}
-	else if(event_info->timeout_ms>=0 && event_info->timeout_ms!=timeout_ms)    //超时时间变为小于0或者变成另外一个大于0的值
-	{
-		int32_t old_timeout = event_info->timeout_ms;
-		if(!m_TimerHeap.Remove((HeapItem*)event_info))    //先删除
-		{
-			LOG_WARN(logger, "change timer(delete) failed. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<timeout_ms);
-		}
-		else
-		{
-			SetTimerInfo(event_info, timeout_ms);
-			if(timeout_ms >= 0)   //超时时间变成另外一个大于的的值
-			{
-				if(!m_TimerHeap.Insert((HeapItem*)event_info))  //再插入
-				{
-					LOG_WARN(logger, "change timer(add after) failed. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
-				}
-				else
-				{
-					LOG_DEBUG(logger, "change timer(add after) succ. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
-				}
-			}
-			else  //超时时间变成小于0(永不超时)
-			{
-				LOG_DEBUG(logger, "change timer(delete) succ. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
-			}
-		}
-	}
-
-	//修改事件
 	EventType old_type = event_info->type&ET_RDWT;
 	EventType new_type = (event_info->type|type)&ET_RDWT;
 	if(new_type == old_type)         //已经存在
@@ -244,7 +196,7 @@ bool EventServerEpoll::AddEvent(int32_t fd, EventType type, IEventHandler *handl
 }
 
 //删除IO事件
-bool EventServerEpoll::DelEvent(int32_t fd, EventType type)
+bool EventServerEpoll::DeleteEvent(int32_t fd, EventType type)
 {
 	if(fd<0 || ET_IS_EMPTY(type))
 	{
@@ -295,6 +247,57 @@ bool EventServerEpoll::DelEvent(int32_t fd, EventType type)
 
 	LOG_DEBUG(logger, "delete event succ. fd="<<fd<<", old_type="<<event_info->type<<"("<<EventStr(event_info->type)<<")"<<", new_type="<<new_type<<"("<<EventStr(new_type)<<")");
 	event_info->type = new_type;
+	return true;
+}
+
+bool EventServerEpoll::SetTimeout(int32_t fd, int32_t timeout_ms)
+{
+	//修改时钟
+	FDMap::iterator it = m_FDMap.find(fd);
+	if(it == m_FDMap.end())
+		return false;
+
+	EventInfo *event_info = (EventInfo *)it->second;
+	if(event_info->timeout_ms<0 && timeout_ms>=0)  //永不超时变为超时时钟
+	{
+		//添加时钟
+		int32_t old_timeout = event_info->timeout_ms;
+		SetTimerInfo(event_info, timeout_ms);
+		if(!m_TimerHeap.Insert((HeapItem*)event_info))
+		{
+			LOG_WARN(logger, "change timer(add) failed. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
+			return false;
+		}
+
+		LOG_DEBUG(logger, "change timer(add) succ. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
+		return true;
+	}
+
+	if(event_info->timeout_ms>=0 && event_info->timeout_ms!=timeout_ms)    //超时时间变为小于0或者变成另外一个大于0的值
+	{
+		int32_t old_timeout = event_info->timeout_ms;
+		if(!m_TimerHeap.Remove((HeapItem*)event_info))    //先删除
+		{
+			LOG_WARN(logger, "change timer(delete) failed. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<timeout_ms);
+			return false;
+		}
+
+		SetTimerInfo(event_info, timeout_ms);
+		if(timeout_ms >= 0)   //超时时间变成另外一个大于的的值
+		{
+			if(!m_TimerHeap.Insert((HeapItem*)event_info))  //再插入
+			{
+				LOG_WARN(logger, "change timer(add after) failed. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
+				return false;
+			}
+			LOG_DEBUG(logger, "change timer(add after) succ. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
+		}
+		else  //超时时间变成小于0(永不超时)
+		{
+			LOG_DEBUG(logger, "change timer(delete) succ. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
+		}
+	}
+
 	return true;
 }
 
@@ -377,8 +380,8 @@ bool EventServerEpoll::DispatchEvents()
 
 		if(!ET_IS_EMPTY(del_type))
 		{
-			LOG_DEBUG(logger, "delete event from event server. fd="<<event_info->fd<<", erroc_code="<<error_code<<"("<<ErrCodeStr(error_code)<<"), del_type="<<del_type<<"("<<EventStr(del_type)<<").");
-			DelEvent(event_info->fd, del_type);
+			LOG_DEBUG(logger, "delete event from event server. fd="<<event_info->fd<<", error_code="<<error_code<<"("<<ErrCodeStr(error_code)<<"), del_type="<<del_type<<"("<<EventStr(del_type)<<").");
+			DeleteEvent(event_info->fd, del_type);
 			if(!no_error)
 				event_info->handler->OnEventError(event_info->fd, now, error_code);
 		}
