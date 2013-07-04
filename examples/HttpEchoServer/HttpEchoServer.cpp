@@ -10,6 +10,7 @@
 #include "Socket.h"
 #include "HttpReqProtocolFactory.h"
 
+#include <stdio.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <errno.h>
@@ -128,6 +129,7 @@ bool HttpEchoServer::OnReceiveProtocol(int32_t fd, ProtocolContext *context, boo
 
 	req->url[req->url_len] = c;
 
+	send_context->protocol_type = (uint32_t)req->keep_alive;
 	SendProtocol(fd, send_context);
 
 	return true;
@@ -137,6 +139,15 @@ void HttpEchoServer::OnSendSucc(int32_t fd, ProtocolContext *context)
 {
 	//Add Your Code Here
 	LOG_DEBUG(logger, "send protocol succ on fd="<<fd<<", info='"<<context->Info<<"'");
+	bool keep_alive = (bool)context->protocol_type;
+	if(!keep_alive)
+		NotifySocketFinish(fd);
+	else
+	{
+		IEventServer *event_server = GetEventServer();
+		IEventHandler *trans_handler = GetTransHandler();
+		event_server->AddEvent(fd, ET_READ, trans_handler, -1);
+	}
 	DeleteProtocolContext(context);
 	return ;
 }
@@ -146,6 +157,7 @@ void HttpEchoServer::OnSendError(int32_t fd, ProtocolContext *context)
 	//Add Your Code Here
 	LOG_ERROR(logger, "send protocol failed on fd="<<fd<<", info='"<<context->Info<<"'");
 	DeleteProtocolContext(context);
+
 	return ;
 }
 
@@ -154,6 +166,7 @@ void HttpEchoServer::OnSendTimeout(int32_t fd, ProtocolContext *context)
 	//Add Your Code Here
 	LOG_WARN(logger, "send protocol timeout on fd="<<fd<<", info='"<<context->Info<<"'");
 	DeleteProtocolContext(context);
+	NotifySocketFinish(fd);
 	return ;
 }
 

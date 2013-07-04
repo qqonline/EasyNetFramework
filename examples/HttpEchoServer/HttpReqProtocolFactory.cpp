@@ -53,6 +53,7 @@ DecodeResult HttpReqProtocolFactory::DecodeTextBody(ProtocolContext *context)
 	HttpRequest *req = (HttpRequest*)m_Memory->Alloc(sizeof(HttpRequest));
 	assert(req != NULL);
 
+	req->Init();
 	if(HttpParser::ParseRequest(*req, context->Buffer, context->Size) == false)
 		return DECODE_ERROR;
 	context->protocol = (void*)req;

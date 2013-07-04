@@ -26,6 +26,17 @@ public:
 	uint32_t url_len;
 	char *version;
 	uint32_t version_len;
+	bool keep_alive;
+
+	void Init()
+	{
+		req_type = REQ_TYPE_UNKNOW;
+		url = NULL;
+		url_len = 0;
+		version = NULL;
+		version_len = NULL;
+		keep_alive = true;
+	}
 };
 
 class HttpParser

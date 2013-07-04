@@ -6,6 +6,7 @@
  */
 
 #include "ThreadPool.h"
+#include <stdlib.h>
 
 namespace easynet
 {

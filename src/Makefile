@@ -1,7 +1,7 @@
 INCLUDE_DIR=/usr/include/easynet/
 LIBDIR=/usr/lib
 
-FLAGS=-g
+FLAGS=-g -D__LOG4CPLUS__
 export FLAGS
 
 OBJDIR=objects

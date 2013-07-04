@@ -47,10 +47,11 @@ typedef struct _event_info
 	event_info->timeout_ms      = to;              \
 }while(0)
 
-#define SetTimerInfo(event_info,t_ms)         do{ \
+#define SetTimerInfo(event_info,to)         do{   \
 	int64_t now;                                   \
 	GetCurTime(now);                               \
-	event_info->expire_time     = now+t_ms;        \
+	event_info->timeout_ms      = to;              \
+	event_info->expire_time     = now+to;          \
 }while(0)
 
 static int _timer_cmp(HeapItem *item0, HeapItem *item1)
@@ -272,6 +273,8 @@ bool EventServerEpoll::DelEvent(int32_t fd, EventType type)
 		if(event_info->timeout_ms >= 0)
 			m_TimerHeap.Remove((HeapItem*)event_info);
 		m_ObjectPool.Recycle((void*)event_info);
+
+		LOG_DEBUG(logger, "delete all event succ. fd="<<fd);
 		return true;
 	}
 
@@ -290,6 +293,7 @@ bool EventServerEpoll::DelEvent(int32_t fd, EventType type)
 		return false;
 	}
 
+	LOG_DEBUG(logger, "delete event succ. fd="<<fd<<", old_type="<<event_info->type<<"("<<EventStr(event_info->type)<<")"<<", new_type="<<new_type<<"("<<EventStr(new_type)<<")");
 	event_info->type = new_type;
 	return true;
 }

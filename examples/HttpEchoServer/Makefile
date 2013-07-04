@@ -1,7 +1,7 @@
 INCLUDE=-I/usr/include/easynet
 LIBS=-leasynet -lpthread -llog4cplus
 
-CFLAG=-g
+CFLAG=-g -D__LOG4CPLUS__
 
 all:bin/HttpEchoServer
 

@@ -9,6 +9,7 @@
 #define _FRAMEWORK_LISTEN_HANDLER_H_
 #include <assert.h>
 #include <sys/socket.h>
+#include <stdlib.h>
 
 #include "EventServer.h"
 #include "Logger.h"

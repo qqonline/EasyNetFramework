@@ -9,7 +9,7 @@
 
 int main(int argc, char *argv[])
 {
-	PropertyConfigurator::doConfigure("../config/log4cplus.conf");
+	INIT_LOGGER("../config/log4cplus.conf");
 
 	TemplateAppInterface application;
 	application.Start();

@@ -244,6 +244,7 @@ ProtocolContext* IAppInterface::GetSendProtocol(int32_t fd)
 
 bool IAppInterface::NotifySocketFinish(int32_t fd)
 {
+	LOG_DEBUG(logger, "notify socket finish. fd="<<fd);
 	//从EventServer中删除所有关于fd的事件
 	IEventServer *event_server = GetEventServer();
 	assert(event_server != NULL);
