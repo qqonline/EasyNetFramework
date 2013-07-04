@@ -165,6 +165,7 @@ bool EventServerEpoll::AddEvent(int32_t fd, EventType type, IEventHandler *handl
 		return true;
 	}
 
+	//已经存在
 	EventInfo *event_info = (EventInfo *)it->second;
 	//修改时钟
 	if(event_info->timeout_ms<0 && timeout_ms>=0)  //永不超时变为超时时钟
@@ -174,7 +175,7 @@ bool EventServerEpoll::AddEvent(int32_t fd, EventType type, IEventHandler *handl
 		SetTimerInfo(event_info, timeout_ms);
 		if(!m_TimerHeap.Insert((HeapItem*)event_info))
 		{
-			LOG_ERROR(logger, "change timer(add) failed. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
+			LOG_WARN(logger, "change timer(add) failed. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
 			//只是打印添加时钟失败的log而不删除事件
 			//m_FDMap.erase(fd);
 			//m_ObjectPool.Recycle((void*)event_info);
@@ -185,28 +186,28 @@ bool EventServerEpoll::AddEvent(int32_t fd, EventType type, IEventHandler *handl
 			LOG_DEBUG(logger, "change timer(add) succ. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
 		}
 	}
-	else if(event_info->timeout_ms>=0 && event_info->timeout_ms!=timeout_ms)    //超时时间不一样
+	else if(event_info->timeout_ms>=0 && event_info->timeout_ms!=timeout_ms)    //超时时间变为小于0或者变成另外一个大于0的值
 	{
 		int32_t old_timeout = event_info->timeout_ms;
 		if(!m_TimerHeap.Remove((HeapItem*)event_info))    //先删除
 		{
-			LOG_ERROR(logger, "change timer(delete) failed. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<timeout_ms);
+			LOG_WARN(logger, "change timer(delete) failed. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<timeout_ms);
 		}
 		else
 		{
 			SetTimerInfo(event_info, timeout_ms);
-			if(timeout_ms >= 0)   //timeout_ms>=0 保留时钟
+			if(timeout_ms >= 0)   //超时时间变成另外一个大于的的值
 			{
 				if(!m_TimerHeap.Insert((HeapItem*)event_info))  //再插入
 				{
-					LOG_ERROR(logger, "change timer(add after) failed. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
+					LOG_WARN(logger, "change timer(add after) failed. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
 				}
 				else
 				{
 					LOG_DEBUG(logger, "change timer(add after) succ. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
 				}
 			}
-			else  //timeout_ms<0不超时
+			else  //超时时间变成小于0(永不超时)
 			{
 				LOG_DEBUG(logger, "change timer(delete) succ. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
 			}
