@@ -24,22 +24,22 @@ namespace easynet
 
 //条件队列
 template<typename T>
-class TCondQueue
+class CondQueue
 {
 public:
 	// @param capacity   : 队列保存的元素个数
-	TCondQueue(uint32_t capacity);
-	virtual ~TCondQueue();
+	CondQueue(uint32_t capacity);
+	virtual ~CondQueue();
 
-	uint32_t GetSize();
-	uint32_t GetCapacity();
+	uint32_t Size();
+	uint32_t Capacity();
 
 	/** 添加数据到队列
 	 * @param elem    : 需要保存的数据
 	 * @param wait_ms : push到队列等待的时间,单位毫秒.小于0一直等到push到队列中;0无法push时立即返回;大于0等待的时间;
 	 * @return        : true数据成功push到队列;false数据push失败(队列满);
 	 */
-	bool Push(const T &elem, int32_t wait_ms=0);
+	bool Push(const T &elem, int32_t wait_ms=-1);
 
 	/** 从队列获取数据
 	 * @param elem    : 待返回的数据
@@ -60,7 +60,7 @@ private:
 
 template<typename T>
 inline
-TCondQueue<T>::TCondQueue(uint32_t capacity)
+CondQueue<T>::CondQueue(uint32_t capacity)
 	:m_array(NULL)
 	,m_in(0)
 	,m_out(0)
@@ -76,7 +76,7 @@ TCondQueue<T>::TCondQueue(uint32_t capacity)
 
 template<typename T>
 inline
-TCondQueue<T>::~TCondQueue()
+CondQueue<T>::~CondQueue()
 {
 	pthread_mutex_destroy(&m_lock);
 	pthread_cond_destroy(&m_noempty_cond);
@@ -99,7 +99,7 @@ TCondQueue<T>::~TCondQueue()
 
 template<typename T>
 inline
-bool TCondQueue<T>::Push(const T &elem, int32_t wait_ms/*=0*/)
+bool CondQueue<T>::Push(const T &elem, int32_t wait_ms/*=0*/)
 {
 	pthread_mutex_lock(&m_lock);
 	if((m_in+1)%m_capacity == m_out)  //已满
@@ -144,7 +144,7 @@ bool TCondQueue<T>::Push(const T &elem, int32_t wait_ms/*=0*/)
 
 template<typename T>
 inline
-bool TCondQueue<T>::Pop(T &elem, int32_t wait_ms/*=-1*/)
+bool CondQueue<T>::Pop(T &elem, int32_t wait_ms/*=-1*/)
 {
 	pthread_mutex_lock(&m_lock);
 	if(m_out == m_in)    //空
@@ -191,7 +191,7 @@ bool TCondQueue<T>::Pop(T &elem, int32_t wait_ms/*=-1*/)
 
 template<typename T>
 inline
-uint32_t TCondQueue<T>::GetSize()
+uint32_t CondQueue<T>::Size()
 {
 	uint32_t size = 0;
 	pthread_mutex_lock(&m_lock);
@@ -202,7 +202,7 @@ uint32_t TCondQueue<T>::GetSize()
 
 template<typename T>
 inline
-uint32_t TCondQueue<T>::GetCapacity()
+uint32_t CondQueue<T>::Capacity()
 {
 	uint32_t capacity = 0;
 	pthread_mutex_lock(&m_lock);
