@@ -7,7 +7,7 @@ AUTHOR=`whoami`
 Usage()
 {
 	echo
-	echo -e "easynet -i | -p | -a ClassName [-m]\n"
+	echo -e "easynet -i | -p ProtocolFactorClassName | -a ClassName [-m]\n"
 	echo "  -i : Init environment."
 	echo "  -p : Generate ProtocolFactory Class."
 	echo "  -a : Generate Application Instance Class."
@@ -82,7 +82,7 @@ function GenProtocolFactory()
 
 
 ##########################  main  ##########################
-if [ $# -lt 2 ];then
+if [ $# -lt 1 ];then
         Usage;
         exit;
 fi
