@@ -14,7 +14,7 @@ namespace easynet
 
 #define INIT_CAPACITY 128
 
-Heap::Heap(ItemCompare cmp_func)
+Heap::Heap(ItemCompare cmp_func, DestroyFunc des_func/*=NULL*/)
 {
 	assert(cmp_func != NULL);
 
@@ -24,10 +24,13 @@ Heap::Heap(ItemCompare cmp_func)
 	m_size = 0;
 	m_capacity = INIT_CAPACITY;
 	m_cmp_func = cmp_func;
+	m_des_func = des_func;
 }
 
 Heap::~Heap()
 {
+	while(m_size>0 && m_des_func!=NULL)
+		m_des_func(m_items[--m_size]);
 	free(m_items);
 	m_items = NULL;
 }
@@ -52,13 +55,20 @@ bool Heap::Remove(HeapItem *item)
 	assert(item != NULL);
 	if(item->index<0 || item->index>=m_size)
 		return false;
-	HeapItem *temp = m_items[item->index] = m_items[--m_size];
-	temp->index = item->index;
-	int32_t result = m_cmp_func(temp, item);
-	if(result == -1)
-		_ShiftUp(temp->index);
-	else if(result == 1)
-		_ShiftDown(temp->index);
+	--m_size;
+	if(item->index < m_size)  //不是最后一个元素
+	{
+		HeapItem *temp = m_items[item->index] = m_items[m_size];
+		temp->index = item->index;
+
+		int32_t result = m_cmp_func(temp, item);
+		if(result == -1)
+			_ShiftUp(temp->index);
+		else if(result == 1)
+			_ShiftDown(temp->index);
+	}
+	if(m_des_func != NULL)
+		m_des_func(m_items[item->index]);
 	return true;
 }
 
@@ -77,11 +87,10 @@ void Heap::Pop()
 }
 
 //清除堆
-void Heap::Clear(ItemDestroy des_func)
+void Heap::Clear()
 {
-	if(des_func != NULL)
-		while(m_size > 0)
-			des_func(m_items[--m_size]);
+	while(m_size>0 && m_des_func!=NULL)
+		m_des_func(m_items[--m_size]);
 	m_size = 0;
 	if(m_capacity > INIT_CAPACITY)
 	{

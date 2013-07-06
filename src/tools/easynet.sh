@@ -11,7 +11,7 @@ Usage()
 	echo "  -i : Init environment."
 	echo "  -p : Generate ProtocolFactory Class."
 	echo "  -a : Generate Application Instance Class."
-	echo "  -m : Optional. gen server main framework."
+	echo "  -m : Optional. Generate Server Main Framework."
 	echo 
 }
 

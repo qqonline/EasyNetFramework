@@ -24,12 +24,12 @@ typedef struct _heap_item_
 //如果a不大于b,则a排列在b的前面
 typedef int32_t (*ItemCompare)(HeapItem *item0, HeapItem *item1);
 //元素销毁函数指针
-typedef void (*ItemDestroy)(HeapItem *item);
+typedef void (*DestroyFunc)(HeapItem *item);
 
 class Heap
 {
 public:
-	Heap(ItemCompare cmp_func);
+	Heap(ItemCompare cmp_func, DestroyFunc des_func=NULL);
 	~Heap();
 
 	int Size();                          //堆元素个数
@@ -37,17 +37,18 @@ public:
 	bool Remove(HeapItem *item);         //删除元素.成功返回ture,失败返回false
 	HeapItem* Top();                     //获取堆顶元素
 	void Pop();                          //删除堆顶元素
-	void Clear(ItemDestroy des_func);    //清除堆(如果指定destroy函数,则用该函数处理每个heap item)
+	void Clear();    //清除堆(如果指定destroy函数,则用该函数处理每个heap item)
 	HeapItem* GetItem(int32_t index);   //获取指定的heap item
 private:
-	int32_t m_size;              //堆元素个数
-	int32_t m_capacity;          //堆当前容量
+	int32_t m_size;          //堆元素个数
+	int32_t m_capacity;      //堆当前容量
 	HeapItem **m_items;      //堆元素数组
 	ItemCompare m_cmp_func;  //堆元素比较函数
+	DestroyFunc m_des_func;  //元素销毁
 private:
 	void _ShiftUp(int32_t index);      //自底向上调整
 	void _ShiftDown(int32_t index);    //自顶向下调整
-	bool _ExpandCapacity();             //扩展堆的大小
+	bool _ExpandCapacity();            //扩展堆的大小
 };
 
 inline
