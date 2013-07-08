@@ -96,7 +96,7 @@ public:
 	//能够识别二进制/文本协议的头部大小
 	virtual uint32_t HeaderSize()=0;
 
-	//从buffer中解码头部,并获取协议体数据.成功返回true,失败返回false.
+	//从buffer中解码头部,设置协议数据类型并获取协议体数据长度.成功返回true,失败返回false.
 	virtual DecodeResult DecodeHeader(const char *buffer, DataType &type, uint32_t &body_size)=0;
 
 	//将头部数据编码写入到buffer.body_size为协议体大小
