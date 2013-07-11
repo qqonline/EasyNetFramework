@@ -153,7 +153,7 @@ MemPool::MemPool(bool thread_safe, uint32_t n, uint32_t *size_array, uint32_t *s
 
 void MemPool::InitMemSlab(bool thread_safe)
 {
-	m_MemSlabArray = (MemSlab**)malloc(m_ClassNum*sizeof(MemSlab));
+	m_MemSlabArray = (MemSlab**)malloc(m_ClassNum*sizeof(MemSlab*));
 	int i;
 	for(i=0; i<m_ClassNum; ++i)
 		m_MemSlabArray[i] = new MemSlab(thread_safe, m_SizeArray[i], m_SlabNumArray[i], m_BlockNumArray[i]);
@@ -193,7 +193,7 @@ void* MemPool::Alloc(uint32_t size)
 //回收内存
 void MemPool::Free(void *data, uint32_t size)
 {
-	if(data==NULL)
+	if(data == NULL)
 		return ;
 	uint32_t slab_id;
 	for(slab_id=0; slab_id<m_ClassNum; ++slab_id)
@@ -241,9 +241,7 @@ void* MemPool::ReAlloc(void *mem, uint32_t size, uint32_t new_size)
 	}
 	else
 	{
-		slab = malloc(new_size);
-		memcpy(slab, mem, size);
-		free(mem);
+		slab = realloc(mem, new_size);
 	}
 	return slab;
 }

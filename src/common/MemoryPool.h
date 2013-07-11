@@ -35,7 +35,7 @@ private:
 	void     *m_FreeList;
 	void     **m_SlabArray; //块数组
 	uint32_t m_Size;        //块数组大小
-	int32_t  m_BlockNum;  //最大的块数
+	int32_t  m_BlockNum;    //最大的块数
 	uint32_t m_CurBlock;    //当前空闲块下标
 	uint32_t m_CurIndex;    //当前空闲块中可用的元素下标
 
