@@ -71,13 +71,19 @@ void* MemSlab::Alloc()
 			{
 				void **temp = (void**)realloc(m_SlabArray, m_Size*2*sizeof(void*));
 				if(temp == NULL)
+				{
+					--m_CurBlock;
 					goto OUT;
+				}
 				m_SlabArray = temp;
 				m_Size *= 2;
 			}
 			void *block = calloc(m_SlabNum, m_ElemSize);    //重新分配一个块
 			if(block == NULL)
+			{
+				--m_CurBlock;
 				goto OUT;
+			}
 			m_SlabArray[m_CurBlock] = block;
 			m_CurIndex = 0;
 		}
