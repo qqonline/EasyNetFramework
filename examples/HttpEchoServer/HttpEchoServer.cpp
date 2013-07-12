@@ -157,7 +157,7 @@ void HttpEchoServer::OnSendError(int32_t fd, ProtocolContext *context)
 	//Add Your Code Here
 	LOG_ERROR(logger, "send protocol failed on fd="<<fd<<", info='"<<context->Info<<"'");
 	DeleteProtocolContext(context);
-
+	NotifySocketFinish(fd);
 	return ;
 }
 
