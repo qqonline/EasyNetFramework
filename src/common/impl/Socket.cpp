@@ -201,4 +201,26 @@ int32_t Socket::SendAll(int32_t fd, char *buffer, uint32_t send_size)
 	return total_send;
 }
 
+bool Socket::SetBlock(int32_t fd)
+{
+	int flags = fcntl(fd, F_GETFL, 0);
+	if(flags == -1)
+		return false;
+	flags &= ~O_NONBLOCK;
+	if(fcntl(fd, F_SETFL, flags) == -1)
+		return false;
+	return true;
+}
+
+bool Socket::SetNoBlock(int32_t fd)
+{
+	int flags = fcntl(fd, F_GETFL, 0);
+	if(flags == -1)
+		return false;
+	flags |= O_NONBLOCK;
+	if(fcntl(fd, F_SETFL, flags) == -1)
+		return false;
+	return true;
+}
+
 }//namespace

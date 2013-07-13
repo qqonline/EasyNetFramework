@@ -1,0 +1,78 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312" />
+<title>ByteBuffer</title>
+</head>
+<body>
+<h3>ByteBuffer</h3>
+ByteBuffer是对字符串缓冲区的一个封装，主要处理缓冲区内存的分配，同时调用者能够直接使用缓冲区，为使用者带来很大的方便。
+<br />
+<p>一、类定义<br />
+
+<table width="1200" border="1" cellspacing="0" cellpadding="2">
+<tr>
+	<td width="400">ByteBuffer()</td><td width="800">构造方法。默认初始化大小为1024字节，默认使用系统内存分配器。</td>
+</tr>
+<tr>
+<td width="400">ByteBuffer(uint32_t capacity)</td><td width="300">构造方法。初始化缓冲区大小为capacity字节，默认使用系统内存分配器。</td>
+</tr>
+<tr>
+<td width="400">ByteBuffer(IMemory *memory)</td><td width="300">构造方法。使用内存分配器memory，默认初始化缓冲区大小为1024字节。</td>
+</tr>
+<tr>
+<td width="400">ByteBuffer(uint32_t capacity, IMemory *memory)</td><td width="300">构造方法。初始化缓冲区大小capacity字节，使用memory内存分配器。</td>
+</tr>
+<tr>
+<td width="400">virtual ~ByteBuffer()</td><td width="300">虚构方法。</td>
+</tr>
+<tr>
+<td width="400">char * Buffer</td><td width="300"><em>公有</em>成员变量。可用的缓冲区，调用者可以直接使用，可以直接修改其中的内容，但不能对Buffer本身做修改；</td>
+</tr>
+<tr>
+<td width="400">uint32_t Size</td><td width="300"><em>公有</em>成员变量。Buffer中数据的大小，调用者可以直接使用并修改；</td>
+</tr>
+<tr>
+<td width="400">uint32_t Capacity</td><td width="300"><em>公有</em>成员变量。Buffer的大小，调用者可以直接使用，但不能修改；</td>
+</tr>
+<tr>
+<td width="400">bool EnLarge(uint32 size=1204)</td><td width="300"><em>公有</em>成员方法。将缓冲区的大小扩大size个字节，成功返回true，失败返回false；</td>
+</tr>
+<tr>
+<td width="400">void CheckSize(uint32 size)</td><td width="300"><em>公有</em>成员方法。保证缓冲区可用空间不小于size字节，不够调用EnLarge扩展，扩展失败会产生assert；</td>
+</tr>
+<tr>
+<td width="400">ByteBuffer(const ByteBuffer &amp buffer)</td><td width="300"><em>私有</em>拷贝构造方法。</td>
+</tr>
+<tr>
+<td width="400">void Init(uint32_t capacity, IMemory *memory)</td><td width="300"><em>私有</em>成员方法。初始化成员变量。</td>
+</tr>
+<tr>
+<td width="400">static SystemMemory m_SysMemory</td><td width="300"><em>私有</em>静态成员变量。</td>
+</tr>
+<tr>
+<td width="400">IMemory *m_Memory</td><td width="300"><em>私有</em>成员变量。</td>
+</tr>
+</table>
+
+<p>二、例子<br />
+
+  //IMemory *memory = GetMemory();<br />
+  //ByteBuffer bytebuffer(100, memory);<br />
+  ByteBuffer bytebuffer(100);    //定义一个初始化大小为100字节的bytebuffer<br />
+  
+  sprintf(bytebuffer.Buffer, "Hello, World!\n");    //往缓冲区输入数据<br />
+  bytebuffer.Size = strlen(bytebuffer.Buffer);      //设置缓冲区的数据大小<br />
+  <br />
+  <br />
+  char src[200];<br />
+  ......<br />
+  bytebuffer.CheckSize(200);    //确保缓冲区的剩余空间不小于200字节<br />
+  strncpy(bytebuffer.Buffer+bytebuffer.Size, src, 200);  //将src字符数组拷贝到bytebuffer中<br />
+  bytebuffer.Size += 200;<br />
+  <br />
+  <br />
+  fwrite(bytebuffer.Buffer, 1, bytebuffer.Size, fp);  //将bytebuffer的数据写入到文件fp中<br />
+
+</body>
+</html>

@@ -53,6 +53,9 @@ public:
 
 	static int32_t Send(int32_t fd, char *buffer, uint32_t send_size);
 	static int32_t SendAll(int32_t fd, char *buffer, uint32_t send_size);
+
+	static bool SetBlock(int32_t fd);
+	static bool SetNoBlock(int32_t fd);
 };
 
 inline

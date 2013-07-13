@@ -33,6 +33,7 @@ IAppInterface::IAppInterface()
 	,m_ProtocolFactory(NULL)
 	,m_TransHandler(NULL)
 	,m_ListenHandler(NULL)
+	,m_MessageHandler(NULL)
 	,m_RecvFd(-1)
 	,m_WriteFd(-1)
 {}
@@ -89,6 +90,12 @@ IEventHandler* IAppInterface::GetListenHander()
 	if(m_ListenHandler == NULL)
 		m_ListenHandler = new ListenHandler(this);
 	return m_ListenHandler;
+}
+IEventHandler* IAppInterface::GetMessageHandler()
+{
+	if(m_MessageHandler == NULL)
+		m_MessageHandler = new MessageHandler(this);
+	return m_MessageHandler;
 }
 
 IMemory* IAppInterface::GetMemory()
@@ -281,6 +288,14 @@ bool IAppInterface::ListenMessage()
 		return false;
 	}
 
+	if(Socket::SetNoBlock(fd[0]) == false)
+	{
+		LOG_ERROR(logger, "set message fd noblock failed. fd="<<fd[0]);
+		close(fd[0]);
+		close(fd[1]);
+	}
+	LOG_DEBUG(logger, "set message fd noblock succ. fd="<<fd[0]);
+
 	IEventServer *event_server = GetEventServer();
 	IEventHandler *event_handler = GetMessageHandler();
 	assert(event_server != NULL);
@@ -292,13 +307,22 @@ bool IAppInterface::ListenMessage()
 		close(fd[1]);
 		return false;
 	}
+
+	LOG_DEBUG(logger, "add message listen to event server succ. read_fd="<<fd[0]<<" write_fd="<<fd[1]);
+	m_RecvFd = fd[0];
+	m_WriteFd = fd[1];
+
 	return true;
 }
 
 bool IAppInterface::SendMessage(int32_t msg)
 {
 	if(write(m_WriteFd, &msg, sizeof(msg)) == -1)
+	{
+		LOG_ERROR(logger, "send msg="<<msg<<"failed. write_fd="<<m_WriteFd);
 		return false;
+	}
+	LOG_DEBUG(logger, "send msg="<<msg<<"succ. write_fd="<<m_WriteFd);
 	return true;
 }
 
