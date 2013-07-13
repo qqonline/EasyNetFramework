@@ -16,6 +16,7 @@ using std::map;
 #include "EventServer.h"
 #include "TransHandler.h"
 #include "ListenHandler.h"
+#include "MessageHandler.h"
 #include "Logger.h"
 #include "IMemory.h"
 
@@ -46,6 +47,8 @@ public:
 	virtual IEventHandler* GetTransHandler();
 	//获取服务监听handler实例
 	virtual IEventHandler* GetListenHander();
+	//获取通知消息handler实例
+	virtual IEventHandler* GetMessageHandler();
 	//内存分配器实例
 	virtual IMemory* GetMemory();
 
@@ -61,6 +64,14 @@ public:
 	virtual bool Listen(int32_t port, const char *ip=NULL, uint32_t back_log=128);
 	//监听的socket错误处理: 关闭监听的socket
 	virtual void OnListenError(int32_t fd);
+
+	//监听消息,接收别的线程分配过来通知
+	virtual bool ListenMessage();
+	//向消息管道发送通知
+	virtual bool SendMessage(int32_t msg);
+	//处理消息通知
+	virtual bool OnRecvMessage(int32_t msg);
+
 
 	//接收一个新的连接,添加到EventServer中,开始接收/发送数据
 	//  @param fd : 新接收到的链接socket.
@@ -99,7 +110,9 @@ private:
 	IProtocolFactory  *m_ProtocolFactory;
 	TransHandler      *m_TransHandler;
 	ListenHandler     *m_ListenHandler;
-
+	MessageHandler     *m_MessageHandler;
+	int32_t           m_RecvFd;
+	int32_t           m_WriteFd;
 private:
 	DECL_LOGGER(logger);
 //////////////////////////////////////////////////////////////////

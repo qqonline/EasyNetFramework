@@ -33,6 +33,8 @@ IAppInterface::IAppInterface()
 	,m_ProtocolFactory(NULL)
 	,m_TransHandler(NULL)
 	,m_ListenHandler(NULL)
+	,m_RecvFd(-1)
+	,m_WriteFd(-1)
 {}
 
 IAppInterface::~IAppInterface()
@@ -45,6 +47,13 @@ IAppInterface::~IAppInterface()
 		delete m_TransHandler;
 	if(m_ListenHandler != NULL)
 		delete m_ListenHandler;
+	if(m_MessageHandler != NULL)
+		delete m_MessageHandler;
+
+	if(m_RecvFd > 0)
+		close(m_RecvFd);
+	if(m_WriteFd > 0)
+		close(m_RecvFd);
 }
 
 //获取EventServer的实例
@@ -259,6 +268,49 @@ bool IAppInterface::NotifySocketFinish(int32_t fd)
 	assert(trans_handler != NULL);
 	trans_handler->OnEventError(fd, 0, ECODE_ACTIVE_CLOSE);
 	return true;
+}
+
+bool IAppInterface::ListenMessage()
+{
+	//创建sock pair
+	int32_t fd[2];
+	int32_t ret = socketpair(AF_UNIX, SOCK_STREAM, 0, fd);
+	if(ret == -1)
+	{
+		LOG_ERROR(logger, "create socket pair failed. errno="<<errno<<"("<<strerror(errno)<<")");
+		return false;
+	}
+
+	IEventServer *event_server = GetEventServer();
+	IEventHandler *event_handler = GetMessageHandler();
+	assert(event_server != NULL);
+	assert(event_handler != NULL);
+	if(!event_server->SetEvent(fd[0], ET_PER_RD, event_handler, -1))
+	{
+		LOG_ERROR(logger, "add persist read event to event_server failed. fd="<<fd[0]);
+		close(fd[0]);
+		close(fd[1]);
+		return false;
+	}
+	return true;
+}
+
+bool IAppInterface::SendMessage(int32_t msg)
+{
+	if(write(m_WriteFd, &msg, sizeof(msg)) == -1)
+		return false;
+	return true;
+}
+
+//处理消息通知
+bool IAppInterface::OnRecvMessage(int32_t msg)
+{
+	LOG_DEBUG(logger, "recv message. msg="<<msg);
+	//默认收到的是fd,添加到EventSever
+	if(msg > 0)
+		return AcceptNewConnect(msg);
+	else
+		return true;
 }
 
 }//namespace
