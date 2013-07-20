@@ -122,6 +122,8 @@ bool HttpEchoServer::OnReceiveProtocol(int32_t fd, ProtocolContext *context, boo
 					char *temp = byte_buffer->Buffer+byte_buffer->Size;
 					uint32_t read_size = fread(temp, 1, stat_buf.st_size, fp);
 					byte_buffer->Size += read_size;
+
+					fclose(fp);
 				}
 			}
 		}
