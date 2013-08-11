@@ -26,17 +26,94 @@ typedef struct _kv_item_
 	uint8_t type;
 	union
 	{
-		int32_t value_i32;
-		int64_t value_i64;
-		uint32_t length;
+		int8_t   value_i8;
+		int16_t  value_i16;
+		int32_t  value_i32;
+		int64_t  value_i64;
+		uint32_t value_len;
 	}value;
 	char *value_bytes;
 }KVItem;
 
+#define KV_INVALID_POS -1
+typedef uint32_t KVItemPos;
 typedef map<uint16_t, KVItem> KVItemMap;
 
 class KVData
 {
+public:
+	////////////////////////////////////////////////////////////////////
+	//// 打包                                                       ////
+	////   将key-value值写入buffer中                                ////
+	////   net_trans为true时会调用htons等函数进行转换               ////
+	////   值对占用的字节数:头部大小和值占用字节数                  ////
+	////   调用者需要保存buffer有足够空间                           ////
+	////////////////////////////////////////////////////////////////////
+
+	//存放数据需要占用的字节数
+	static uint32_t SizeInt(int8_t);
+	static uint32_t SizeInt(uint8_t);
+	static uint32_t SizeInt(int16_t);
+	static uint32_t SizeInt(uint16_t);
+	static uint32_t SizeInt(int32_t);
+	static uint32_t SizeInt(uint32_t);
+	static uint32_t SizeInt(int64_t);
+	static uint32_t SizeInt(uint64_t);
+	static uint32_t SizeBytes(uint32_t len);
+
+	//设置key-value值对
+	//返回值:值对占用的字节数
+	static uint32_t SetValue(char *buffer, uint16_t key, int8_t   value, bool net_trans=false);
+	static uint32_t SetValue(char *buffer, uint16_t key, uint8_t  value, bool net_trans=false);
+	static uint32_t SetValue(char *buffer, uint16_t key, int16_t  value, bool net_trans=false);
+	static uint32_t SetValue(char *buffer, uint16_t key, uint16_t value, bool net_trans=false);
+	static uint32_t SetValue(char *buffer, uint16_t key, int32_t  value, bool net_trans=false);
+	static uint32_t SetValue(char *buffer, uint16_t key, uint32_t value, bool net_trans=false);
+	static uint32_t SetValue(char *buffer, uint16_t key, int64_t  value, bool net_trans=false);
+	static uint32_t SetValue(char *buffer, uint16_t key, uint64_t value, bool net_trans=false);
+	static uint32_t SetValue(char *buffer, uint16_t key, const string &str, bool net_trans=false);
+	static uint32_t SetValue(char *buffer, uint16_t key, const char *c_str, bool net_trans=false);  //包含'\0'
+	static uint32_t SetValue(char *buffer, uint16_t key, const char *data, uint32_t len, bool net_trans=false);
+
+	//反序列化,成功返回true,失败返回false
+	static bool UnSerialize(KVItemMap &item_map, const char *buffer, uint32_t size, bool net_trans=false);
+
+	//获取key对应的值,成功返回true,失败返回false
+	static bool GetValue(KVItemMap &item_map, uint16_t key, int8_t   &value);
+	static bool GetValue(KVItemMap &item_map, uint16_t key, uint8_t  &value);
+	static bool GetValue(KVItemMap &item_map, uint16_t key, int16_t  &value);
+	static bool GetValue(KVItemMap &item_map, uint16_t key, uint16_t &value);
+	static bool GetValue(KVItemMap &item_map, uint16_t key, int32_t  &value);
+	static bool GetValue(KVItemMap &item_map, uint16_t key, uint32_t &value);
+	static bool GetValue(KVItemMap &item_map, uint16_t key, int64_t  &value);
+	static bool GetValue(KVItemMap &item_map, uint16_t key, uint64_t &value);
+
+	static bool GetValue(char *buffer, uint16_t key, char *&data, uint32_t &len);
+	static bool GetValue(char *buffer, uint16_t key, string &str);
+
+public:
+	KVData():m_NetTrans(false), m_Size(0){}
+	KVData(bool net_trans):m_NetTrans(net_trans), m_Size(0){}
+
+	void Clear();    //清空数据
+	uint32_t Size();  //保存值对所需要的字节数
+
+	//序列化
+	//  将值对保存到buffer中,buffer的大小不能小于Size();
+	//  返回值:返回序列化后数据大小,和Size()的值应该相等;
+	uint32_t Serialize(char *buffer);
+
+	void SetValue(uint16_t key, int8_t   value);
+	void SetValue(uint16_t key, uint8_t  value);
+	void SetValue(uint16_t key, int16_t  value);
+	void SetValue(uint16_t key, uint16_t value);
+	void SetValue(uint16_t key, int32_t  value);
+	void SetValue(uint16_t key, uint32_t value);
+	void SetValue(uint16_t key, int64_t  value);
+	void SetValue(uint16_t key, uint64_t value);
+	void SetValue(uint16_t key, const string &str);
+	void SetValue(uint16_t key, const char *c_str);  //包含'\0'
+	void SetValue(uint16_t key, const char *data, uint32_t len);
 public:
 	//////////////////////////////////////////////////////////////////////
 	////                             打包                             ////
@@ -45,7 +122,9 @@ public:
 	//////////////////////////////////////////////////////////////////////
 	//将数据写入buffer,并设置buffer为下一次写入的地址(需要保证buffer足够大)
 	static void SetInt32(uint16_t key, int32_t value, char *&buffer, bool net_trans);
+	static void SetInt32(uint16_t key, uint32_t value, char *&buffer, bool net_trans);
 	static void SetInt64(uint16_t key, int64_t value, char *&buffer, bool net_trans);
+	static void SetInt64(uint16_t key, uint64_t value, char *&buffer, bool net_trans);
 	static void SetBytes(uint16_t key, const string &str, char *&buffer, bool net_trans);
 	static void SetBytes(uint16_t key, const char *data, uint32_t size, char *&buffer, bool net_trans);
 
@@ -61,7 +140,9 @@ public:
 
 	//将数据写入bytebuffer,并设置bytebuffer的大小,下次从bytebuffer的数据后面写入
 	static void SetInt32(uint16_t key, int32_t value, ByteBuffer *buffer, bool net_trans);
+	static void SetInt32(uint16_t key, uint32_t value, ByteBuffer *buffer, bool net_trans);
 	static void SetInt64(uint16_t key, int64_t value, ByteBuffer *buffer, bool net_trans);
+	static void SetInt64(uint16_t key, uint64_t value, ByteBuffer *buffer, bool net_trans);
 	static void SetBytes(uint16_t key, const string &str, ByteBuffer *buffer, bool net_trans);
 	static void SetBytes(uint16_t key, const char *data, uint32_t size, ByteBuffer *buffer, bool net_trans);
 
@@ -80,7 +161,9 @@ public:
 	static bool UnPack(KVItemMap &item_map, const char *buffer, uint32_t size, bool net_trans);
 	//从item-map中获取key对应的value.必需在Unpack成功之后才能调用GetValue方法.
 	static bool GetInt32(KVItemMap &item_map, uint16_t key, int32_t &value);
+	static bool GetInt32(KVItemMap &item_map, uint16_t key, uint32_t &value);
 	static bool GetInt64(KVItemMap &item_map, uint16_t key, int64_t &value);
+	static bool GetInt64(KVItemMap &item_map, uint16_t key, uint64_t &value);
 	static bool GetBytes(KVItemMap &item_map, uint16_t key, string &str);
 	static bool GetBytes(KVItemMap &item_map, uint16_t key, char *&data, uint32_t &size);
 
@@ -97,7 +180,9 @@ public:
 	void AttachWriteBuffer(char *buffer, bool net_trans);
 
 	void SetInt32(uint16_t key, int32_t value);
+	void SetInt32(uint16_t key, uint32_t value);
 	void SetInt64(uint16_t key, int64_t value);
+	void SetInt64(uint16_t key, uint64_t value);
 	void SetBytes(uint16_t key, const string &str);
 	void SetBytes(uint16_t key, const char *data, uint32_t size);
 
@@ -117,7 +202,9 @@ public:
 	bool UnPack(const char *buffer, uint32_t size, bool net_trans);
 	//从item-map中获取key对应的value.必需在Unpack成功之后才能调用GetValue方法.
 	bool GetInt32(uint16_t key, int32_t &value);
+	bool GetInt32(uint16_t key, uint32_t &value);
 	bool GetInt64(uint16_t key, int64_t &value);
+	bool GetInt64(uint16_t key, uint64_t &value);
 	bool GetBytes(uint16_t key, string &str);
 	bool GetBytes(uint16_t key, char *&data, uint32_t &size);
 private:
@@ -126,6 +213,7 @@ private:
 	char *m_WriteBuffer;
 
 	KVItemMap m_ItemMap;
+	uint32_t m_Size;
 };
 
 inline
@@ -155,6 +243,12 @@ void KVData::SetInt32(uint16_t key, int32_t value)
 }
 
 inline
+void KVData::SetInt32(uint16_t key, uint32_t value)
+{
+	SetInt32(key, (int32_t)value);
+}
+
+inline
 void KVData::SetInt64(uint16_t key, int64_t value)
 {
 	assert(m_WriteBuffer!=NULL || m_WriteByteBuffer!=NULL);
@@ -162,6 +256,12 @@ void KVData::SetInt64(uint16_t key, int64_t value)
 		SetInt64(key, value, m_WriteBuffer, m_NetTrans);
 	else
 		SetInt64(key, value, m_WriteByteBuffer, m_NetTrans);
+}
+
+inline
+void KVData::SetInt64(uint16_t key, uint64_t value)
+{
+	SetInt64(key, (int64_t)value);
 }
 
 inline
@@ -217,7 +317,19 @@ bool KVData::GetInt32(uint16_t key, int32_t &value)
 }
 
 inline
+bool KVData::GetInt32(uint16_t key, uint32_t &value)
+{
+	return GetInt32(m_ItemMap, key, value);
+}
+
+inline
 bool KVData::GetInt64(uint16_t key, int64_t &value)
+{
+	return GetInt64(m_ItemMap, key, value);
+}
+
+inline
+bool KVData::GetInt64(uint16_t key, uint64_t &value)
 {
 	return GetInt64(m_ItemMap, key, value);
 }
