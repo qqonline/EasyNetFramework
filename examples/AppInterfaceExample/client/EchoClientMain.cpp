@@ -24,24 +24,24 @@ int main()
 
 	KVDataProtocolFactory protocol_factory;
 	ByteBuffer bytebuffer;
-	KVData kvdata;
+	KVData kvdata(true);
 
 	//写协议头数据
 	if(bytebuffer.Capacity < protocol_factory.HeaderSize())
 		bytebuffer.Enlarge(protocol_factory.HeaderSize());
-	//protocol_factory.EncodeHeader(bytebuffer.m_Buffer, 0);    //body_size未知,后面再写
+	//预留头部
 	bytebuffer.Size = protocol_factory.HeaderSize();
 
 	int32_t protocol_client = 0;
 	int32_t client_id = 0;
 	const char* client_string = "I'm a Client.";
 
-	kvdata.AttachWriteBuffer(&bytebuffer, true);
-	kvdata.SetInt32(Index_ProtocolType, protocol_client);
-	kvdata.SetInt32(Index_ClientID, client_id);
-	kvdata.SetBytes(Index_ClientString, client_string, strlen(client_string)+1);
+	kvdata.SetValue(Index_ProtocolType, protocol_client);
+	kvdata.SetValue(Index_ClientID, client_id);
+	kvdata.SetValue(Index_ClientString, client_string);
+	uint32_t body_size = kvdata.Serialize(bytebuffer.Buffer+bytebuffer.Size);
+	bytebuffer.Size += body_size;
 
-	uint32_t body_size = bytebuffer.Size-protocol_factory.HeaderSize();
 	protocol_factory.EncodeHeader(bytebuffer.Buffer, body_size);
 
 	if(Socket::SendAll(fd, bytebuffer.Buffer, bytebuffer.Size) == -1)
@@ -83,21 +83,21 @@ int main()
 	}
 
 	//解码协议体
-	if(kvdata.UnPack(bytebuffer.Buffer+header_size, body_size, true) == false)
+	if(kvdata.UnSerialize(bytebuffer.Buffer+header_size, body_size) == false)
 	{
-		printf("KVData unpack failed.\n");
+		printf("KVData UnSerialize failed.\n");
 		return -1;
 	}
 
 	int32_t protocol_server;
-	kvdata.GetInt32(Index_ProtocolType, protocol_server);
+	kvdata.GetValue(Index_ProtocolType, protocol_server);
 	if(protocol_server == 1)
 	{
 		int32_t server_id = -1;
 		char* server_string = 0;
 		uint32_t size = 0;
-		kvdata.GetInt32(Index_ServerID, server_id);
-		kvdata.GetBytes(Index_ServerString, server_string, size);
+		kvdata.GetValue(Index_ServerID, server_id);
+		kvdata.GetValue(Index_ServerString, server_string, size);
 		printf("server_id=%d, server_string=%s\n", server_id, server_string);
 	}
 	else

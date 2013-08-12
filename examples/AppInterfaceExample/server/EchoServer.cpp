@@ -59,7 +59,7 @@ bool EchoServer::OnReceiveProtocol(int32_t fd, ProtocolContext *context, bool &d
 	//Add Your Code Here
 	KVData *kvdata = (KVData*)context->protocol;
 	int32_t protocol_type;
-	if(!kvdata->GetInt32(Index_ProtocolType, protocol_type))
+	if(!kvdata->GetValue(Index_ProtocolType, protocol_type))
 	{
 		LOG_ERROR(logger, "receive protocol on fd="<<fd<<". get protocol_type failed");
 		return true;
@@ -70,8 +70,8 @@ bool EchoServer::OnReceiveProtocol(int32_t fd, ProtocolContext *context, bool &d
 	{
 		int32_t client_id=-1;
 		string client_string="error info";
-		kvdata->GetInt32(Index_ClientID, client_id);
-		kvdata->GetBytes(Index_ClientString, client_string);
+		kvdata->GetValue(Index_ClientID, client_id);
+		kvdata->GetValue(Index_ClientString, client_string);
 		LOG_INFO(logger, "receive client info:client_id="<<client_id<<" client_string="<<client_string);
 
 		IProtocolFactory* protocol_factory = GetProtocolFactory();
@@ -88,13 +88,12 @@ bool EchoServer::OnReceiveProtocol(int32_t fd, ProtocolContext *context, bool &d
 		int32_t server_id = 1001;
 		const char* server_string = "I'am a server";
 
-		KVData kvdata;
-		kvdata.AttachWriteBuffer(bytebuffer, true);
-		kvdata.SetInt32(Index_ProtocolType, protocol_server);
-		kvdata.SetInt32(Index_ServerID, server_id);
-		kvdata.SetBytes(Index_ServerString, server_string, strlen(server_string)+1);
-
-		uint32_t body_size = bytebuffer->Size-header_size;
+		KVData kvdata(true);
+		kvdata.SetValue(Index_ProtocolType, protocol_server);
+		kvdata.SetValue(Index_ServerID, server_id);
+		kvdata.SetValue(Index_ServerString, server_string);
+		uint32_t body_size = kvdata.Serialize(bytebuffer->Buffer+bytebuffer->Size);
+		bytebuffer->Size += body_size;
 		protocol_factory->EncodeHeader(bytebuffer->Buffer, body_size);
 
 		send_context->Info = "ServerInfo";

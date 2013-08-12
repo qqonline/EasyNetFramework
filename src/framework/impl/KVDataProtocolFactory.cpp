@@ -66,10 +66,10 @@ DecodeResult KVDataProtocolFactory::DecodeBinBody(ProtocolContext *context)
 		mem = sys_memory.Alloc(sizeof(KVData));
 	}
 	assert(mem != NULL);
-	KVData *kvdata = new(mem) KVData;
+	KVData *kvdata = new(mem) KVData(true);
 
 	char *buffer = context->Buffer+KVDATA_HEADER_SIZE;
-	if(kvdata->UnPack(buffer, context->body_size, true) == false)
+	if(kvdata->UnSerialize(buffer, context->body_size) == false)
 	{
 		if(m_Memory != NULL)
 		{
