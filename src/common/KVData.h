@@ -161,24 +161,6 @@ private:
 	KVItemMap m_ItemMap;
 };
 
-
-//key值定义
-#define KEY0 0
-#define KEY1 1
-
-KVData kvdata(true);  //使用网络字节序
-//KVData kvdata(false);  //不使用网络字节序
-int8_t v8=8;
-int64_t v64=64;
-//设置值
-kvdata.SetValue(KEY0, v8);
-kvdata.SetValue(KEY1, v64);
-uint32_t size = kvdata.Size();
-//序列化
-char *buffer = (char*)malloc(size);
-kvdata.Serialize(buffer);
-//use buffer...
-
 }//nemespace
 #endif //_COMMON_KVDATA_H_TEMP
 
