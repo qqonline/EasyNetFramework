@@ -48,8 +48,13 @@ public:
 	KVData():m_NetTrans(false), m_Size(0){}
 	KVData(bool net_trans):m_NetTrans(net_trans), m_Size(0){}
 
-	//清空数据
-	void Clear();
+	void Clear();     //清空数据
+	uint32_t Size();  //序列化时,保存值对所需要的字节数
+
+	//序列化
+	//  将值对序列化到buffer中,buffer的大小不能小于Size()
+	//  返回值:返回序列化后数据大小,和Size()的值应该相等
+	uint32_t Serialize(char *buffer);
 
 	//设置key-value值对
 	void SetValue(uint16_t key, int8_t   value);
@@ -60,18 +65,11 @@ public:
 	void SetValue(uint16_t key, uint32_t value);
 	void SetValue(uint16_t key, int64_t  value);
 	void SetValue(uint16_t key, uint64_t value);
-	//写字符串方法
+
+	//写字符串方法. 注:只是对数据的"引用",在调用Serialize之前释放数据的内存的话会导致不可知后果(如数据错误等)
 	void SetValue(uint16_t key, const string &str);
 	void SetValue(uint16_t key, const char *c_str);  //包含'\0'
 	void SetValue(uint16_t key, const char *data, uint32_t len);
-
-	//序列化时,保存值对所需要的字节数
-	uint32_t Size();
-
-	//序列化
-	//  将值对序列化到buffer中,buffer的大小不能小于Size()
-	//  返回值:返回序列化后数据大小,和Size()的值应该相等
-	uint32_t Serialize(char *buffer);
 
 	//反序列化
 	//  成功返回true,失败返回false
@@ -87,16 +85,16 @@ public:
 	bool GetValue(uint16_t key, uint32_t &value);
 	bool GetValue(uint16_t key, int64_t  &value);
 	bool GetValue(uint16_t key, uint64_t &value);
-	bool GetValue(uint16_t key, char *&data, uint32_t &len);
+	bool GetValue(uint16_t key, char *&data, uint32_t &len);  //注:data只是指向源数据buffer的数据,并没有真正拷贝数据,在源buffer失效后不可再用.
 	bool GetValue(uint16_t key, string &str);
 public:
-////////////////////////////////////////////////////////////////////
-//// 序列化                                                     ////
-////   将key-value值写入buffer中                                ////
-////   net_trans为true时会调用htons等函数进行转换               ////
-////   值对占用的字节数:头部大小和值占用字节数                  ////
-////   调用者需要保存buffer有足够空间                           ////
-////////////////////////////////////////////////////////////////////
+	////////////////////////////////////////////////////////////////////
+	//// 序列化                                                     ////
+	////   将key-value值写入buffer中                                ////
+	////   net_trans为true时会调用htons等函数进行转换               ////
+	////   值对占用的字节数:头部大小和值占用字节数                  ////
+	////   调用者需要保存buffer有足够空间                           ////
+	////////////////////////////////////////////////////////////////////
 	//存放数据需要占用的字节数,用于调用者检查buffer是否足够
 	static uint32_t SizeInt(int8_t);
 	static uint32_t SizeInt(uint8_t);
@@ -118,11 +116,11 @@ public:
 	static uint32_t SetValue(char *buffer, uint16_t key, uint32_t value, bool net_trans=false);
 	static uint32_t SetValue(char *buffer, uint16_t key, int64_t  value, bool net_trans=false);
 	static uint32_t SetValue(char *buffer, uint16_t key, uint64_t value, bool net_trans=false);
+
 	//写字符串方法
 	static uint32_t SetValue(char *buffer, uint16_t key, const string &str, bool net_trans=false);
 	static uint32_t SetValue(char *buffer, uint16_t key, const char *c_str, bool net_trans=false);  //包含'\0'
 	static uint32_t SetValue(char *buffer, uint16_t key, const char *data, uint32_t len, bool net_trans=false);
-
 
 	//反序列化
 	//  成功返回true,失败返回false
@@ -140,9 +138,9 @@ public:
 	static bool GetValue(KVItemMap &item_map, uint16_t key, uint64_t &value);
 	static bool GetValue(KVItemMap &item_map, uint16_t key, char *&data, uint32_t &len);
 	static bool GetValue(KVItemMap &item_map, uint16_t key, string &str);
-
+public:  //高级方法
 	//以下两个方法与_写字符串方法_等效,只不过是直接使用buffer存数据,而不是从别的数据copy到buffer中
-	//在存大数据时能够减少数据copy的次数,从而提供性能.
+	//在存大数据时能够减少数据copy的次数,从而提高性能.
 	//使用前需要确保buffer有足够的空间:
 	//  1.使用SizeBytes判断写入len个字节需要的buffer大小
 	//  2.实际写入的字节数不能超过len个字节
