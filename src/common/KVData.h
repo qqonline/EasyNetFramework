@@ -71,6 +71,11 @@ public:
 	void SetValue(uint16_t key, const char *c_str);  //包含'\0'
 	void SetValue(uint16_t key, const char *data, uint32_t len);
 
+	//将kv_value数据作为sub_key的数据,然后再将sub_key的数据作为key的一部分数据,主要用来序列化数组数据或嵌套数据.
+	//  1. key下面的sub_key不能一样
+	//  2. 数据按bytes类型被序列化,反序列化时也应该按bytes类型来获取再转成KVData
+	void SetValue(uint16_t key, uint16_t sub_key, KVData *sub_kvvalue);
+
 	//反序列化
 	//  成功返回true,失败返回false
 	bool UnSerialize(const char *buffer, uint32_t size);
@@ -159,6 +164,7 @@ private:
 	bool m_NetTrans;
 	uint32_t m_Size;
 	KVItemMap m_ItemMap;
+	map<uint16_t, map<uint16_t, KVData*> > m_KVMap;
 };
 
 }//nemespace

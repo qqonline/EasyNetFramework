@@ -520,10 +520,35 @@ void KVData::SetValue(uint16_t key, const char *c_str)
 	SetValue(key, c_str, len);
 }
 
+void KVData::SetValue(uint16_t key, uint16_t sub_key, KVData *sub_kvvalue)
+{
+	assert(sub_kvvalue!=NULL && sub_kvvalue->Size()>0);
+	map<uint16_t, map<uint16_t, KVData*> >::iterator it = m_KVMap.find(key);
+	uint32_t data_size = SizeBytes(sub_kvvalue->Size());
+	if(it == m_KVMap.end())
+	{
+		map<uint16_t, KVData*> sub_map;
+		sub_map.insert(std::make_pair(sub_key, sub_kvvalue));
+		m_Size += SizeBytes(data_size);  //数据头长度+数据长度
+		return ;
+	}
+
+	//已经存在key
+	map<uint16_t, KVData*> &sub_map = it->second;
+	map<uint16_t, KVData*>::iterator sub_it = sub_map.find(sub_key);
+	assert(sub_it == sub_map.end());  //sub_key不能重复
+	sub_map.insert(std::make_pair(sub_key, sub_kvvalue));
+	m_Size += data_size;  //已经有数据头,只需要增加数据长度
+}
+
 ////////////////////////////////////
 void KVData::Clear()
 {
 	m_ItemMap.clear();
+	map<uint16_t, map<uint16_t, KVData*> >::iterator it = m_KVMap.begin();
+	for(; it!=m_KVMap.end(); ++it)
+		it->second.clear();
+	m_KVMap.clear();
 	m_Size = 0;
 }
 
@@ -561,6 +586,27 @@ uint32_t KVData::Serialize(char *buffer)
 			break;
 		}
 	}
+
+	//序列化KVData
+	map<uint16_t, map<uint16_t, KVData*> >::iterator kv_it;
+	for(kv_it=m_KVMap.begin(); kv_it!=m_KVMap.end();++kv_it)
+	{
+		map<uint16_t, KVData*> &sub_map = kv_it->second;
+		assert(sub_map.size() > 0);
+		map<uint16_t, KVData*>::iterator sub_it = sub_map.begin();
+
+		KVBuffer kv_buffer = BeginWrite(buffer, kv_it->first, m_NetTrans);
+		char *temp_buffer = kv_buffer.second;
+		uint32_t sub_size = 0;
+		for(; sub_it!=sub_map.end(); ++sub_it)
+		{
+			KVData *sub_kvvalue = sub_it->second;
+			assert(sub_kvvalue != NULL);
+			temp_buffer += sub_kvvalue->Serialize(temp_buffer);
+		}
+		buffer += EndWrite(kv_buffer, temp_buffer-kv_buffer.second);
+	}
+
 	assert(src+m_Size == buffer);
 	return m_Size;
 }
