@@ -71,10 +71,8 @@ public:
 	void SetValue(uint16_t key, const char *c_str);  //包含'\0'
 	void SetValue(uint16_t key, const char *data, uint32_t len);
 
-	//将kv_value数据作为sub_key的数据,然后再将sub_key的数据作为key的一部分数据,主要用来序列化数组数据或嵌套数据.
-	//  1. key下面的sub_key不能一样
-	//  2. 数据按bytes类型被序列化,反序列化时也应该按bytes类型来获取再转成KVData
-	void SetValue(uint16_t key, uint16_t sub_key, KVData *sub_kvvalue);
+	//将KVData序列化后的数据作为key的数据.
+	void SetValue(uint16_t key, KVData *value);
 
 	//反序列化
 	//  成功返回true,失败返回false
@@ -92,6 +90,7 @@ public:
 	bool GetValue(uint16_t key, uint64_t &value);
 	bool GetValue(uint16_t key, char *&data, uint32_t &len);  //注:data只是指向源数据buffer的数据,并没有真正拷贝数据,在源buffer失效后不可再用.
 	bool GetValue(uint16_t key, string &str);
+	bool GetValue(uint16_t key, KVData &kv_data);
 public:
 	////////////////////////////////////////////////////////////////////
 	//// 序列化                                                     ////
@@ -143,6 +142,7 @@ public:
 	static bool GetValue(KVItemMap &item_map, uint16_t key, uint64_t &value);
 	static bool GetValue(KVItemMap &item_map, uint16_t key, char *&data, uint32_t &len);
 	static bool GetValue(KVItemMap &item_map, uint16_t key, string &str);
+	static bool GetValue(KVItemMap &item_map, uint16_t key, KVData &kv_data);
 public:  //高级方法
 	//以下两个方法与_写字符串方法_等效,只不过是直接使用buffer存数据,而不是从别的数据copy到buffer中
 	//在存大数据时能够减少数据copy的次数,从而提高性能.
@@ -164,7 +164,9 @@ private:
 	bool m_NetTrans;
 	uint32_t m_Size;
 	KVItemMap m_ItemMap;
-	map<uint16_t, map<uint16_t, KVData*> > m_KVMap;
+	map<uint16_t, KVData*> m_KVMap;
+
+	static uint32_t EndWrite(KVBuffer &raw_buf, uint32_t len, uint8_t type);  //TYPE_BYTES或者TYPE_KVDATA
 };
 
 }//nemespace

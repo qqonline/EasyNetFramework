@@ -18,6 +18,7 @@ namespace easynet
 #define TYPE_INT32     2
 #define TYPE_INT64     3
 #define TYPE_BYTES     4
+#define TYPE_KVDATA    5
 
 #define KeyType(k, t)  (k<<3|t)  //key和type组合
 #define ToKey(kt)      (kt>>3)   //转成key
@@ -260,7 +261,7 @@ bool KVData::UnSerialize(KVItemMap &item_map, const char *buffer, uint32_t size,
 				item.value.value_i64 = ntohll(item.value.value_i64);
 			ptr += sizeof(int64_t);
 		}
-		else if(item.type == TYPE_BYTES)
+		else if(item.type==TYPE_BYTES || item.type==TYPE_KVDATA)
 		{
 			CHECK_TYPE_SIZE(uint32_t);
 			item.value.value_len = *(uint32_t*)ptr;
@@ -372,6 +373,13 @@ bool KVData::GetValue(KVItemMap &item_map, uint16_t key, string &str)
 	return true;
 }
 
+bool KVData::GetValue(KVItemMap &item_map, uint16_t key, KVData &kv_data)
+{
+	GET_ITEM(key, TYPE_KVDATA);
+	kv_data.Clear();
+	return kv_data.UnSerialize(item.value_bytes, item.value.value_len);
+}
+
 //开始写数据
 //  返回值:pair的second为可写数据的缓冲区
 KVBuffer KVData::BeginWrite(char *buffer, uint16_t key, bool net_trans/*=false*/)
@@ -385,16 +393,22 @@ KVBuffer KVData::BeginWrite(char *buffer, uint16_t key, bool net_trans/*=false*/
 	return raw_buf;
 }
 
+uint32_t KVData::EndWrite(KVBuffer &raw_buf, uint32_t len)
+{
+	return EndWrite(raw_buf, len, TYPE_BYTES);
+}
+
 //写数据结束
 //  buf_pair:的BeginWrite返回值
 //  len:实际写入的字节数
-uint32_t KVData::EndWrite(KVBuffer &raw_buf, uint32_t len)
+//private
+uint32_t KVData::EndWrite(KVBuffer &raw_buf, uint32_t len, uint8_t type)
 {
 	assert(raw_buf.first!=NULL && raw_buf.second==raw_buf.first+HEADER_SIZE+sizeof(uint32_t));
 	if(len == 0)
 		return 0;
 	char *buffer = (char*)raw_buf.first;
-	uint16_t key_type = KeyType(raw_buf.key, TYPE_BYTES);
+	uint16_t key_type = KeyType(raw_buf.key, type);
 	uint32_t temp_size = len;
 	if(raw_buf.net_trans)
 	{
@@ -406,7 +420,6 @@ uint32_t KVData::EndWrite(KVBuffer &raw_buf, uint32_t len)
 	*(uint32_t*)buffer = temp_size; //len
 	return SIZE_BYTES(len);
 }
-
 /////////////////////////////////// end static method ///////////////////////////////////
 
 #define SAVE_ITEM(item) KVItemMap::iterator it = m_ItemMap.find(key); \
@@ -520,34 +533,23 @@ void KVData::SetValue(uint16_t key, const char *c_str)
 	SetValue(key, c_str, len);
 }
 
-void KVData::SetValue(uint16_t key, uint16_t sub_key, KVData *sub_kvvalue)
+void KVData::SetValue(uint16_t key, KVData *value)
 {
-	assert(sub_kvvalue!=NULL && sub_kvvalue->Size()>0);
-	map<uint16_t, map<uint16_t, KVData*> >::iterator it = m_KVMap.find(key);
-	uint32_t data_size = SizeBytes(sub_kvvalue->Size());
-	if(it == m_KVMap.end())
-	{
-		map<uint16_t, KVData*> sub_map;
-		sub_map.insert(std::make_pair(sub_key, sub_kvvalue));
-		m_Size += SizeBytes(data_size);  //数据头长度+数据长度
-		return ;
-	}
+	assert(value!=NULL && value->Size()>0);
+	map<uint16_t, KVData*>::iterator it = m_KVMap.find(key);
+	assert(it == m_KVMap.end());
 
-	//已经存在key
-	map<uint16_t, KVData*> &sub_map = it->second;
-	map<uint16_t, KVData*>::iterator sub_it = sub_map.find(sub_key);
-	assert(sub_it == sub_map.end());  //sub_key不能重复
-	sub_map.insert(std::make_pair(sub_key, sub_kvvalue));
-	m_Size += data_size;  //已经有数据头,只需要增加数据长度
+	uint32_t data_size = SizeBytes(value->Size());
+	std::pair<map<uint16_t, KVData*>::iterator, bool> ret;
+	ret = m_KVMap.insert(std::make_pair(key, value));
+	assert(ret.second == true);
+	m_Size += SizeBytes(data_size);  //数据头长度+数据长度
 }
 
 ////////////////////////////////////
 void KVData::Clear()
 {
 	m_ItemMap.clear();
-	map<uint16_t, map<uint16_t, KVData*> >::iterator it = m_KVMap.begin();
-	for(; it!=m_KVMap.end(); ++it)
-		it->second.clear();
 	m_KVMap.clear();
 	m_Size = 0;
 }
@@ -588,23 +590,14 @@ uint32_t KVData::Serialize(char *buffer)
 	}
 
 	//序列化KVData
-	map<uint16_t, map<uint16_t, KVData*> >::iterator kv_it;
-	for(kv_it=m_KVMap.begin(); kv_it!=m_KVMap.end();++kv_it)
+	map<uint16_t, KVData*>::iterator kv_it;
+	for(kv_it = m_KVMap.begin(); kv_it!=m_KVMap.end(); ++kv_it)
 	{
-		map<uint16_t, KVData*> &sub_map = kv_it->second;
-		assert(sub_map.size() > 0);
-		map<uint16_t, KVData*>::iterator sub_it = sub_map.begin();
-
+		KVData *kv_value = kv_it->second;
+		assert(kv_value != NULL);
 		KVBuffer kv_buffer = BeginWrite(buffer, kv_it->first, m_NetTrans);
-		char *temp_buffer = kv_buffer.second;
-		uint32_t sub_size = 0;
-		for(; sub_it!=sub_map.end(); ++sub_it)
-		{
-			KVData *sub_kvvalue = sub_it->second;
-			assert(sub_kvvalue != NULL);
-			temp_buffer += sub_kvvalue->Serialize(temp_buffer);
-		}
-		buffer += EndWrite(kv_buffer, temp_buffer-kv_buffer.second);
+		kv_value->Serialize(kv_buffer.second);
+		buffer += EndWrite(kv_buffer, kv_value->Size(), (uint8_t)TYPE_KVDATA);
 	}
 
 	assert(src+m_Size == buffer);
@@ -656,6 +649,7 @@ bool KVData::GetValue(uint16_t key, uint64_t &value)
 	return GetValue(m_ItemMap, key, value);
 }
 
+//bytes
 bool KVData::GetValue(uint16_t key, char *&data, uint32_t &len)
 {
 	return GetValue(m_ItemMap, key, data, len);
@@ -664,6 +658,12 @@ bool KVData::GetValue(uint16_t key, char *&data, uint32_t &len)
 bool KVData::GetValue(uint16_t key, string &str)
 {
 	return GetValue(m_ItemMap, key, str);
+}
+
+//kvdata
+bool KVData::GetValue(uint16_t key, KVData &kv_data)
+{
+	return GetValue(m_ItemMap, key, kv_data);
 }
 
 }//easynet
