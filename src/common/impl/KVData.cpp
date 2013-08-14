@@ -6,7 +6,8 @@
  */
 
 #include "KVData.h"
-
+#include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <netinet/in.h>
 
@@ -606,6 +607,7 @@ uint32_t KVData::Serialize(char *buffer)
 
 bool KVData::UnSerialize(const char *buffer, uint32_t size)
 {
+	m_Size = size;
 	return UnSerialize(m_ItemMap, buffer, size, m_NetTrans);
 }
 
@@ -664,6 +666,83 @@ bool KVData::GetValue(uint16_t key, string &str)
 bool KVData::GetValue(uint16_t key, KVData &kv_data)
 {
 	return GetValue(m_ItemMap, key, kv_data);
+}
+
+bool KVData::UnSerializeFromFile(const char *file)
+{
+	if(file == NULL)
+		return false;
+	FILE *fp = fopen(file, "rb");
+	if(fp == NULL)
+		return false;
+
+	uint32_t begin = ftell(fp);
+	fseek(fp, 0, SEEK_END);
+	uint32_t end = ftell(fp);
+	fseek(fp, 0, SEEK_SET);
+	uint32_t file_size = end-begin;
+	if(file_size < 8)
+	{
+		fclose(fp);
+		return false;
+	}
+	char *buffer = (char *)malloc(file_size);
+	if(fread(buffer, 1, file_size, fp) != file_size)
+	{
+		fclose(fp);
+		free(buffer);
+		return false;
+	}
+
+	if(buffer[0]!='k' || buffer[1]!='v' || buffer[2]!='d'|| (buffer[3]!=1&&buffer[3]!=0))
+	{
+		fclose(fp);
+		free(buffer);
+		return false;
+	}
+
+	m_NetTrans = (buffer[3]==0?false:true);
+	m_Size = *(uint32_t*)(buffer+4);
+	m_Size = ntohl(m_Size);
+	if(m_Size+8 > file_size)
+	{
+		fclose(fp);
+		free(buffer);
+		return false;
+	}
+	free(buffer);
+	fclose(fp);
+
+	return UnSerialize(buffer+8, m_Size);
+}
+
+bool KVData::SerializeToFile(const char *file)
+{
+	if(file == NULL)
+		return false;
+	FILE *fp = fopen(file, "wb");
+	if(fp == NULL)
+		return false;
+	char buffer[8];
+	buffer[0] = 'k';
+	buffer[1] = 'v';
+	buffer[2] = 'd';
+	buffer[3] = m_NetTrans?1:0;
+
+	uint32_t size = m_Size;
+	size = htonl(size);
+	*(uint32_t*)(buffer+4) = size;
+	fwrite(buffer, 1, 8, fp);
+
+	if(m_Size > 0)
+	{
+		char *data = (char*)malloc(m_Size);
+		Serialize(data);
+		fwrite(data, 1, m_Size, fp);
+	}
+
+	fclose(fp);
+	return 0;
 }
 
 }//easynet

@@ -48,6 +48,7 @@ public:
 	KVData():m_NetTrans(false), m_Size(0){}
 	KVData(bool net_trans):m_NetTrans(net_trans), m_Size(0){}
 	void NetTrans(bool net_trans){m_NetTrans=net_trans;}
+	bool NetTrans(){return m_NetTrans;}
 
 	void Clear();     //清空数据
 	uint32_t Size();  //序列化时,保存值对所需要的字节数
@@ -92,6 +93,9 @@ public:
 	bool GetValue(uint16_t key, char *&data, uint32_t &len);  //注:data只是指向源数据buffer的数据,并没有真正拷贝数据,在源buffer失效后不可再用.
 	bool GetValue(uint16_t key, string &str);
 	bool GetValue(uint16_t key, KVData &kv_data);
+
+	bool SerializeToFile(const char *file);
+	bool UnSerializeFromFile(const char *file);
 public:
 	////////////////////////////////////////////////////////////////////
 	//// 序列化                                                     ////
