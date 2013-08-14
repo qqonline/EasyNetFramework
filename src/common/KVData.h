@@ -47,6 +47,7 @@ class KVData
 public:
 	KVData():m_NetTrans(false), m_Size(0){}
 	KVData(bool net_trans):m_NetTrans(net_trans), m_Size(0){}
+	void NetTrans(bool net_trans){m_NetTrans=net_trans;}
 
 	void Clear();     //清空数据
 	uint32_t Size();  //序列化时,保存值对所需要的字节数
