@@ -668,52 +668,21 @@ bool KVData::GetValue(uint16_t key, KVData &kv_data)
 	return GetValue(m_ItemMap, key, kv_data);
 }
 
-bool KVData::UnSerializeFromFile(const char *file)
+bool KVData::UnSerializeFromFile(const char *file_data, uint32_t len)
 {
-	if(file == NULL)
+	if(file_data==NULL || len<8)
 		return false;
-	FILE *fp = fopen(file, "rb");
-	if(fp == NULL)
+	if(file_data[0]!='k' || file_data[1]!='v' || file_data[2]!='d'|| (file_data[3]!=1&&file_data[3]!=0))
 		return false;
 
-	uint32_t begin = ftell(fp);
-	fseek(fp, 0, SEEK_END);
-	uint32_t end = ftell(fp);
-	fseek(fp, 0, SEEK_SET);
-	uint32_t file_size = end-begin;
-	if(file_size < 8)
-	{
-		fclose(fp);
-		return false;
-	}
-	char *buffer = (char *)malloc(file_size);
-	if(fread(buffer, 1, file_size, fp) != file_size)
-	{
-		fclose(fp);
-		free(buffer);
-		return false;
-	}
-
-	if(buffer[0]!='k' || buffer[1]!='v' || buffer[2]!='d'|| (buffer[3]!=1&&buffer[3]!=0))
-	{
-		fclose(fp);
-		free(buffer);
-		return false;
-	}
-
-	m_NetTrans = (buffer[3]==0?false:true);
-	m_Size = *(uint32_t*)(buffer+4);
+	Clear();
+	m_NetTrans = (file_data[3]==0?false:true);
+	m_Size = *(uint32_t*)(file_data+4);
 	m_Size = ntohl(m_Size);
-	if(m_Size+8 > file_size)
-	{
-		fclose(fp);
-		free(buffer);
+	if(m_Size+8 > len)
 		return false;
-	}
-	free(buffer);
-	fclose(fp);
 
-	return UnSerialize(buffer+8, m_Size);
+	return UnSerialize(file_data+8, m_Size);
 }
 
 bool KVData::SerializeToFile(const char *file)

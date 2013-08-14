@@ -94,8 +94,10 @@ public:
 	bool GetValue(uint16_t key, string &str);
 	bool GetValue(uint16_t key, KVData &kv_data);
 
+	//序列化数据到文件
 	bool SerializeToFile(const char *file);
-	bool UnSerializeFromFile(const char *file);
+	//从文件读进来的数据反序列化
+	bool UnSerializeFromFile(const char *file_data, uint32_t len);
 public:
 	////////////////////////////////////////////////////////////////////
 	//// 序列化                                                     ////
