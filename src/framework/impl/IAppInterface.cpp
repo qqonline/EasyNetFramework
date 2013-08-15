@@ -103,19 +103,19 @@ IMemory* IAppInterface::GetMemory()
 	return &m_SysMemory;
 }
 
-bool IAppInterface::Listen(int32_t port, const char *ip/*=NULL*/, uint32_t back_log/*=128*/)
+int32_t IAppInterface::Listen(int32_t port, const char *ip/*=NULL*/, uint32_t back_log/*=128*/)
 {
 	int32_t fd = Socket::CreateListenSocket(port, ip, false);
 	if(fd == -1)
 	{
 		LOG_ERROR(logger, "create listen socket failed. port="<<port<<", errno="<<errno<<"("<<strerror(errno)<<").");
-		return false;
+		return -1;
 	}
 	if(Socket::Listen(fd, back_log) == false)
 	{
 		LOG_ERROR(logger, "listen failed. fd="<<fd<<", errno="<<errno<<"("<<strerror(errno)<<").");
 		Socket::Close(fd);
-		return false;
+		return -1;
 	}
 
 	IEventServer *event_server = GetEventServer();
@@ -126,9 +126,9 @@ bool IAppInterface::Listen(int32_t port, const char *ip/*=NULL*/, uint32_t back_
 	{
 		LOG_ERROR(logger, "add persist read event to event_server failed. fd="<<fd);
 		Socket::Close(fd);
-		return false;
+		return -1;
 	}
-	return true;
+	return fd;
 }
 
 void IAppInterface::OnListenError(int32_t fd)

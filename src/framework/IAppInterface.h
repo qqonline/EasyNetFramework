@@ -60,8 +60,8 @@ public:
 	//  @param port     : 需要监听的端口
 	//  @param ip       : 需要监听的本地ip(如果没有指定本地的网卡地址,使用默认的)
 	//  @param back_log : accept的队列大小
-	//  @return         : 成功返回true,失败返回false.
-	virtual bool Listen(int32_t port, const char *ip=NULL, uint32_t back_log=128);
+	//  @return         : 成功返回fd,失败返回-1.
+	virtual int32_t Listen(int32_t port, const char *ip=NULL, uint32_t back_log=128);
 	//监听的socket错误处理: 关闭监听的socket
 	virtual void OnListenError(int32_t fd);
 
