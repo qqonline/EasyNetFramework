@@ -38,6 +38,7 @@ typedef map<string, string> KeyValueMap;
 class ConfigReader
 {
 public:
+	ConfigReader(){}
 	ConfigReader(const char *config_path)
 	{
 		Init(config_path);
