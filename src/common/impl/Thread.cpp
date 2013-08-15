@@ -21,7 +21,7 @@ void* Thread::ThreadProc(void* thread)
 	return NULL;
 }
 
-bool Thread::Start()
+bool Thread::StartThread()
 {
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);

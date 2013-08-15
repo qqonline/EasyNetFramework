@@ -66,10 +66,10 @@ void test_thread()
 	condqueue.Push(&c);
 	condqueue.Push(&d);
 
-	a.Start();
-	b.Start();
-	c.Start();
-	d.Start();
+	a.StartThread();
+	b.StartThread();
+	c.StartThread();
+	d.StartThread();
 
 	while(true)
 	{

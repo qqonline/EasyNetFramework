@@ -24,9 +24,9 @@ bool HttpInterface::Start()
 	m_Index = 0;
 	Thread *thread = NULL;
 	thread = &m_HttpEchoServer[0];
-	thread->Start();
+	thread->StartThread();
 	thread = &m_HttpEchoServer[1];
-	thread->Start();
+	thread->StartThread();
 
 	IEventServer *event_server = GetEventServer();
 	event_server->RunLoop();

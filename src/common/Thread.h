@@ -32,7 +32,7 @@ public:
 	virtual ~Thread(){}
 
 	//启动线程
-	bool Start();
+	bool StartThread();
 	//等待线程结束
 	void WaitTerminate();
 
