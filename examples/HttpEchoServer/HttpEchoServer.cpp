@@ -26,7 +26,7 @@ HttpEchoServer::HttpEchoServer()
 bool HttpEchoServer::Start()
 {
 	//Add Your Code Here
-	if(Listen(8080) == false)
+	if(Listen(8080) == -1)
 	{
 		LOG_ERROR(logger, "listen on port=8080 error.");
 		return false;

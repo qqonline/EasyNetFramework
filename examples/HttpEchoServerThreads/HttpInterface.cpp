@@ -12,7 +12,7 @@ IMPL_LOGGER(HttpInterface, logger);
 
 bool HttpInterface::Start()
 {
-	if(Listen(8080) == false)
+	if(Listen(8080) == -1)
 	{
 		LOG_ERROR(logger, "listen on port=8080 error.");
 		return false;

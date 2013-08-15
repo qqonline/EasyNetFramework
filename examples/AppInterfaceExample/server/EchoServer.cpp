@@ -17,8 +17,8 @@ IMPL_LOGGER(EchoServer, logger);
 bool EchoServer::Start()
 {
 	//Add Your Code Here
-	bool ret = Listen(12300);
-	if(ret == false)
+	int32_t fd = Listen(12300);
+	if(fd == -1)
 	{
 		LOG_ERROR(logger, "listen on port=12300 failed.");
 		return false;
