@@ -46,7 +46,7 @@ public:
 	//  @param block      : 是否阻塞
 	//  @wait_time        : 等待连接的时间. -1:一直等待直到连接成功或失败, 0:不等待直接返回, 大于0:等待的毫秒数
 	//  @return           : socket fd, 失败返回-1
-	static int32_t Connect(uint32_t port, const char *ip, bool block=true, int32_t wait_ms=-1);
+	static int32_t Connect(uint32_t port, const char *ip, bool block=true, uint32_t wait_ms=-1);
 
 	static int32_t Recv(int32_t fd, char *buffer, uint32_t read_size);
 	static int32_t RecvAll(int32_t fd, char *buffer, uint32_t read_size);
