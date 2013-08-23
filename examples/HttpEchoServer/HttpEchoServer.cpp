@@ -148,6 +148,7 @@ void HttpEchoServer::OnSendSucc(int32_t fd, ProtocolContext *context)
 	{
 		IEventServer *event_server = GetEventServer();
 		IEventHandler *trans_handler = GetTransHandler();
+		LOG_DEBUG(logger, "keep_live is set. Set socket idle_timeout to 2000ms");
 		event_server->SetTimeout(fd, 20000);
 	}
 	DeleteProtocolContext(context);

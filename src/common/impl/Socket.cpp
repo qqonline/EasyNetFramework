@@ -108,7 +108,7 @@ int32_t Socket::CreateListenSocket(uint32_t port, const char *ip, bool block, bo
 	return fd;
 }
 
-int32_t Socket::Connect(uint32_t port, const char *ip, bool block/*=true*/, int32_t wait_ms/*=-1*/)
+int32_t Socket::Connect(uint32_t port, const char *ip, bool block/*=true*/, uint32_t wait_ms/*=-1*/)
 {
 	int32_t fd;
 	if((fd=CreateSocket(block)) == -1)

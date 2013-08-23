@@ -150,12 +150,12 @@ bool IAppInterface::AcceptNewConnect(int32_t fd)
 		peer_port = ntohs(peer_addr.sin_port);
 	}
 
-	LOG_DEBUG(logger, "accept new connect. new_fd="<<fd<<", peer_ip="<<peer_ip<<", peer_port="<<peer_port);
 	int32_t timeout_ms = GetSocketIdleTimeout();
 	IEventServer *event_server = GetEventServer();
 	IEventHandler* event_handler = GetTransHandler();
 	assert(event_handler != NULL);
 	assert(event_server != NULL);
+	LOG_DEBUG(logger, "accept new connect. new_fd="<<fd<<", peer_ip="<<peer_ip<<", peer_port="<<peer_port<<", set timeout_ms="<<timeout_ms);
 	if(!event_server->SetEvent(fd, ET_PER_RD, event_handler, timeout_ms))
 	{
 		LOG_ERROR(logger, "add persist read event to event_server failed when send protocol. fd="<<fd);

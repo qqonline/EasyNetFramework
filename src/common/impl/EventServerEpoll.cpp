@@ -19,7 +19,12 @@ namespace easynet
 {
 
 IMPL_LOGGER(EventServerEpoll, logger);
-#define WAIT_TIME    200    //io事件的等待时间取该值和最小超时时间的较小值
+
+//等待io事件的发生的时间:
+//时钟即将超时的时间和该值取最小值
+#define WAIT_TIME_LARGE    100
+//如果搜集到超时事件,时钟即将超时的时间和该时间取最小值
+#define WAIT_TIME_SMALL    10      //io事件的等待时间取该值和最小超时时间的较小值
 
 typedef struct _event_info
 {
@@ -306,11 +311,12 @@ bool EventServerEpoll::DispatchEvents()
 {
 	uint64_t now;
 	GetCurTime(now);
-	uint32_t wait_time = WAIT_TIME;           //io事件等待时间(单位ms)
+	uint32_t wait_time = WAIT_TIME_LARGE;           //io事件等待时间(单位ms)
 
 	list<EventInfo*> timeout_list;
 	EventInfo *event_info = NULL;
 	//收集时钟超时事件,同时设置wait_time
+	LOG_TRACE(logger, "start to collect timeout event");
 	while((event_info=(EventInfo*)m_TimerHeap.Top()) != NULL)
 	{
 		if(event_info->expire_time <= now)    //时钟超时
@@ -328,10 +334,15 @@ bool EventServerEpoll::DispatchEvents()
 			continue;
 		}
 
-		if((wait_time=event_info->expire_time-now) > WAIT_TIME)    //取最小值
-			wait_time = WAIT_TIME;
+		if((wait_time=event_info->expire_time-now) > WAIT_TIME_LARGE)    //取最小值
+			wait_time = WAIT_TIME_LARGE;
 		break;
 	}
+
+	if(timeout_list.size()>0 && wait_time>WAIT_TIME_SMALL)
+		wait_time = WAIT_TIME_SMALL;
+
+	LOG_TRACE(logger, "collect timeout event finished. count="<<timeout_list.size()<<". start to collect and process IO event. wait_time="<<wait_time);
 
 	//处理io事件
 	int32_t event_count = 0;
@@ -378,6 +389,28 @@ bool EventServerEpoll::DispatchEvents()
 				del_type |= ET_WRITE;    //直接去掉读事件
 		}
 
+		//发生读写事件并且没有错误,修改超时时间
+		if(no_error && event_info->timeout_ms>0)
+		{
+			if(!m_TimerHeap.Remove((HeapItem*)event_info))    //先删除
+			{
+				LOG_WARN(logger, "update expire_time failed(remove timer). fd="<<event_info->fd<<" timeout="<<event_info->timeout_ms<<"(ms)");
+			}
+			else
+			{
+				SetTimerInfo(event_info, event_info->timeout_ms);
+				if(!m_TimerHeap.Insert((HeapItem*)event_info))  //再插入
+				{
+					LOG_WARN(logger, "update expire_time failed(add timer). fd="<<event_info->fd<<" timeout="<<event_info->timeout_ms<<"(ms)");
+				}
+				else
+				{
+					LOG_DEBUG(logger, "update expire_time succ. fd="<<event_info->fd<<" timeout="<<event_info->timeout_ms<<"(ms)");
+				}
+			}
+		}
+
+		//移除需要删除的事件
 		if(!ET_IS_EMPTY(del_type))
 		{
 			LOG_DEBUG(logger, "delete event from event server. fd="<<event_info->fd<<", error_code="<<error_code<<"("<<ErrCodeStr(error_code)<<"), del_type="<<del_type<<"("<<EventStr(del_type)<<").");
@@ -395,6 +428,8 @@ bool EventServerEpoll::DispatchEvents()
 	else
 		LOG_TRACE(logger, "deal with IO events="<<event_count<<", cost_time="<<now1-now);
 	now = now1;
+
+	LOG_TRACE(logger, "process IO event finished. start to process timeout event.");
 
 	//处理超时事件
 	event_count = timeout_list.size();
