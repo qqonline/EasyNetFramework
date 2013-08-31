@@ -36,7 +36,7 @@ namespace easynet
 #define SIZE_INT16       HEADER_SIZE+sizeof(int16_t)
 #define SIZE_INT32       HEADER_SIZE+sizeof(int32_t)
 #define SIZE_INT64       HEADER_SIZE+sizeof(int64_t)
-#define SIZE_BYTES(len)  HEADER_SIZE+sizeof(uint32_t)+len
+#define SIZE_BYTES(len)  HEADER_SIZE+sizeof(uint32_t)+(len)
 
 #define CheckBuffer(buffer, len, esize) do{ \
 if(buffer->Size+len > buffer->Capacity) \
@@ -540,11 +540,10 @@ void KVData::SetValue(uint16_t key, KVData *value)
 	map<uint16_t, KVData*>::iterator it = m_KVMap.find(key);
 	assert(it == m_KVMap.end());
 
-	uint32_t data_size = SizeBytes(value->Size());
 	std::pair<map<uint16_t, KVData*>::iterator, bool> ret;
 	ret = m_KVMap.insert(std::make_pair(key, value));
 	assert(ret.second == true);
-	m_Size += SizeBytes(data_size);  //数据头长度+数据长度
+	m_Size += SIZE_BYTES(value->Size());  //数据头长度+数据长度
 }
 
 ////////////////////////////////////
