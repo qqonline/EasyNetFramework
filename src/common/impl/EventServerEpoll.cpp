@@ -112,7 +112,7 @@ bool EventServerEpoll::SetEvent(int32_t fd, EventType type, IEventHandler *handl
 {
 	if(fd<0 || ET_IS_EMPTY(type) || handler==NULL)
 	{
-		LOG_WARN(logger, "add_event but parameters invalid. fd="<<fd<<", type="<<type<<"("<<EventStr(type)<<").");
+		LOG_WARN(logger, "add_event but parameters invalid. fd="<<fd<<",type="<<type<<"("<<EventStr(type)<<").");
 		return false;
 	}
 
@@ -123,7 +123,7 @@ bool EventServerEpoll::SetEvent(int32_t fd, EventType type, IEventHandler *handl
 		EventInfo *event_info = (EventInfo *)m_ObjectPool.Get();
 		if(event_info == NULL)
 		{
-			LOG_ERROR(logger, "out of memory. fd="<<fd<<", type="<<type<<"("<<EventStr(type)<<").");
+			LOG_ERROR(logger, "out of memory. fd="<<fd<<",type="<<type<<"("<<EventStr(type)<<").");
 			return false;
 		}
 		SetEventInfo(event_info, fd, type, handler, timeout_ms);
@@ -132,7 +132,7 @@ bool EventServerEpoll::SetEvent(int32_t fd, EventType type, IEventHandler *handl
 		std::pair<FDMap::iterator, bool> result = m_FDMap.insert(std::make_pair(fd, (void*)event_info));
 		if(result.second == false)
 		{
-			LOG_ERROR(logger, "insert event_map failed. fd="<<fd<<", type="<<type<<"("<<EventStr(type)<<").");
+			LOG_ERROR(logger, "insert event_map failed. fd="<<fd<<",type="<<type<<"("<<EventStr(type)<<").");
 			m_ObjectPool.Recycle((void*)event_info);
 			return false;
 		}
@@ -143,7 +143,7 @@ bool EventServerEpoll::SetEvent(int32_t fd, EventType type, IEventHandler *handl
 			SetTimerInfo(event_info, timeout_ms);
 			if(!m_TimerHeap.Insert((HeapItem*)event_info))
 			{
-				LOG_ERROR(logger, "add timer failed. fd="<<fd<<", type="<<type<<"("<<EventStr(type)<<").");
+				LOG_ERROR(logger, "add timer failed. fd="<<fd<<",type="<<type<<"("<<EventStr(type)<<").");
 				m_FDMap.erase(fd);
 				m_ObjectPool.Recycle((void*)event_info);
 				return false;
@@ -160,7 +160,7 @@ bool EventServerEpoll::SetEvent(int32_t fd, EventType type, IEventHandler *handl
 			ep_event.events |= EPOLLOUT;
 		if(epoll_ctl(m_EpFd, EPOLL_CTL_ADD, fd, &ep_event) != 0)
 		{
-			LOG_ERROR(logger, "add event failed. fd="<<fd<<", type="<<type<<"("<<EventStr(type)<<")"<<", errno="<<errno<<"("<<strerror(errno)<<").");
+			LOG_ERROR(logger, "add event failed. fd="<<fd<<",type="<<type<<"("<<EventStr(type)<<")"<<",errno="<<errno<<"("<<strerror(errno)<<").");
 			m_FDMap.erase(fd);
 			if(timeout_ms >= 0)
 				m_TimerHeap.Remove((HeapItem*)event_info);
@@ -192,7 +192,7 @@ bool EventServerEpoll::SetEvent(int32_t fd, EventType type, IEventHandler *handl
 		ep_event.events |= EPOLLOUT;
 	if(epoll_ctl(m_EpFd, EPOLL_CTL_MOD, fd, &ep_event) != 0)
 	{
-		LOG_ERROR(logger, "modify event failed. fd="<<fd<<", old_type="<<event_info->type<<"("<<EventStr(event_info->type)<<")."<<", new_type="<<new_type<<"("<<EventStr(new_type)<<")"<<", errno="<<errno<<"("<<strerror(errno)<<").");
+		LOG_ERROR(logger, "modify event failed. fd="<<fd<<",old_type="<<event_info->type<<"("<<EventStr(event_info->type)<<")."<<",new_type="<<new_type<<"("<<EventStr(new_type)<<")"<<",errno="<<errno<<"("<<strerror(errno)<<").");
 		return false;
 	}
 
@@ -205,14 +205,14 @@ bool EventServerEpoll::DeleteEvent(int32_t fd, EventType type)
 {
 	if(fd<0 || ET_IS_EMPTY(type))
 	{
-		LOG_DEBUG(logger, "delete event but parameters invalid. fd="<<fd<<", type="<<type);
+		LOG_DEBUG(logger, "delete event but parameters invalid. fd="<<fd<<",type="<<type);
 		return true;
 	}
 
 	FDMap::iterator it = m_FDMap.find(fd);
 	if(it == m_FDMap.end())
 	{
-		LOG_INFO(logger, "delete event but can't found in event_map. fd="<<fd<<", type="<<type<<"("<<EventStr(type)<<")");
+		LOG_INFO(logger, "delete event but can't found in event_map. fd="<<fd<<",type="<<type<<"("<<EventStr(type)<<")");
 		return true;
 	}
 
@@ -223,7 +223,7 @@ bool EventServerEpoll::DeleteEvent(int32_t fd, EventType type)
 	{
 		if(epoll_ctl(m_EpFd, EPOLL_CTL_DEL, fd, NULL) != 0)
 		{
-			LOG_ERROR(logger, "delete event failed. fd="<<fd<<", errno=%d"<<errno<<"("<<strerror(errno)<<").");
+			LOG_ERROR(logger, "delete event failed. fd="<<fd<<",errno=%d"<<errno<<"("<<strerror(errno)<<").");
 			return false;
 		}
 		m_FDMap.erase(fd);
@@ -246,11 +246,11 @@ bool EventServerEpoll::DeleteEvent(int32_t fd, EventType type)
 		ep_event.events |= EPOLLOUT;
 	if(epoll_ctl(m_EpFd, EPOLL_CTL_MOD, fd, &ep_event) != 0)
 	{
-		LOG_ERROR(logger, "modify event failed. fd="<<fd<<", old_type="<<event_info->type<<"("<<EventStr(event_info->type)<<")"<<", new_type="<<new_type<<"("<<EventStr(new_type)<<")"<<" errno=%d"<<errno<<"("<<strerror(errno)<<").");
+		LOG_ERROR(logger, "modify event failed. fd="<<fd<<",old_type="<<event_info->type<<"("<<EventStr(event_info->type)<<")"<<",new_type="<<new_type<<"("<<EventStr(new_type)<<")"<<",errno=%d"<<errno<<"("<<strerror(errno)<<").");
 		return false;
 	}
 
-	LOG_DEBUG(logger, "delete event succ. fd="<<fd<<", old_type="<<event_info->type<<"("<<EventStr(event_info->type)<<")"<<", new_type="<<new_type<<"("<<EventStr(new_type)<<")");
+	LOG_DEBUG(logger, "delete event succ. fd="<<fd<<",old_type="<<event_info->type<<"("<<EventStr(event_info->type)<<")"<<",new_type="<<new_type<<"("<<EventStr(new_type)<<")");
 	event_info->type = new_type;
 	return true;
 }
@@ -270,11 +270,11 @@ bool EventServerEpoll::SetTimeout(int32_t fd, int32_t timeout_ms)
 		SetTimerInfo(event_info, timeout_ms);
 		if(!m_TimerHeap.Insert((HeapItem*)event_info))
 		{
-			LOG_WARN(logger, "change timer(add) failed. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
+			LOG_WARN(logger, "change timer(add) failed. fd="<<fd<<",old_timeout="<<old_timeout<<",new_timeout="<<event_info->timeout_ms);
 			return false;
 		}
 
-		LOG_DEBUG(logger, "change timer(add) succ. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
+		LOG_DEBUG(logger, "change timer(add) succ. fd="<<fd<<",old_timeout="<<old_timeout<<",new_timeout="<<event_info->timeout_ms);
 		return true;
 	}
 
@@ -283,7 +283,7 @@ bool EventServerEpoll::SetTimeout(int32_t fd, int32_t timeout_ms)
 		int32_t old_timeout = event_info->timeout_ms;
 		if(!m_TimerHeap.Remove((HeapItem*)event_info))    //先删除
 		{
-			LOG_WARN(logger, "change timer(delete) failed. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<timeout_ms);
+			LOG_WARN(logger, "change timer(delete) failed. fd="<<fd<<",old_timeout="<<old_timeout<<",new_timeout="<<timeout_ms);
 			return false;
 		}
 
@@ -292,14 +292,14 @@ bool EventServerEpoll::SetTimeout(int32_t fd, int32_t timeout_ms)
 		{
 			if(!m_TimerHeap.Insert((HeapItem*)event_info))  //再插入
 			{
-				LOG_WARN(logger, "change timer(add after) failed. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
+				LOG_WARN(logger, "change timer(add after) failed. fd="<<fd<<",old_timeout="<<old_timeout<<",new_timeout="<<event_info->timeout_ms);
 				return false;
 			}
-			LOG_DEBUG(logger, "change timer(add after) succ. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
+			LOG_DEBUG(logger, "change timer(add after) succ. fd="<<fd<<",old_timeout="<<old_timeout<<",new_timeout="<<event_info->timeout_ms);
 		}
 		else  //超时时间变成小于0(永不超时)
 		{
-			LOG_DEBUG(logger, "change timer(delete) succ. fd="<<fd<<" old_timeout="<<old_timeout<<" new_timeout="<<event_info->timeout_ms);
+			LOG_DEBUG(logger, "change timer(delete) succ. fd="<<fd<<",old_timeout="<<old_timeout<<",new_timeout="<<event_info->timeout_ms);
 		}
 	}
 
@@ -328,7 +328,7 @@ bool EventServerEpoll::DispatchEvents()
 				LOG_DEBUG(logger, "delete event because of timeout. fd="<<event_info->fd);
 				if(epoll_ctl(m_EpFd, EPOLL_CTL_DEL, event_info->fd, NULL) != 0)
 				{
-					LOG_ERROR(logger, "delete event failed. fd="<<event_info->fd<<", errno=%d"<<errno<<"("<<strerror(errno)<<").");
+					LOG_ERROR(logger, "delete event failed. fd="<<event_info->fd<<",errno=%d"<<errno<<"("<<strerror(errno)<<").");
 				}
 			}
 			continue;
@@ -342,7 +342,7 @@ bool EventServerEpoll::DispatchEvents()
 	if(timeout_list.size()>0 && wait_time>WAIT_TIME_SMALL)
 		wait_time = WAIT_TIME_SMALL;
 
-	LOG_TRACE(logger, "collect timeout event finished. count="<<timeout_list.size()<<". start to collect and process IO event. wait_time="<<wait_time);
+	LOG_TRACE(logger, "collect timeout event finished. count="<<timeout_list.size()<<".start to collect and process IO event. wait_time="<<wait_time);
 
 	//处理io事件
 	int32_t event_count = 0;
@@ -357,14 +357,14 @@ bool EventServerEpoll::DispatchEvents()
 	{
 		struct epoll_event* ep_event = ((struct epoll_event*)m_EventData)+i;
 		EventInfo *event_info = (EventInfo*)ep_event->data.ptr;
-		LOG_DEBUG(logger, "io event occur. fd="<<event_info->fd<<", epoll_event="<<ep_event->events);
+		LOG_DEBUG(logger, "io event occur. fd="<<event_info->fd<<",epoll_event="<<ep_event->events);
 
 		bool no_error = true;
 		ERROR_CODE error_code = ECODE_SUCC;
 		EventType del_type = ET_EMPTY;
 		if(ep_event->events & (EPOLLERR|EPOLLRDHUP|EPOLLHUP))    //发生错误
 		{
-			LOG_ERROR(logger, "error occur on fd="<<event_info->fd<<"errno="<<errno<<"("<<strerror(errno)<<").");
+			LOG_ERROR(logger, "error occur on fd="<<event_info->fd<<",errno="<<errno<<"("<<strerror(errno)<<").");
 			error_code = ECODE_ERROR;
 			no_error = false;
 			del_type = ET_RDWT;
@@ -394,18 +394,18 @@ bool EventServerEpoll::DispatchEvents()
 		{
 			if(!m_TimerHeap.Remove((HeapItem*)event_info))    //先删除
 			{
-				LOG_WARN(logger, "update expire_time failed(remove timer). fd="<<event_info->fd<<" timeout="<<event_info->timeout_ms<<"(ms)");
+				LOG_WARN(logger, "update expire_time failed(remove timer). fd="<<event_info->fd<<",timeout="<<event_info->timeout_ms<<"(ms)");
 			}
 			else
 			{
 				SetTimerInfo(event_info, event_info->timeout_ms);
 				if(!m_TimerHeap.Insert((HeapItem*)event_info))  //再插入
 				{
-					LOG_WARN(logger, "update expire_time failed(add timer). fd="<<event_info->fd<<" timeout="<<event_info->timeout_ms<<"(ms)");
+					LOG_WARN(logger, "update expire_time failed(add timer). fd="<<event_info->fd<<",timeout="<<event_info->timeout_ms<<"(ms)");
 				}
 				else
 				{
-					LOG_DEBUG(logger, "update expire_time succ. fd="<<event_info->fd<<" timeout="<<event_info->timeout_ms<<"(ms)");
+					LOG_DEBUG(logger, "update expire_time succ. fd="<<event_info->fd<<",timeout="<<event_info->timeout_ms<<"(ms)");
 				}
 			}
 		}
@@ -413,7 +413,7 @@ bool EventServerEpoll::DispatchEvents()
 		//移除需要删除的事件
 		if(!ET_IS_EMPTY(del_type))
 		{
-			LOG_DEBUG(logger, "delete event from event server. fd="<<event_info->fd<<", error_code="<<error_code<<"("<<ErrCodeStr(error_code)<<"), del_type="<<del_type<<"("<<EventStr(del_type)<<").");
+			LOG_DEBUG(logger, "delete event from event server. fd="<<event_info->fd<<",error_code="<<error_code<<"("<<ErrCodeStr(error_code)<<"),del_type="<<del_type<<"("<<EventStr(del_type)<<").");
 			DeleteEvent(event_info->fd, del_type);
 			if(!no_error)
 				event_info->handler->OnEventError(event_info->fd, now, error_code);
@@ -424,9 +424,9 @@ bool EventServerEpoll::DispatchEvents()
 	if(event_count > 0)
 		GetCurTime(now1);
 	if(now1-now > 500)   //超过500ms
-		LOG_WARN(logger, "deal with IO events="<<event_count<<", cost_time="<<now1-now);
+		LOG_WARN(logger, "deal with IO events="<<event_count<<",cost_time="<<now1-now);
 	else
-		LOG_TRACE(logger, "deal with IO events="<<event_count<<", cost_time="<<now1-now);
+		LOG_TRACE(logger, "deal with IO events="<<event_count<<",cost_time="<<now1-now);
 	now = now1;
 
 	LOG_TRACE(logger, "process IO event finished. start to process timeout event.");
@@ -462,9 +462,9 @@ bool EventServerEpoll::DispatchEvents()
 	if(event_count)
 		GetCurTime(now1);
 	if(now1-now > 500)   //超过500ms
-		LOG_WARN(logger, "deal with timeout events="<<event_count<<", cost_time="<<now1-now);
+		LOG_WARN(logger, "deal with timeout events="<<event_count<<",cost_time="<<now1-now);
 	else
-		LOG_TRACE(logger, "deal with timeout events="<<event_count<<", cost_time="<<now1-now);
+		LOG_TRACE(logger, "deal with timeout events="<<event_count<<",cost_time="<<now1-now);
 
 	return true;
 }
