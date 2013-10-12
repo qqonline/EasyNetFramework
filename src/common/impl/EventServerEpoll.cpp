@@ -177,7 +177,7 @@ bool EventServerEpoll::SetEvent(int32_t fd, EventType type, IEventHandler *handl
 	EventType new_type = (event_info->type|type)&ET_RDWT;
 	if(new_type == old_type)         //已经存在
 	{
-		LOG_DEBUG(logger, "new event_type is equal to the old. nothing to do.");
+		LOG_DEBUG(logger, "new event_type is equal to the old. nothing to do.fd="<<fd);
 		event_info->type |= type;    //maybe EV_PERSIST
 		return true;
 	}

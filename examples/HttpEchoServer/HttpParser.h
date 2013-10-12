@@ -34,7 +34,7 @@ public:
 		url = NULL;
 		url_len = 0;
 		version = NULL;
-		version_len = NULL;
+		version_len = 0;
 		keep_alive = true;
 	}
 };
