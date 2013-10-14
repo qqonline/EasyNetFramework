@@ -376,7 +376,9 @@ bool EventServerEpoll::DispatchEvents()
 			error_code = event_handler->OnEventRead(event_info->fd, now);
 			if(error_code==ECODE_ERROR || error_code==ECODE_PEER_CLOSE)
 				no_error = false;
-			if(!no_error || (error_code!=ECODE_PENDING && !ET_IS_PERSIST(event_info->type)))    //去掉非持续读事件,pending不去掉
+			if(!no_error)
+				del_type = ET_RDWT;
+			else if(error_code!=ECODE_PENDING && !ET_IS_PERSIST(event_info->type))    //去掉非持续读事件,pending不去掉
 				del_type |= ET_READ;
 		}
 
